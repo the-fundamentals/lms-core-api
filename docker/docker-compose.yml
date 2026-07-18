@@ -1,0 +1,36 @@
+name: LMS Core API Services
+
+services:
+  cloud:
+    container_name: localstack
+    image: localstack/localstack-pro
+    ports:
+      - "127.0.0.1:4566:4566" # Localstack gateway
+      - "127.0.0.1:4510-4559:4510-4559" # External services port range
+    environment:
+      - DEBUG=0
+      - LOCALSTACK_AUTH_TOKEN=${LOCALSTACK_AUTH_TOKEN:?missing localstack auth token}
+    volumes:
+      - "cloud-volume:/var/lib/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    restart: unless-stopped
+    networks:
+      main-network:
+  database:
+    container_name: postgresql
+    image: postgres:16.6
+    ports:
+      - "127.0.0.1:5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+    volumes:
+      - "database-volume:/var/lib/postgresql/data"
+    networks:
+      main-network:
+networks:
+  main-network:
+volumes:
+  cloud-volume:
+  database-volume:

@@ -1,0 +1,581 @@
+openapi: 3.0.3
+info:
+  title: LMS Core API
+  version: 0.0.1
+  description: Core API for the Learning Management System
+
+tags:
+  - name: Classroom
+    description: Classroom management
+  - name: ClassroomMembers
+    description: Classroom member management
+
+paths:
+  /classrooms:
+    post:
+      tags:
+        - Classroom
+      operationId: createClassroom
+      summary: Create a classroom
+      description: Creates a new classroom and returns it.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateClassroomCommand"
+      responses:
+        "201":
+          description: Classroom created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassroomResponse"
+        "400":
+          description: Invalid create command
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /classrooms/query:
+    post:
+      tags:
+        - Classroom
+      operationId: getAllClassrooms
+      summary: Get All Classrooms
+      description: Get all classrooms in the database
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClassroomFilter"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetAllClassroomsResponse"
+
+
+  /classrooms/{id}:
+    get:
+      tags:
+        - Classroom
+      operationId: getClassroomById
+      summary: Get a classroom by id
+      description: Returns a single classroom by its identifier.
+      parameters:
+        - $ref: "#/components/parameters/ClassroomId"
+      responses:
+        "200":
+          description: Classroom found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassroomResponse"
+        "404":
+          description: Classroom not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      tags:
+        - Classroom
+      operationId: updateClassroom
+      summary: Update a classroom
+      description: Updates an existing classroom and returns the updated resource.
+      parameters:
+        - $ref: "#/components/parameters/ClassroomId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateClassroomCommand"
+      responses:
+        "200":
+          description: Classroom updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassroomResponse"
+        "400":
+          description: Invalid update command
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Classroom not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /classrooms/{classroomId}/members:
+    post:
+      tags:
+        - ClassroomMembers
+      operationId: createClassroomMember
+      summary: Add a member to a classroom
+      description: Creates a classroom membership, or reactivates a previously removed member.
+      parameters:
+        - $ref: "#/components/parameters/ClassroomIdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateClassroomMemberCommand"
+      responses:
+        "201":
+          description: Classroom member created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassroomMemberResponse"
+        "400":
+          description: Invalid create command
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Classroom not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Member already active in the classroom
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /classrooms/{classroomId}/members/query:
+    post:
+      tags:
+        - ClassroomMembers
+      operationId: getAllClassroomMembers
+      summary: Get all classroom members
+      description: Query members belonging to a classroom.
+      parameters:
+        - $ref: "#/components/parameters/ClassroomIdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClassroomMemberFilter"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetAllClassroomMembersResponse"
+        "404":
+          description: Classroom not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /classrooms/{classroomId}/members/{memberId}:
+    patch:
+      tags:
+        - ClassroomMembers
+      operationId: updateClassroomMemberRole
+      summary: Update a classroom member role
+      description: Updates only the role of an active classroom member.
+      parameters:
+        - $ref: "#/components/parameters/ClassroomIdPath"
+        - $ref: "#/components/parameters/MemberId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateClassroomMemberRoleCommand"
+      responses:
+        "200":
+          description: Classroom member role updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassroomMemberResponse"
+        "400":
+          description: Invalid update command
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Classroom member not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      tags:
+        - ClassroomMembers
+      operationId: removeClassroomMember
+      summary: Remove a classroom member
+      description: Soft-deletes a classroom member by marking their status as REMOVED.
+      parameters:
+        - $ref: "#/components/parameters/ClassroomIdPath"
+        - $ref: "#/components/parameters/MemberId"
+      responses:
+        "204":
+          description: Classroom member removed
+        "404":
+          description: Classroom member not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  parameters:
+    ClassroomId:
+      name: id
+      in: path
+      required: true
+      description: Classroom identifier
+      schema:
+        type: string
+        format: uuid
+        description: Classroom UUID
+        example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+
+    ClassroomIdPath:
+      name: classroomId
+      in: path
+      required: true
+      description: Classroom identifier
+      schema:
+        type: string
+        format: uuid
+        description: Classroom UUID
+        example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+
+    MemberId:
+      name: memberId
+      in: path
+      required: true
+      description: Classroom member identifier
+      schema:
+        type: string
+        format: uuid
+        description: Classroom member UUID
+        example: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+
+  schemas:
+    ClassroomFilter:
+      type: object
+      description: Student filter
+      additionalProperties: false
+      properties:
+        page:
+          type: integer
+          default: 0
+          minimum: 0
+        size:
+          type: integer
+          default: 10
+          minimum: 1
+          maximum: 50
+        sortBy:
+          type: string
+          pattern: '^(name)$'
+        sortDirection:
+          type: string
+          enum: [ ASC, DESC ]
+          default: ASC
+        filters:
+          type: array
+          items:
+            type: object
+            required: [field, operator, value]
+            properties:
+              field:
+                type: string
+                pattern: '^(name)$'
+              operator:
+                type: string
+                pattern: '^(eq|like|gt|lt|gte|lte)$'
+              value:
+                type: string
+    ClassroomResponse:
+      type: object
+      description: Classroom resource returned by the API
+      additionalProperties: false
+      required:
+        - id
+        - name
+        - createdDate
+        - lastModifiedDate
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique classroom identifier
+          example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+        name:
+          type: string
+          description: Display name of the classroom
+          minLength: 1
+          maxLength: 255
+          example: Algebra I
+        createdDate:
+          type: string
+          format: date-time
+          description: When the classroom was created
+          example: 2026-07-14T00:00:00
+        lastModifiedDate:
+          type: string
+          format: date-time
+          description: When the classroom was last modified
+          example: 2026-07-14T00:00:00
+
+    GetAllClassroomsResponse:
+      type: array
+      description: Collection of classrooms
+      items:
+        $ref: "#/components/schemas/ClassroomResponse"
+
+    ClassroomMemberFilter:
+      type: object
+      description: Filter for querying classroom members
+      additionalProperties: false
+      properties:
+        page:
+          type: integer
+          default: 0
+          minimum: 0
+        size:
+          type: integer
+          default: 10
+          minimum: 1
+          maximum: 50
+        sortBy:
+          type: string
+          pattern: '^(accountId|role|status|createdDate)$'
+        sortDirection:
+          type: string
+          enum: [ ASC, DESC ]
+          default: ASC
+        filters:
+          type: array
+          items:
+            type: object
+            required: [field, operator, value]
+            properties:
+              field:
+                type: string
+                pattern: '^(accountId|role|status)$'
+              operator:
+                type: string
+                pattern: '^(eq|like|gt|lt|gte|lte)$'
+              value:
+                type: string
+
+    GetAllClassroomMembersResponse:
+      type: array
+      description: Collection of classroom members
+      items:
+        $ref: "#/components/schemas/ClassroomMemberResponse"
+
+    GetAllClassroomsQuery:
+      type: object
+      description: Query to retrieve all classrooms
+      additionalProperties: false
+      properties: {}
+
+    GetClassroomByIdQuery:
+      type: object
+      description: Query to retrieve a classroom by id
+      additionalProperties: false
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Classroom identifier to look up
+          example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+
+    CreateClassroomCommand:
+      type: object
+      description: Command to create a classroom
+      additionalProperties: false
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: Display name of the classroom
+          minLength: 1
+          maxLength: 255
+          example: Algebra I
+
+    UpdateClassroomCommand:
+      type: object
+      description: Command to update a classroom
+      additionalProperties: false
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: Updated display name of the classroom
+          minLength: 1
+          maxLength: 255
+          example: Algebra II
+
+    ClassroomMemberRole:
+      type: string
+      description: Role of a classroom member
+      enum:
+        - ADMIN
+        - TEACHER
+        - STUDENT
+      example: STUDENT
+
+    ClassroomMemberStatus:
+      type: string
+      description: Membership status
+      enum:
+        - ACTIVE
+        - REMOVED
+      example: ACTIVE
+
+    CreateClassroomMemberCommand:
+      type: object
+      description: Command to add a member to a classroom
+      additionalProperties: false
+      required:
+        - accountId
+        - role
+      properties:
+        accountId:
+          type: string
+          description: External account identifier for the member
+          minLength: 1
+          maxLength: 255
+          example: acc_12345
+        role:
+          $ref: "#/components/schemas/ClassroomMemberRole"
+
+    UpdateClassroomMemberRoleCommand:
+      type: object
+      description: Command to update a classroom member role
+      additionalProperties: false
+      required:
+        - role
+      properties:
+        role:
+          $ref: "#/components/schemas/ClassroomMemberRole"
+
+    ClassroomMemberResponse:
+      type: object
+      description: Classroom member resource returned by the API
+      additionalProperties: false
+      required:
+        - id
+        - classroomId
+        - accountId
+        - role
+        - status
+        - email
+        - name
+        - createdDate
+        - lastModifiedDate
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique classroom member identifier
+          example: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+        classroomId:
+          type: string
+          format: uuid
+          description: Classroom this membership belongs to
+          example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+        accountId:
+          type: string
+          description: External account identifier for the member
+          minLength: 1
+          maxLength: 255
+          example: acc_12345
+        role:
+          $ref: "#/components/schemas/ClassroomMemberRole"
+        status:
+          $ref: "#/components/schemas/ClassroomMemberStatus"
+        email:
+          type: string
+          format: email
+          description: Denormalized member email from the account/identity service
+          minLength: 1
+          maxLength: 255
+          example: alex@example.com
+        name:
+          type: string
+          description: Denormalized member display name from the account/identity service
+          minLength: 1
+          maxLength: 255
+          example: Alex Nguyen
+        createdDate:
+          type: string
+          format: date-time
+          description: When the membership was created
+          example: 2026-07-14T00:00:00
+        lastModifiedDate:
+          type: string
+          format: date-time
+          description: When the membership was last modified
+          example: 2026-07-14T00:00:00
+
+    ErrorResponse:
+      type: object
+      description: Standard API error payload
+      additionalProperties: false
+      required:
+        - code
+        - message
+        - status
+        - timestamp
+        - path
+      properties:
+        code:
+          type: string
+          description: Machine-readable error code
+          minLength: 1
+          maxLength: 64
+          example: CLASSROOM_NOT_FOUND
+        message:
+          type: string
+          description: Human-readable error message
+          minLength: 1
+          maxLength: 1024
+          example: Classroom not found
+        status:
+          type: integer
+          description: HTTP status code
+          example: 404
+        timestamp:
+          type: string
+          format: date-time
+          description: When the error occurred
+          example: 2026-07-16T00:00:00Z
+        path:
+          type: string
+          description: Request path that caused the error
+          minLength: 1
+          maxLength: 2048
+          example: /classrooms/3fa85f64-5717-4562-b3fc-2c963f66afa6
