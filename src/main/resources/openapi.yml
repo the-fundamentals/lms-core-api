@@ -9,6 +9,8 @@ tags:
     description: Classroom management
   - name: ClassroomMembers
     description: Classroom member management
+  - name: ClassroomSessions
+    description: Classroom session and attendance management
 
 paths:
   /classrooms:
@@ -240,6 +242,175 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /classrooms/{classroomId}/sessions:
+    post:
+      tags:
+        - ClassroomSessions
+      operationId: createClassroomSession
+      summary: Create a classroom session
+      description: Creates a new session for a classroom.
+      parameters:
+        - $ref: "#/components/parameters/ClassroomIdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateClassroomSessionCommand"
+      responses:
+        "201":
+          description: Classroom session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassroomSessionResponse"
+        "400":
+          description: Invalid create command
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Classroom not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /classrooms/{classroomId}/sessions/query:
+    post:
+      tags:
+        - ClassroomSessions
+      operationId: getAllClassroomSessions
+      summary: Get all classroom sessions
+      description: Query sessions belonging to a classroom.
+      parameters:
+        - $ref: "#/components/parameters/ClassroomIdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClassroomSessionFilter"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetAllClassroomSessionsResponse"
+        "404":
+          description: Classroom not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /classrooms/{classroomId}/sessions/{sessionId}:
+    get:
+      tags:
+        - ClassroomSessions
+      operationId: getClassroomSessionById
+      summary: Get a classroom session by id
+      description: Returns a single classroom session by its identifier.
+      parameters:
+        - $ref: "#/components/parameters/ClassroomIdPath"
+        - $ref: "#/components/parameters/SessionId"
+      responses:
+        "200":
+          description: Classroom session found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassroomSessionResponse"
+        "404":
+          description: Classroom session not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      tags:
+        - ClassroomSessions
+      operationId: deleteClassroomSession
+      summary: Delete a classroom session
+      description: Hard-deletes a classroom session and its attendances.
+      parameters:
+        - $ref: "#/components/parameters/ClassroomIdPath"
+        - $ref: "#/components/parameters/SessionId"
+      responses:
+        "204":
+          description: Classroom session deleted
+        "404":
+          description: Classroom session not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /classrooms/{classroomId}/sessions/{sessionId}/attendances:
+    post:
+      tags:
+        - ClassroomSessions
+      operationId: createClassroomSessionAttendance
+      summary: Create a classroom session attendance
+      description: Records attendance for a classroom member in a session.
+      parameters:
+        - $ref: "#/components/parameters/ClassroomIdPath"
+        - $ref: "#/components/parameters/SessionId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateClassroomSessionAttendanceCommand"
+      responses:
+        "201":
+          description: Classroom session attendance created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassroomSessionAttendanceResponse"
+        "400":
+          description: Invalid create command
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Classroom, session, or member not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Attendance already exists for the member in this session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /classrooms/{classroomId}/sessions/{sessionId}/attendances/{attendanceId}:
+    delete:
+      tags:
+        - ClassroomSessions
+      operationId: deleteClassroomSessionAttendance
+      summary: Delete a classroom session attendance
+      description: Hard-deletes a classroom session attendance record.
+      parameters:
+        - $ref: "#/components/parameters/ClassroomIdPath"
+        - $ref: "#/components/parameters/SessionId"
+        - $ref: "#/components/parameters/AttendanceId"
+      responses:
+        "204":
+          description: Classroom session attendance deleted
+        "404":
+          description: Classroom session attendance not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   parameters:
     ClassroomId:
@@ -274,6 +445,28 @@ components:
         format: uuid
         description: Classroom member UUID
         example: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+
+    SessionId:
+      name: sessionId
+      in: path
+      required: true
+      description: Classroom session identifier
+      schema:
+        type: string
+        format: uuid
+        description: Classroom session UUID
+        example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d
+
+    AttendanceId:
+      name: attendanceId
+      in: path
+      required: true
+      description: Classroom session attendance identifier
+      schema:
+        type: string
+        format: uuid
+        description: Classroom session attendance UUID
+        example: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
 
   schemas:
     ClassroomFilter:
@@ -540,6 +733,173 @@ components:
           format: date-time
           description: When the membership was last modified
           example: 2026-07-14T00:00:00
+
+    ClassroomSessionAttendanceStatus:
+      type: string
+      description: Attendance status for a classroom session
+      enum:
+        - ATTENDED
+        - ABSENT
+        - UNSET
+      example: UNSET
+
+    CreateClassroomSessionCommand:
+      type: object
+      description: Command to create a classroom session
+      additionalProperties: false
+      required:
+        - sessionDate
+      properties:
+        sessionDate:
+          type: string
+          format: date-time
+          description: When the classroom session takes place
+          example: 2026-07-19T09:00:00Z
+
+    ClassroomSessionFilter:
+      type: object
+      description: Filter for querying classroom sessions
+      additionalProperties: false
+      properties:
+        page:
+          type: integer
+          default: 0
+          minimum: 0
+        size:
+          type: integer
+          default: 10
+          minimum: 1
+          maximum: 50
+        sortBy:
+          type: string
+          pattern: '^(sessionDate|createdDate)$'
+        sortDirection:
+          type: string
+          enum: [ ASC, DESC ]
+          default: ASC
+        filters:
+          type: array
+          items:
+            type: object
+            required: [field, operator, value]
+            properties:
+              field:
+                type: string
+                pattern: '^(sessionDate)$'
+              operator:
+                type: string
+                pattern: '^(eq|like|gt|lt|gte|lte)$'
+              value:
+                type: string
+
+    ClassroomSessionResponse:
+      type: object
+      description: Classroom session resource returned by the API
+      additionalProperties: false
+      required:
+        - id
+        - classroomId
+        - sessionDate
+        - createdDate
+        - lastModifiedDate
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique classroom session identifier
+          example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d
+        classroomId:
+          type: string
+          format: uuid
+          description: Classroom this session belongs to
+          example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+        sessionDate:
+          type: string
+          format: date-time
+          description: When the classroom session takes place
+          example: 2026-07-19T09:00:00Z
+        createdDate:
+          type: string
+          format: date-time
+          description: When the session was created
+          example: 2026-07-14T00:00:00Z
+        lastModifiedDate:
+          type: string
+          format: date-time
+          description: When the session was last modified
+          example: 2026-07-14T00:00:00Z
+
+    GetAllClassroomSessionsResponse:
+      type: array
+      description: Collection of classroom sessions
+      items:
+        $ref: "#/components/schemas/ClassroomSessionResponse"
+
+    CreateClassroomSessionAttendanceCommand:
+      type: object
+      description: Command to create a classroom session attendance record
+      additionalProperties: false
+      required:
+        - classroomMemberId
+        - status
+      properties:
+        classroomMemberId:
+          type: string
+          format: uuid
+          description: Classroom member whose attendance is being recorded
+          example: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+        attendanceDate:
+          type: string
+          format: date-time
+          description: When attendance was recorded; defaults to now when omitted
+          example: 2026-07-19T09:05:00Z
+        status:
+          $ref: "#/components/schemas/ClassroomSessionAttendanceStatus"
+
+    ClassroomSessionAttendanceResponse:
+      type: object
+      description: Classroom session attendance resource returned by the API
+      additionalProperties: false
+      required:
+        - id
+        - sessionId
+        - classroomMemberId
+        - status
+        - createdDate
+        - lastModifiedDate
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique attendance identifier
+          example: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+        sessionId:
+          type: string
+          format: uuid
+          description: Session this attendance belongs to
+          example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d
+        classroomMemberId:
+          type: string
+          format: uuid
+          description: Classroom member whose attendance was recorded
+          example: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+        attendanceDate:
+          type: string
+          format: date-time
+          description: When attendance was recorded
+          example: 2026-07-19T09:05:00Z
+        status:
+          $ref: "#/components/schemas/ClassroomSessionAttendanceStatus"
+        createdDate:
+          type: string
+          format: date-time
+          description: When the attendance record was created
+          example: 2026-07-14T00:00:00Z
+        lastModifiedDate:
+          type: string
+          format: date-time
+          description: When the attendance record was last modified
+          example: 2026-07-14T00:00:00Z
 
     ErrorResponse:
       type: object
