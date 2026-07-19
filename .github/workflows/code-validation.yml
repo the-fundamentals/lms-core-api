@@ -1,5 +1,5 @@
 name: Code Validation Workflow
-run-name: 🔬 Code Validation for ${{ env.COMMIT_MSG }}
+run-name: 🔬 Code Validation for "${{ github.event.head_commit.message || github.sha }}"
 
 on:
   push:
@@ -20,11 +20,6 @@ jobs:
           ref: ${{ github.head_ref || github.ref }}
           fetch-depth: 0
           persist-credentials: false
-
-      - name: Setup run-name
-        run: |
-          commit_title=$(git log -1 --pretty=format:"%s")
-          echo "COMMIT_MSG=$commit_title" >> $GITHUB_ENV
 
       - name: Secret Scanning
         uses: trufflesecurity/trufflehog@27b0417c16317ca9a472a9a8092acce143b49c55 #v3.95.9
