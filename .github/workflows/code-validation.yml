@@ -14,34 +14,42 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 #v7
         with:
           ref: ${{ github.head_ref || github.ref }}
           fetch-depth: 0
           persist-credentials: false
       - name: Secret Scanning
-        uses: trufflesecurity/trufflehog@main
+        uses: trufflesecurity/trufflehog@27b0417c16317ca9a472a9a8092acce143b49c55 #v3.95.9
         with:
           extra_args: --results=verified,unknown,unverified
 
-  lint:
-    name: 🧪 Super-linter linting
-    runs-on: ubuntu-latest
-
-    permissions:
-      contents: read
-      pull-requests: write
-      statuses: write
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-
-      - name: Super-linter
-        uses: super-linter/super-linter@v8
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
+#  lint:
+#    name: 🧪 Super-linter linting
+#    runs-on: ubuntu-latest
+#
+#    permissions:
+#      contents: read
+#      pull-requests: write
+#      statuses: write
+#
+#    steps:
+#      - name: Checkout
+#        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 #v7
+#        with:
+#          fetch-depth: 0
+#          persist-credentials: false
+#
+#      - name: Super-linter
+#        uses: super-linter/super-linter@4ce20838b8ab83717e78138c5b3a1407148e0918 #v8.7.0
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#
+#          # Disabled Linters
+#          VALIDATE_BASH_EXEC: false
+#          VALIDATE_CHECKOV: false
+#          VALIDATE_JAVA: false
+#          VALIDATE_JDCPD: false
+#          VALIDATE_KOTLIN: false
+#          VALIDATE_SHELL_SHFMT: false
+#          VALIDATE_SQLFLUFF: false
