@@ -85,7 +85,8 @@ class ClassroomSessionControllerIntegrationTest {
         .thenAnswer(
             invocation -> {
               ClassroomSession incoming = invocation.getArgument(0);
-              return classroomSession(SESSION_ID, incoming.getClassroomId(), incoming.getSessionDate());
+              return classroomSession(
+                  SESSION_ID, incoming.getClassroomId(), incoming.getSessionDate());
             });
 
     CreateClassroomSessionCommand command =
@@ -153,8 +154,8 @@ class ClassroomSessionControllerIntegrationTest {
     "fails to delete a session that does not exist, DELETE, MISSING",
     "fails to delete a session that belongs to another classroom, DELETE, WRONG_CLASSROOM"
   })
-  void sessionLookup_failsWhenUnavailable(String displayName, String httpMethod, String sessionState)
-      throws Exception {
+  void sessionLookup_failsWhenUnavailable(
+      String displayName, String httpMethod, String sessionState) throws Exception {
     when(classroomSessionRepository.findById(SESSION_ID))
         .thenReturn(
             switch (sessionState) {

@@ -40,10 +40,7 @@ public final class ClassroomSessionFixtures {
   }
 
   public static ClassroomSessionAttendance classroomSessionAttendance(
-      UUID id,
-      UUID sessionId,
-      UUID classroomMemberId,
-      ClassroomSessionAttendanceStatus status) {
+      UUID id, UUID sessionId, UUID classroomMemberId, ClassroomSessionAttendanceStatus status) {
     return new ClassroomSessionAttendance()
         .setId(id)
         .setSessionId(sessionId)
