@@ -1,8 +1,15 @@
 name: build.yml
+run-name: 🏗️ Build for "${{ github.event.head_commit.message || github.sha }}"
+
 on:
   push:
     branches:
-      - '*'
+      - '**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     name: 🏢 Build
@@ -12,6 +19,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 #v7
+        with:
+          persist-credentials: false
 
       - name: Install Java
         uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 #v5.6.0
@@ -27,4 +36,5 @@ jobs:
 
       - name: Build
         run: |
+          chmod a+x ./gradlew
           ./gradlew build
