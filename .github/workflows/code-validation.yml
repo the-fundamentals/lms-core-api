@@ -1,9 +1,10 @@
 name: Code Validation Workflow
+run-name: Code Validation for ${{ github.sha }}
 
 on:
   push:
     branches:
-      - '*'
+      - '**'
 
 jobs:
   trufflehog-scan:
