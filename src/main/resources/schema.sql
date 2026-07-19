@@ -20,3 +20,27 @@ CREATE TABLE IF NOT EXISTS classroom_member (
     FOREIGN KEY (classroom_id) REFERENCES classroom(id),
     UNIQUE(classroom_id, account_id)
 );
+
+CREATE TABLE IF NOT EXISTS classroom_session (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_modified_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    session_date TIMESTAMP NOT NULL,
+    classroom_id UUID NOT NULL,
+
+    FOREIGN KEY (classroom_id) REFERENCES classroom(id)
+);
+
+CREATE TABLE IF NOT EXISTS classroom_attendance (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_modified_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    session_id UUID NOT NULL,
+    classroom_member_id UUID NOT NULL,
+    attendance_date TIMESTAMP,
+    status VARCHAR(32) NOT NULL,
+
+    FOREIGN KEY (session_id) REFERENCES classroom_session(id) ON DELETE CASCADE,
+    FOREIGN KEY (classroom_member_id) REFERENCES classroom_member(id),
+    UNIQUE(session_id, classroom_member_id)
+);

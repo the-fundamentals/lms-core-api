@@ -55,6 +55,12 @@ public class BaseJdbcRepositoryImpl<Entity, IdType>
     return operations.updateAll(entities);
   }
 
+  @Transactional
+  @Override
+  public void deleteById(@NonNull IdType id) {
+    operations.deleteById(id, entityClass);
+  }
+
   @Override
   public Optional<Entity> findById(@NonNull IdType id) {
     return Optional.ofNullable(operations.findById(id, entityClass));
