@@ -1,4 +1,5 @@
 name: Code Validation Workflow
+run-name: 🧪 Code Validation Workflow
 
 on:
   push:
