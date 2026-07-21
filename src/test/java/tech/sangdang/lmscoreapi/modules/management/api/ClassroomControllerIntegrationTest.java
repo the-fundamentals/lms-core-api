@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static tech.sangdang.lmscoreapi.helpers.SecurityTestSupport.adminJwt;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomFixtures.CLASSROOM_ID;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomFixtures.CLASSROOM_NAME;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomFixtures.classroom;
@@ -30,6 +31,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import tech.sangdang.lmscoreapi.common.exception.GlobalExceptionHandler;
 import tech.sangdang.lmscoreapi.common.querying.BaseQuery;
+import tech.sangdang.lmscoreapi.config.SecurityConfig;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomFilter;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomCommand;
 import tech.sangdang.lmscoreapi.generated.model.UpdateClassroomCommand;
@@ -44,6 +46,7 @@ import tools.jackson.databind.json.JsonMapper;
   GlobalExceptionHandler.class,
   ClassroomManagementServiceImpl.class,
   ClassroomMapperImpl.class,
+  SecurityConfig.class,
 })
 @DisplayName("Classroom management")
 class ClassroomControllerIntegrationTest {
@@ -67,9 +70,10 @@ class ClassroomControllerIntegrationTest {
 
     mockMvc
         .perform(
-            post("/classrooms")
+            post("/admin/classrooms")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(jsonMapper.writeValueAsString(command)))
+                .content(jsonMapper.writeValueAsString(command))
+                .with(adminJwt()))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.id").value(CLASSROOM_ID.toString()))
         .andExpect(jsonPath("$.name").value(CLASSROOM_NAME))
@@ -87,7 +91,7 @@ class ClassroomControllerIntegrationTest {
     when(classroomRepository.findById(CLASSROOM_ID)).thenReturn(Optional.of(classroom()));
 
     mockMvc
-        .perform(get("/classrooms/{id}", CLASSROOM_ID))
+        .perform(get("/admin/classrooms/{id}", CLASSROOM_ID).with(adminJwt()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value(CLASSROOM_ID.toString()))
         .andExpect(jsonPath("$.name").value(CLASSROOM_NAME))
@@ -106,9 +110,10 @@ class ClassroomControllerIntegrationTest {
 
     mockMvc
         .perform(
-            put("/classrooms/{id}", CLASSROOM_ID)
+            put("/admin/classrooms/{id}", CLASSROOM_ID)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(jsonMapper.writeValueAsString(command)))
+                .content(jsonMapper.writeValueAsString(command))
+                .with(adminJwt()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value(CLASSROOM_ID.toString()))
         .andExpect(jsonPath("$.name").value("Algebra II"));
@@ -128,9 +133,9 @@ class ClassroomControllerIntegrationTest {
 
     MockHttpServletRequestBuilder request =
         switch (httpMethod) {
-          case "GET" -> get("/classrooms/{id}", CLASSROOM_ID);
+          case "GET" -> get("/admin/classrooms/{id}", CLASSROOM_ID);
           case "PUT" ->
-              put("/classrooms/{id}", CLASSROOM_ID)
+              put("/admin/classrooms/{id}", CLASSROOM_ID)
                   .contentType(MediaType.APPLICATION_JSON)
                   .content(
                       jsonMapper.writeValueAsString(
@@ -139,7 +144,7 @@ class ClassroomControllerIntegrationTest {
         };
 
     mockMvc
-        .perform(request)
+        .perform(request.with(adminJwt()))
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.code").value("CLASSROOM_NOT_FOUND"))
         .andExpect(jsonPath("$.status").value(404));
@@ -156,9 +161,10 @@ class ClassroomControllerIntegrationTest {
 
     mockMvc
         .perform(
-            post("/classrooms/query")
+            post("/admin/classrooms/query")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(jsonMapper.writeValueAsString(filter)))
+                .content(jsonMapper.writeValueAsString(filter))
+                .with(adminJwt()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$").isArray())
         .andExpect(jsonPath("$.length()").value(1))

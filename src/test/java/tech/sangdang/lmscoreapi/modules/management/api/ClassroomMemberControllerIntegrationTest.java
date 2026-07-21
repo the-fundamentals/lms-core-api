@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static tech.sangdang.lmscoreapi.helpers.SecurityTestSupport.adminJwt;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomFixtures.CLASSROOM_ID;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomFixtures.classroom;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomMemberFixtures.ACCOUNT_ID;
@@ -32,6 +33,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tech.sangdang.lmscoreapi.common.exception.GlobalExceptionHandler;
+import tech.sangdang.lmscoreapi.config.SecurityConfig;
 import tech.sangdang.lmscoreapi.common.querying.BaseQuery;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomMemberFilter;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomMemberRole;
@@ -52,6 +54,7 @@ import tools.jackson.databind.json.JsonMapper;
   GlobalExceptionHandler.class,
   ClassroomMemberServiceImpl.class,
   ClassroomMemberMapperImpl.class,
+  SecurityConfig.class,
 })
 @DisplayName("Classroom member management")
 class ClassroomMemberControllerIntegrationTest {
@@ -93,9 +96,10 @@ class ClassroomMemberControllerIntegrationTest {
 
     mockMvc
         .perform(
-            post("/classrooms/{classroomId}/members", CLASSROOM_ID)
+            post("/admin/classrooms/{classroomId}/members", CLASSROOM_ID)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(jsonMapper.writeValueAsString(command)))
+                .content(jsonMapper.writeValueAsString(command))
+                .with(adminJwt()))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.id").value(MEMBER_ID.toString()))
         .andExpect(jsonPath("$.classroomId").value(CLASSROOM_ID.toString()))
@@ -146,9 +150,10 @@ class ClassroomMemberControllerIntegrationTest {
 
     mockMvc
         .perform(
-            post("/classrooms/{classroomId}/members", CLASSROOM_ID)
+            post("/admin/classrooms/{classroomId}/members", CLASSROOM_ID)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(jsonMapper.writeValueAsString(command)))
+                .content(jsonMapper.writeValueAsString(command))
+                .with(adminJwt()))
         .andExpect(status().is(httpStatus))
         .andExpect(jsonPath("$.code").value(errorCode));
 
@@ -180,9 +185,10 @@ class ClassroomMemberControllerIntegrationTest {
 
     mockMvc
         .perform(
-            post("/classrooms/{classroomId}/members", CLASSROOM_ID)
+            post("/admin/classrooms/{classroomId}/members", CLASSROOM_ID)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(jsonMapper.writeValueAsString(command)))
+                .content(jsonMapper.writeValueAsString(command))
+                .with(adminJwt()))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.id").value(MEMBER_ID.toString()))
         .andExpect(jsonPath("$.role").value("TEACHER"))
@@ -208,9 +214,10 @@ class ClassroomMemberControllerIntegrationTest {
 
     mockMvc
         .perform(
-            patch("/classrooms/{classroomId}/members/{memberId}", CLASSROOM_ID, MEMBER_ID)
+            patch("/admin/classrooms/{classroomId}/members/{memberId}", CLASSROOM_ID, MEMBER_ID)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(jsonMapper.writeValueAsString(command)))
+                .content(jsonMapper.writeValueAsString(command))
+                .with(adminJwt()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value(MEMBER_ID.toString()))
         .andExpect(jsonPath("$.role").value("ADMIN"));
@@ -229,7 +236,9 @@ class ClassroomMemberControllerIntegrationTest {
         .thenAnswer(invocation -> invocation.getArgument(0));
 
     mockMvc
-        .perform(delete("/classrooms/{classroomId}/members/{memberId}", CLASSROOM_ID, MEMBER_ID))
+        .perform(
+            delete("/admin/classrooms/{classroomId}/members/{memberId}", CLASSROOM_ID, MEMBER_ID)
+                .with(adminJwt()))
         .andExpect(status().isNoContent());
 
     ArgumentCaptor<ClassroomMember> captor = ArgumentCaptor.forClass(ClassroomMember.class);
@@ -259,7 +268,7 @@ class ClassroomMemberControllerIntegrationTest {
     var request =
         switch (httpMethod) {
           case "PATCH" ->
-              patch("/classrooms/{classroomId}/members/{memberId}", CLASSROOM_ID, MEMBER_ID)
+              patch("/admin/classrooms/{classroomId}/members/{memberId}", CLASSROOM_ID, MEMBER_ID)
                   .contentType(MediaType.APPLICATION_JSON)
                   .content(
                       jsonMapper.writeValueAsString(
@@ -267,12 +276,12 @@ class ClassroomMemberControllerIntegrationTest {
                               .role(ClassroomMemberRole.ADMIN)
                               .build()));
           case "DELETE" ->
-              delete("/classrooms/{classroomId}/members/{memberId}", CLASSROOM_ID, MEMBER_ID);
+              delete("/admin/classrooms/{classroomId}/members/{memberId}", CLASSROOM_ID, MEMBER_ID);
           default -> throw new IllegalArgumentException("Unsupported method: " + httpMethod);
         };
 
     mockMvc
-        .perform(request)
+        .perform(request.with(adminJwt()))
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.code").value("CLASSROOM_MEMBER_NOT_FOUND"));
 
@@ -290,9 +299,10 @@ class ClassroomMemberControllerIntegrationTest {
 
     mockMvc
         .perform(
-            post("/classrooms/{classroomId}/members/query", CLASSROOM_ID)
+            post("/admin/classrooms/{classroomId}/members/query", CLASSROOM_ID)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(jsonMapper.writeValueAsString(filter)))
+                .content(jsonMapper.writeValueAsString(filter))
+                .with(adminJwt()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$").isArray())
         .andExpect(jsonPath("$.length()").value(1))
@@ -318,9 +328,10 @@ class ClassroomMemberControllerIntegrationTest {
 
     mockMvc
         .perform(
-            post("/classrooms/{classroomId}/members/query", CLASSROOM_ID)
+            post("/admin/classrooms/{classroomId}/members/query", CLASSROOM_ID)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(jsonMapper.writeValueAsString(filter)))
+                .content(jsonMapper.writeValueAsString(filter))
+                .with(adminJwt()))
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.code").value("CLASSROOM_NOT_FOUND"));
 
