@@ -18,7 +18,7 @@ public class OpenApiSpecController {
 
   /**
    * Serves the OpenAPI contract so Swagger UI matches codegen. Cognito OAuth authorize/token URLs
-   * are injected from {@link CognitoProperties} (env / application-local.yml).
+   * are injected from {@link CognitoProperties} (env / application.yml).
    */
   @GetMapping(path = "/openapi.yml", produces = "application/yaml")
   public ResponseEntity<String> openApiYaml() throws IOException {
