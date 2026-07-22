@@ -15,6 +15,10 @@ tags:
     description: Admin-only classroom session and attendance management (`/admin/classrooms/.../sessions`)
 
 security:
+  - cognitoOAuth:
+      - openid
+      - email
+      - profile
   - bearerAuth: []
 
 paths:
@@ -448,11 +452,31 @@ paths:
 
 components:
   securitySchemes:
+    cognitoOAuth:
+      type: oauth2
+      description: >
+        Cognito Hosted UI (authorization code + PKCE). Click Authorize in Swagger UI to
+        open the Cognito login page. OAuth URLs are injected at runtime from
+        COGNITO_DOMAIN (or COGNITO_AUTHORIZATION_URI / COGNITO_TOKEN_URI) — see
+        application.yml under app.cognito. Client id comes from COGNITO_APP_CLIENT_ID.
+        Cognito must allowlist http://localhost:8080/swagger-ui/oauth2-redirect.html
+        (or your API origin) as a callback URL.
+      flows:
+        authorizationCode:
+          # Replaced at serve time by OpenApiSpecController from app.cognito settings.
+          authorizationUrl: __COGNITO_DOMAIN__/oauth2/authorize
+          tokenUrl: __COGNITO_DOMAIN__/oauth2/token
+          scopes:
+            openid: OpenID Connect
+            email: Email address
+            profile: User profile
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: Cognito JWT access token. Admin endpoints require the ADMIN Cognito group.
+      description: >
+        Paste a Cognito JWT access token manually (alternative to Hosted UI login).
+        Admin endpoints require the ADMIN Cognito group.
 
   parameters:
     ClassroomId:

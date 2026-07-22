@@ -9,7 +9,12 @@ services:
       - "127.0.0.1:4510-4559:4510-4559" # External services port range
     environment:
       - DEBUG=0
+      - PERSISTENCE=1
       - LOCALSTACK_AUTH_TOKEN=${LOCALSTACK_AUTH_TOKEN:?missing localstack auth token}
+      # LocalStack gateway CORS allowlist (exact Origin match). Must be ORIGINS (plural).
+      # Include Swagger UI (8080) and the management web app (3000).
+      - EXTRA_CORS_ALLOWED_ORIGINS=http://localhost:8080,http://localhost:3000
+      - EXTRA_CORS_ALLOWED_HEADERS=*
     volumes:
       - "cloud-volume:/var/lib/localstack"
       - "/var/run/docker.sock:/var/run/docker.sock"
