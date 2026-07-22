@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static tech.sangdang.lmscoreapi.helpers.SecurityTestSupport.adminJwt;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomFixtures.CLASSROOM_ID;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomFixtures.classroom;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomMemberFixtures.ACCOUNT_ID;
@@ -40,6 +41,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import tech.sangdang.lmscoreapi.common.exception.GlobalExceptionHandler;
 import tech.sangdang.lmscoreapi.common.querying.BaseQuery;
+import tech.sangdang.lmscoreapi.config.SecurityConfig;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionAttendanceStatus;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionFilter;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionAttendanceCommand;
@@ -62,6 +64,7 @@ import tools.jackson.databind.json.JsonMapper;
   ClassroomSessionServiceImpl.class,
   ClassroomSessionMapperImpl.class,
   ClassroomSessionAttendanceMapperImpl.class,
+  SecurityConfig.class,
 })
 @DisplayName("Classroom session management")
 class ClassroomSessionControllerIntegrationTest {
@@ -96,9 +99,10 @@ class ClassroomSessionControllerIntegrationTest {
 
     mockMvc
         .perform(
-            post("/classrooms/{classroomId}/sessions", CLASSROOM_ID)
+            post("/admin/classrooms/{classroomId}/sessions", CLASSROOM_ID)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(jsonMapper.writeValueAsString(command)))
+                .content(jsonMapper.writeValueAsString(command))
+                .with(adminJwt()))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.id").value(SESSION_ID.toString()))
         .andExpect(jsonPath("$.classroomId").value(CLASSROOM_ID.toString()))
@@ -124,9 +128,10 @@ class ClassroomSessionControllerIntegrationTest {
 
     mockMvc
         .perform(
-            post("/classrooms/{classroomId}/sessions", CLASSROOM_ID)
+            post("/admin/classrooms/{classroomId}/sessions", CLASSROOM_ID)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(jsonMapper.writeValueAsString(command)))
+                .content(jsonMapper.writeValueAsString(command))
+                .with(adminJwt()))
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.code").value("CLASSROOM_NOT_FOUND"));
 
@@ -140,7 +145,9 @@ class ClassroomSessionControllerIntegrationTest {
         .thenReturn(Optional.of(classroomSession()));
 
     mockMvc
-        .perform(get("/classrooms/{classroomId}/sessions/{sessionId}", CLASSROOM_ID, SESSION_ID))
+        .perform(
+            get("/admin/classrooms/{classroomId}/sessions/{sessionId}", CLASSROOM_ID, SESSION_ID)
+                .with(adminJwt()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value(SESSION_ID.toString()))
         .andExpect(jsonPath("$.classroomId").value(CLASSROOM_ID.toString()))
@@ -168,14 +175,15 @@ class ClassroomSessionControllerIntegrationTest {
     MockHttpServletRequestBuilder request =
         switch (httpMethod) {
           case "GET" ->
-              get("/classrooms/{classroomId}/sessions/{sessionId}", CLASSROOM_ID, SESSION_ID);
+              get("/admin/classrooms/{classroomId}/sessions/{sessionId}", CLASSROOM_ID, SESSION_ID);
           case "DELETE" ->
-              delete("/classrooms/{classroomId}/sessions/{sessionId}", CLASSROOM_ID, SESSION_ID);
+              delete(
+                  "/admin/classrooms/{classroomId}/sessions/{sessionId}", CLASSROOM_ID, SESSION_ID);
           default -> throw new IllegalArgumentException("Unsupported method: " + httpMethod);
         };
 
     mockMvc
-        .perform(request)
+        .perform(request.with(adminJwt()))
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.code").value("CLASSROOM_SESSION_NOT_FOUND"));
 
@@ -193,9 +201,10 @@ class ClassroomSessionControllerIntegrationTest {
 
     mockMvc
         .perform(
-            post("/classrooms/{classroomId}/sessions/query", CLASSROOM_ID)
+            post("/admin/classrooms/{classroomId}/sessions/query", CLASSROOM_ID)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(jsonMapper.writeValueAsString(filter)))
+                .content(jsonMapper.writeValueAsString(filter))
+                .with(adminJwt()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$").isArray())
         .andExpect(jsonPath("$.length()").value(1))
@@ -219,9 +228,10 @@ class ClassroomSessionControllerIntegrationTest {
 
     mockMvc
         .perform(
-            post("/classrooms/{classroomId}/sessions/query", CLASSROOM_ID)
+            post("/admin/classrooms/{classroomId}/sessions/query", CLASSROOM_ID)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(jsonMapper.writeValueAsString(filter)))
+                .content(jsonMapper.writeValueAsString(filter))
+                .with(adminJwt()))
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.code").value("CLASSROOM_NOT_FOUND"));
 
@@ -235,7 +245,9 @@ class ClassroomSessionControllerIntegrationTest {
         .thenReturn(Optional.of(classroomSession()));
 
     mockMvc
-        .perform(delete("/classrooms/{classroomId}/sessions/{sessionId}", CLASSROOM_ID, SESSION_ID))
+        .perform(
+            delete("/admin/classrooms/{classroomId}/sessions/{sessionId}", CLASSROOM_ID, SESSION_ID)
+                .with(adminJwt()))
         .andExpect(status().isNoContent());
 
     verify(classroomSessionRepository).deleteById(SESSION_ID);
@@ -272,11 +284,12 @@ class ClassroomSessionControllerIntegrationTest {
     mockMvc
         .perform(
             post(
-                    "/classrooms/{classroomId}/sessions/{sessionId}/attendances",
+                    "/admin/classrooms/{classroomId}/sessions/{sessionId}/attendances",
                     CLASSROOM_ID,
                     SESSION_ID)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(jsonMapper.writeValueAsString(command)))
+                .content(jsonMapper.writeValueAsString(command))
+                .with(adminJwt()))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.id").value(ATTENDANCE_ID.toString()))
         .andExpect(jsonPath("$.sessionId").value(SESSION_ID.toString()))
@@ -347,11 +360,12 @@ class ClassroomSessionControllerIntegrationTest {
     mockMvc
         .perform(
             post(
-                    "/classrooms/{classroomId}/sessions/{sessionId}/attendances",
+                    "/admin/classrooms/{classroomId}/sessions/{sessionId}/attendances",
                     CLASSROOM_ID,
                     SESSION_ID)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(jsonMapper.writeValueAsString(command)))
+                .content(jsonMapper.writeValueAsString(command))
+                .with(adminJwt()))
         .andExpect(status().is(httpStatus))
         .andExpect(jsonPath("$.code").value(errorCode));
 
@@ -369,10 +383,11 @@ class ClassroomSessionControllerIntegrationTest {
     mockMvc
         .perform(
             delete(
-                "/classrooms/{classroomId}/sessions/{sessionId}/attendances/{attendanceId}",
-                CLASSROOM_ID,
-                SESSION_ID,
-                ATTENDANCE_ID))
+                    "/admin/classrooms/{classroomId}/sessions/{sessionId}/attendances/{attendanceId}",
+                    CLASSROOM_ID,
+                    SESSION_ID,
+                    ATTENDANCE_ID)
+                .with(adminJwt()))
         .andExpect(status().isNoContent());
 
     verify(classroomSessionAttendanceRepository).deleteById(ATTENDANCE_ID);
@@ -417,10 +432,11 @@ class ClassroomSessionControllerIntegrationTest {
     mockMvc
         .perform(
             delete(
-                "/classrooms/{classroomId}/sessions/{sessionId}/attendances/{attendanceId}",
-                CLASSROOM_ID,
-                SESSION_ID,
-                ATTENDANCE_ID))
+                    "/admin/classrooms/{classroomId}/sessions/{sessionId}/attendances/{attendanceId}",
+                    CLASSROOM_ID,
+                    SESSION_ID,
+                    ATTENDANCE_ID)
+                .with(adminJwt()))
         .andExpect(status().isNotFound())
         .andExpect(
             jsonPath("$.code")
