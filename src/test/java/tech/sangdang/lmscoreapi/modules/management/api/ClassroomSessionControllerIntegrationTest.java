@@ -40,8 +40,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import tech.sangdang.lmscoreapi.common.exception.GlobalExceptionHandler;
-import tech.sangdang.lmscoreapi.config.SecurityConfig;
 import tech.sangdang.lmscoreapi.common.querying.BaseQuery;
+import tech.sangdang.lmscoreapi.config.SecurityConfig;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionAttendanceStatus;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionFilter;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionAttendanceCommand;
@@ -246,8 +246,7 @@ class ClassroomSessionControllerIntegrationTest {
 
     mockMvc
         .perform(
-            delete(
-                "/admin/classrooms/{classroomId}/sessions/{sessionId}", CLASSROOM_ID, SESSION_ID)
+            delete("/admin/classrooms/{classroomId}/sessions/{sessionId}", CLASSROOM_ID, SESSION_ID)
                 .with(adminJwt()))
         .andExpect(status().isNoContent());
 
@@ -384,10 +383,10 @@ class ClassroomSessionControllerIntegrationTest {
     mockMvc
         .perform(
             delete(
-                "/admin/classrooms/{classroomId}/sessions/{sessionId}/attendances/{attendanceId}",
-                CLASSROOM_ID,
-                SESSION_ID,
-                ATTENDANCE_ID)
+                    "/admin/classrooms/{classroomId}/sessions/{sessionId}/attendances/{attendanceId}",
+                    CLASSROOM_ID,
+                    SESSION_ID,
+                    ATTENDANCE_ID)
                 .with(adminJwt()))
         .andExpect(status().isNoContent());
 
@@ -433,10 +432,10 @@ class ClassroomSessionControllerIntegrationTest {
     mockMvc
         .perform(
             delete(
-                "/admin/classrooms/{classroomId}/sessions/{sessionId}/attendances/{attendanceId}",
-                CLASSROOM_ID,
-                SESSION_ID,
-                ATTENDANCE_ID)
+                    "/admin/classrooms/{classroomId}/sessions/{sessionId}/attendances/{attendanceId}",
+                    CLASSROOM_ID,
+                    SESSION_ID,
+                    ATTENDANCE_ID)
                 .with(adminJwt()))
         .andExpect(status().isNotFound())
         .andExpect(

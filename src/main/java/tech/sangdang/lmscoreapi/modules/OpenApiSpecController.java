@@ -2,7 +2,6 @@ package tech.sangdang.lmscoreapi.modules;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.MediaType;
@@ -18,8 +17,8 @@ public class OpenApiSpecController {
   private final CognitoProperties cognitoProperties;
 
   /**
-   * Serves the OpenAPI contract so Swagger UI matches codegen. Cognito OAuth
-   * authorize/token URLs are injected from {@link CognitoProperties} (env / application-local.yml).
+   * Serves the OpenAPI contract so Swagger UI matches codegen. Cognito OAuth authorize/token URLs
+   * are injected from {@link CognitoProperties} (env / application-local.yml).
    */
   @GetMapping(path = "/openapi.yml", produces = "application/yaml")
   public ResponseEntity<String> openApiYaml() throws IOException {
