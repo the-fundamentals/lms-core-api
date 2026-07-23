@@ -14,6 +14,7 @@ import static tech.sangdang.lmscoreapi.helpers.SecurityTestSupport.adminJwt;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomFixtures.CLASSROOM_ID;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomFixtures.classroom;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomMemberFixtures.ACCOUNT_ID;
+import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomMemberFixtures.ACCOUNT_PROFILE_ID;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomMemberFixtures.MEMBER_EMAIL;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomMemberFixtures.MEMBER_ID;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomMemberFixtures.MEMBER_NAME;
@@ -39,8 +40,8 @@ import tech.sangdang.lmscoreapi.generated.model.ClassroomMemberFilter;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomMemberRole;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomMemberCommand;
 import tech.sangdang.lmscoreapi.generated.model.UpdateClassroomMemberRoleCommand;
-import tech.sangdang.lmscoreapi.modules.account.infra.AccountProfile;
-import tech.sangdang.lmscoreapi.modules.account.infra.AccountProfileCache;
+import tech.sangdang.lmscoreapi.modules.account.dom.AccountProfile;
+import tech.sangdang.lmscoreapi.modules.account.dom.repository.AccountProfileRepository;
 import tech.sangdang.lmscoreapi.modules.management.app.impl.ClassroomMemberServiceImpl;
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomMemberMapperImpl;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomMember;
@@ -64,14 +65,14 @@ class ClassroomMemberControllerIntegrationTest {
 
   @MockitoBean private ClassroomRepository classroomRepository;
   @MockitoBean private ClassroomMemberRepository classroomMemberRepository;
-  @MockitoBean private AccountProfileCache accountProfileCache;
+  @MockitoBean private AccountProfileRepository accountProfileRepository;
 
   @Test
   @DisplayName("creates a classroom member")
   void createClassroomMember_valid_returns201() throws Exception {
     when(classroomRepository.findById(CLASSROOM_ID)).thenReturn(Optional.of(classroom()));
-    when(accountProfileCache.findByAccountId(ACCOUNT_ID))
-        .thenReturn(Optional.of(new AccountProfile(ACCOUNT_ID, MEMBER_EMAIL, MEMBER_NAME)));
+    when(accountProfileRepository.findById(ACCOUNT_PROFILE_ID))
+        .thenReturn(Optional.of(accountProfile()));
     when(classroomMemberRepository.findByClassroomIdAndAccountId(CLASSROOM_ID, ACCOUNT_ID))
         .thenReturn(Optional.empty());
     when(classroomMemberRepository.insert(any(ClassroomMember.class)))
@@ -90,7 +91,7 @@ class ClassroomMemberControllerIntegrationTest {
 
     CreateClassroomMemberCommand command =
         CreateClassroomMemberCommand.builder()
-            .accountId(ACCOUNT_ID)
+            .accountId(ACCOUNT_PROFILE_ID)
             .role(ClassroomMemberRole.STUDENT)
             .build();
 
@@ -134,11 +135,8 @@ class ClassroomMemberControllerIntegrationTest {
     when(classroomRepository.findById(CLASSROOM_ID))
         .thenReturn(classroomExists ? Optional.of(classroom()) : Optional.empty());
     if (classroomExists) {
-      when(accountProfileCache.findByAccountId(ACCOUNT_ID))
-          .thenReturn(
-              accountExists
-                  ? Optional.of(new AccountProfile(ACCOUNT_ID, MEMBER_EMAIL, MEMBER_NAME))
-                  : Optional.empty());
+      when(accountProfileRepository.findById(ACCOUNT_PROFILE_ID))
+          .thenReturn(accountExists ? Optional.of(accountProfile()) : Optional.empty());
     }
     if (memberAlreadyActive) {
       when(classroomMemberRepository.findByClassroomIdAndAccountId(CLASSROOM_ID, ACCOUNT_ID))
@@ -146,7 +144,7 @@ class ClassroomMemberControllerIntegrationTest {
     }
 
     CreateClassroomMemberCommand command =
-        CreateClassroomMemberCommand.builder().accountId(ACCOUNT_ID).role(role).build();
+        CreateClassroomMemberCommand.builder().accountId(ACCOUNT_PROFILE_ID).role(role).build();
 
     mockMvc
         .perform(
@@ -170,8 +168,8 @@ class ClassroomMemberControllerIntegrationTest {
         classroomMember(MEMBER_ID, CLASSROOM_ID, ACCOUNT_ID, ClassroomMemberStatus.REMOVED);
 
     when(classroomRepository.findById(CLASSROOM_ID)).thenReturn(Optional.of(classroom()));
-    when(accountProfileCache.findByAccountId(ACCOUNT_ID))
-        .thenReturn(Optional.of(new AccountProfile(ACCOUNT_ID, MEMBER_EMAIL, MEMBER_NAME)));
+    when(accountProfileRepository.findById(ACCOUNT_PROFILE_ID))
+        .thenReturn(Optional.of(accountProfile()));
     when(classroomMemberRepository.findByClassroomIdAndAccountId(CLASSROOM_ID, ACCOUNT_ID))
         .thenReturn(Optional.of(removed));
     when(classroomMemberRepository.update(any(ClassroomMember.class)))
@@ -179,7 +177,7 @@ class ClassroomMemberControllerIntegrationTest {
 
     CreateClassroomMemberCommand command =
         CreateClassroomMemberCommand.builder()
-            .accountId(ACCOUNT_ID)
+            .accountId(ACCOUNT_PROFILE_ID)
             .role(ClassroomMemberRole.TEACHER)
             .build();
 
@@ -336,5 +334,14 @@ class ClassroomMemberControllerIntegrationTest {
         .andExpect(jsonPath("$.code").value("CLASSROOM_NOT_FOUND"));
 
     verify(classroomMemberRepository, never()).query(any());
+  }
+
+  private static AccountProfile accountProfile() {
+    String[] nameParts = MEMBER_NAME.split(" ", 2);
+    return new AccountProfile()
+        .setId(ACCOUNT_PROFILE_ID)
+        .setEmail(MEMBER_EMAIL)
+        .setFirstName(nameParts[0])
+        .setLastName(nameParts[1]);
   }
 }
