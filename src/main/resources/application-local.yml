@@ -1,0 +1,42 @@
+spring:
+  application:
+    name: lms-core-api
+  datasource:
+    url: jdbc:postgresql://localhost:5432/postgres
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+  sql:
+    init:
+      schema-locations: classpath:schema.sql
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${app.cognito.base-domain}/${app.cognito.user-pool-id}/.well-known/jwks.json
+
+app:
+  cognito:
+    region: ${COGNITO_REGION:ap-southeast-1}
+    user-pool-id: ${COGNITO_USER_POOL_ID:ap-southeast-1_3df5bc2f5dfa4269a26a5150e92f7763}
+    app-client-id: ${COGNITO_APP_CLIENT_ID:6g6fmxhyvx097ih07p6p5w6y3l}
+    base-domain: ${COGNITO_BASE_DOMAIN:http://localhost.localstack.cloud:4566}
+    client-full-domain: ${COGNITO_CLIENT_FULL_DOMAIN:${app.cognito.base-domain}/_aws/cognito-idp}
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    url: /openapi.yml
+    disable-swagger-default-url: true
+    try-it-out-enabled: true
+    operations-sorter: method
+    tags-sorter: alpha
+    persist-authorization: true
+    oauth:
+      client-id: ${app.cognito.app-client-id}
+      scopes: openid,email,profile
+      use-pkce-with-authorization-code-grant: true
+      client-secret: ${app.cognito.app-client-secret}
+      # Swagger redirect (must be allow-listed in Cognito callback URLs):
+      #   {api-origin}/swagger-ui/oauth2-redirect.html

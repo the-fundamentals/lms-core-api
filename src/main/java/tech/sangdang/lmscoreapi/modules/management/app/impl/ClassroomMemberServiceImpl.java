@@ -14,8 +14,8 @@ import tech.sangdang.lmscoreapi.generated.model.ClassroomMemberFilter;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomMemberResponse;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomMemberCommand;
 import tech.sangdang.lmscoreapi.generated.model.UpdateClassroomMemberRoleCommand;
-import tech.sangdang.lmscoreapi.modules.account.infra.AccountProfile;
-import tech.sangdang.lmscoreapi.modules.account.infra.AccountProfileCache;
+import tech.sangdang.lmscoreapi.modules.account.dom.AccountProfile;
+import tech.sangdang.lmscoreapi.modules.account.dom.repository.AccountProfileRepository;
 import tech.sangdang.lmscoreapi.modules.management.app.ClassroomMemberService;
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomMemberMapper;
 import tech.sangdang.lmscoreapi.modules.management.dom.Classroom;
@@ -32,7 +32,7 @@ public class ClassroomMemberServiceImpl implements ClassroomMemberService {
   private final ClassroomRepository classroomRepository;
   private final ClassroomMemberRepository classroomMemberRepository;
   private final ClassroomMemberMapper classroomMemberMapper;
-  private final AccountProfileCache accountProfileCache;
+  private final AccountProfileRepository accountProfileRepository;
 
   @Override
   @Transactional
@@ -42,17 +42,17 @@ public class ClassroomMemberServiceImpl implements ClassroomMemberService {
         .findById(classroomId)
         .orElseThrow(() -> ObjectNotFoundException.of(Classroom.class, classroomId));
 
+    UUID accountProfileId = command.getAccountId();
     AccountProfile profile =
-        accountProfileCache
-            .findByAccountId(command.getAccountId())
-            .orElseThrow(
-                () -> ObjectNotFoundException.of(AccountProfile.class, command.getAccountId()));
+        accountProfileRepository
+            .findById(accountProfileId)
+            .orElseThrow(() -> ObjectNotFoundException.of(AccountProfile.class, accountProfileId));
 
     ClassroomMemberRole role = ClassroomMemberRole.valueOf(command.getRole().getValue());
+    String displayName = profile.getFirstName() + " " + profile.getLastName();
+    String accountId = accountProfileId.toString();
 
-    var existing =
-        classroomMemberRepository.findByClassroomIdAndAccountId(
-            classroomId, command.getAccountId());
+    var existing = classroomMemberRepository.findByClassroomIdAndAccountId(classroomId, accountId);
 
     if (existing.isPresent()) {
       ClassroomMember member = existing.get();
@@ -63,19 +63,19 @@ public class ClassroomMemberServiceImpl implements ClassroomMemberService {
       }
       member.setRole(role);
       member.setStatus(ClassroomMemberStatus.ACTIVE);
-      member.setEmail(profile.email());
-      member.setName(profile.name());
+      member.setEmail(profile.getEmail());
+      member.setName(displayName);
       return classroomMemberMapper.toResponse(classroomMemberRepository.update(member));
     }
 
     ClassroomMember member =
         new ClassroomMember()
             .setClassroomId(classroomId)
-            .setAccountId(command.getAccountId())
+            .setAccountId(accountId)
             .setRole(role)
             .setStatus(ClassroomMemberStatus.ACTIVE)
-            .setEmail(profile.email())
-            .setName(profile.name());
+            .setEmail(profile.getEmail())
+            .setName(displayName);
     return classroomMemberMapper.toResponse(classroomMemberRepository.insert(member));
   }
 

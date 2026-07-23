@@ -51,6 +51,39 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+    put:
+      tags:
+        - AccountProfile
+      operationId: updateMyAccountProfile
+      summary: Update the current user's account profile
+      description: >
+        Upserts the account profile for the authenticated user (JWT `sub`).
+        Request body updates `firstName` and `lastName` only. Email is taken from the
+        Cognito ID token supplied in `X-ID-Token` (must be `token_use=id` and the same `sub`
+        as the access token). Creates the profile when none exists yet (onboarding).
+      parameters:
+        - $ref: "#/components/parameters/IdToken"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAccountProfileCommand"
+      responses:
+        "200":
+          description: Account profile created or updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountProfileResponse"
+        "401":
+          description: >
+            Missing/invalid access token, or missing/invalid `X-ID-Token`
+            (`INVALID_ID_TOKEN`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /admin/classrooms:
     post:
@@ -534,6 +567,15 @@ components:
         description: Classroom session attendance UUID
         example: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
 
+    IdToken:
+      name: X-ID-Token
+      in: header
+      required: true
+      description: Authentication Provider ID Token
+      schema:
+        type: string
+        description: ID Token JWT
+
   schemas:
     ClassroomFilter:
       type: object
@@ -724,10 +766,9 @@ components:
       properties:
         accountId:
           type: string
-          description: External account identifier for the member
-          minLength: 1
-          maxLength: 255
-          example: acc_12345
+          format: uuid
+          description: Account profile identifier for the member
+          example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
         role:
           $ref: "#/components/schemas/ClassroomMemberRole"
 
@@ -768,10 +809,9 @@ components:
           example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
         accountId:
           type: string
-          description: External account identifier for the member
-          minLength: 1
-          maxLength: 255
-          example: acc_12345
+          format: uuid
+          description: Account profile identifier for the member
+          example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
         role:
           $ref: "#/components/schemas/ClassroomMemberRole"
         status:
@@ -779,13 +819,13 @@ components:
         email:
           type: string
           format: email
-          description: Denormalized member email from the account/identity service
+          description: Denormalized member email from the account profile
           minLength: 1
           maxLength: 255
           example: alex@example.com
         name:
           type: string
-          description: Denormalized member display name from the account/identity service
+          description: Denormalized member display name from the account profile
           minLength: 1
           maxLength: 255
           example: Alex Nguyen
@@ -1020,6 +1060,29 @@ components:
           format: date-time
           description: When the profile was last modified
           example: 2026-07-14T00:00:00Z
+
+    UpdateAccountProfileCommand:
+      type: object
+      description: >
+        Command to update the authenticated user's account profile.
+        Only first and last name are accepted here; email is taken from `X-ID-Token`.
+      additionalProperties: false
+      required:
+        - firstName
+        - lastName
+      properties:
+        firstName:
+          type: string
+          description: Updated given name
+          minLength: 1
+          maxLength: 255
+          example: Jane
+        lastName:
+          type: string
+          description: Updated family name
+          minLength: 1
+          maxLength: 255
+          example: Doe
 
     ErrorResponse:
       type: object
