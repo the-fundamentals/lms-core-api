@@ -24,7 +24,7 @@ spotless {
 }
 
 openApiGenerate {
-	inputSpec.set("$projectDir/src/main/resources/openapi.yml")
+	inputSpec.set("$projectDir/openapi/openapi.yml")
 	validateSpec.set(true)
 	generatorName.set("spring")
 	outputDir.set("$projectDir/build/generated/openapi")

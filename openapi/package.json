@@ -1,0 +1,27 @@
+{
+  "name": "@the-fundamentals/core-openapi",
+  "module": "dist/index.js",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@hey-api/openapi-ts": "^0.99.0",
+    "@tanstack/react-query": "^5.101.4",
+    "oxfmt": "^0.60.0",
+    "oxlint": "^1.75.0"
+  }
+}
