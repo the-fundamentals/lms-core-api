@@ -1,6 +1,6 @@
 {
   "name": "@the-fundamentals/core-openapi",
-  "module": "index.ts",
+  "module": "dist/index.js",
   "version": "0.1.0",
   "type": "module",
   "main": "dist/index.js",
