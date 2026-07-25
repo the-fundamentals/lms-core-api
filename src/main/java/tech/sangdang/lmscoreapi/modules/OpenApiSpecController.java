@@ -13,7 +13,7 @@ import tech.sangdang.lmscoreapi.config.properties.CognitoProperties;
 @RestController
 @RequiredArgsConstructor
 public class OpenApiSpecController {
-  private static final String OPENAPI_CLASSPATH = "openapi.yml";
+  private static final String OPENAPI_CLASSPATH = "openapi/openapi.yml";
   private final CognitoProperties cognitoProperties;
 
   /**
