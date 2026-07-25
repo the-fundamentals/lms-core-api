@@ -34,7 +34,7 @@ public class SecurityConfig {
                         "/swagger-ui/**",
                         "/v3/api-docs",
                         "/v3/api-docs/**",
-                                "/openapi/openapi.yml")
+                        "/openapi/openapi.yml")
                     .permitAll()
                     .requestMatchers("/admin/**")
                     .hasRole("ADMIN")
