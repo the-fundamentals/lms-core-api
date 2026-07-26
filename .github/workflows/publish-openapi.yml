@@ -29,7 +29,7 @@ jobs:
         working-directory: ./openapi
         run: |
           set -euo pipefail
-          bunx @hey-api/openapi-ts@0.99.0 -f openapi-ts.config.ts
+          bunx @hey-api/openapi-ts@next -f openapi-ts.config.ts
           bun run build
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a #v7.0.1
