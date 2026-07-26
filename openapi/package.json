@@ -19,7 +19,7 @@
     "typescript": "^7.0.2"
   },
   "dependencies": {
-    "@hey-api/openapi-ts": "^0.99.0",
+    "@hey-api/openapi-ts": "next",
     "@tanstack/react-query": "^5.101.4",
     "oxfmt": "^0.60.0",
     "oxlint": "^1.75.0"
