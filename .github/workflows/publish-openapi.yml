@@ -1,18 +1,99 @@
 name: Publish OpenAPI Specification
 on:
   push:
-    branches:
-      - "main"
     paths:
       - "openapi/openapi.yml"
   workflow_dispatch:
 
 jobs:
-  build:
-    name: Build OpenAPI Types
+  validate-schema:
+    name: Validate OpenAPI Schema
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 #v7
+        with:
+          sparse-checkout: 'openapi'
+          sparse-checkout-cone-mode: true
+
+      - name: Fetch Main
+        run: git fetch origin main --depth=1
+
+      - name: Read Main OpenAPI version
+        id: main_spec
+        run: |
+          MAIN_VERSION=$(git show origin/main:openapi/openapi.yml | yq '.info.version')
+          echo "version=$MAIN_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Read Feature Branch OpenAPI version
+        id: feature_spec
+        working-directory: .
+        run: |
+          FEATURE_VERSION=$(yq '.info.version' openapi/openapi.yml)
+          echo "version=$FEATURE_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Gate - Fail if Main and Feature Branch OpenAPI Version differ
+        if: github.ref_name != 'main'
+        env:
+          MAIN_VER: ${{ steps.main_spec.outputs.version }}
+          FEATURE_VER: ${{ step.feature_spec.outputs.version }}
+        run: |
+          if [ "$MAIN_VER" != "$FEATURE_VER" ]; then
+            echo "::error::openapi.yml version ($FEATURE_VERSION) doesn't match main ($MAIN_VERSION). Please rebase/merge main branch onto this feature branch to continue..."
+            exit 1
+          fi
+
+  version-bump:
+    name: Determine OpenAPI Version
+    needs: validate-schema
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.set_version.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 #v7
+        with:
+          sparse-checkout: 'openapi'
+          sparse-checkout-cone-mode: true
+
+      - name: Bump or tag version
+        id: set_version
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+        run: |
+          OLD_VERSION=$(yq '.info.version' openapi/openapi.yml)
+
+          if [ "$GITHUB_REF_NAME" == "main" ]; then
+            MAJOR=$(echo $OLD_VERSION | cut -d. -f1)
+            MINOR=$(echo $OLD_VERSION | cut -d. -f2)
+            PATCH=$(echo $OLD_VERSION | cut -d. -f3)
+            NEW_VERSION="${MAJOR}.${MINOR}.$((PATCH + 1))"
+            yq -i ".info.version = \"$NEW_VERSION\"" openapi/openapi.yml
+
+            git config user.name "github-actions"
+            git config user.email "actions@github.com"
+            git add openapi/openapi.yml
+            git commit -m "chore: bump openapi version to ${NEW_VERSION} [skip ci]"
+            git push
+          else
+            SANITIZED_BRANCH_NAME=$(echo "${GITHUB_REF_NAME}" | sed 's/[^a-zA-Z0-9]/-/g')
+            NEW_VERSION="${OLD_VERSION}-feature-branch-${SANITIZED_BRANCH_NAME}"
+          fi
+
+          echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build OpenAPI Types
+    needs: version-bump
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      NEW_VERSION: ${{ needs.version-bump.outputs.version }}
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 #v7
@@ -27,14 +108,16 @@ jobs:
         run: |
           bun install --frozen-lockfile
 
-      - name: Generate and Build
+      - name: Assign new version, generate, and build
         working-directory: ./openapi
         run: |
           set -euo pipefail
+          bun pm version ${NEW_VERSION} --no-git-tag-version
           bunx @hey-api/openapi-ts@next -f openapi-ts.config.ts
           bun run build
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a #v7.0.1
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a #v7.0.1
         with:
           name: dist
           path: openapi/dist

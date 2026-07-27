@@ -11,8 +11,7 @@
     "registry": "https://npm.pkg.github.com"
   },
   "scripts": {
-    "build": "bun run sync-openapi-versions && tsc -p tsconfig.build.json",
-    "sync-openapi-versions": "bun run ./scripts/sync-openapi-version.ts"
+    "build": "tsc -p tsconfig.build.json"
   },
   "devDependencies": {
     "@types/bun": "latest"
