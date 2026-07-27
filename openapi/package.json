@@ -1,11 +1,12 @@
 {
   "name": "@the-fundamentals/core-openapi",
   "module": "dist/index.js",
-  "version": "0.1.0",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
   },
@@ -16,12 +17,14 @@
     "@types/bun": "latest"
   },
   "peerDependencies": {
-    "typescript": "^5"
+    "typescript": "^7.0.2"
   },
   "dependencies": {
-    "@hey-api/openapi-ts": "^0.99.0",
+    "@hey-api/openapi-ts": "next",
     "@tanstack/react-query": "^5.101.4",
     "oxfmt": "^0.60.0",
-    "oxlint": "^1.75.0"
-  }
+    "oxlint": "^1.75.0",
+    "yaml": "^2.9.0"
+  },
+  "version": "0.2.0"
 }
