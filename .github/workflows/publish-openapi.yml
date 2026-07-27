@@ -91,7 +91,7 @@ jobs:
             git config user.email "lms-version-bump-bot[bot]@users.noreply.github.com"
             git add openapi/openapi.yml
             git commit -m "chore: bump openapi version to ${NEW_VERSION} [skip ci]"
-            git push
+            git push "https://x-access-token:${APP_TOKEN}@github.com/${{ github.repository }}.git" HEAD:main
           else
             SANITIZED_BRANCH_NAME=$(echo "${GITHUB_REF_NAME}" | sed 's/[^a-zA-Z0-9]/-/g')
             NEW_VERSION="${OLD_VERSION}-feature-branch-${SANITIZED_BRANCH_NAME}-${GITHUB_SHA}"
