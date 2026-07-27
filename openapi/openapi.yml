@@ -3,6 +3,8 @@ info:
   title: LMS Core API
   version: 0.2.0
   description: Core API for the Learning Management System. Management endpoints under `/admin/**` require the ADMIN role. Authenticated self-service endpoints live under `/private/**`.
+  contact:
+    name: Sang Dang
 
 tags:
   - name: AccountProfile
