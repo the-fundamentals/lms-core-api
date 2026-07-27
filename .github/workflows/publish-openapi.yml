@@ -92,14 +92,16 @@ jobs:
           name: updated-openapi-spec
           path: openapi/openapi.yml
 
-  build:
-    name: Build OpenAPI Types
+  build-and-publish:
+    name: Build and Publish Generated OpenAPI
     needs: version-bump
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      packages: write
     env:
       NEW_VERSION: ${{ needs.version-bump.outputs.version }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 #v7
@@ -127,36 +129,6 @@ jobs:
           bun pm version ${NEW_VERSION} --no-git-tag-version
           bunx @hey-api/openapi-ts@next -f openapi-ts.config.ts
           bun run build
-
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a #v7.0.1
-        with:
-          name: dist
-          path: openapi/dist
-
-  publish:
-    name: Publish to GitHub Packages
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      packages: write
-      contents: read
-    env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 #v7
-
-      - name: Download artifact
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c #v4.0.1
-        with:
-          name: dist
-          path: openapi/dist
-
-      - name: Setup bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 #v2.2.0
-        with:
-          bun-version: 1.3.14
 
       - name: Publish
         working-directory: ./openapi
