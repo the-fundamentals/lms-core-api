@@ -34,7 +34,7 @@ paths:
       description: >
         Returns the account profile for the authenticated Cognito user (JWT `sub`).
         When no profile row exists yet, responds with `ACCOUNT_PROFILE_NOT_FOUND` so the
-        client can start onboarding.
+        client onboard.
       responses:
         "200":
           description: Account profile found
