@@ -1,5 +1,4 @@
 name: Publish OpenAPI Specification
-run-name: 🏗️ Publish openapi.yml for "${{ github.event.head_commit.message || github.sha }}"
 
 on:
   push:
