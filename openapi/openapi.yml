@@ -1,12 +1,11 @@
 openapi: 3.0.3
 info:
   title: LMS Core API
-  version: 0.2.0
+  version: 0.2.1
   description: Core API for the Learning Management System. Management endpoints under `/admin/**` require the ADMIN role. Authenticated self-service endpoints live under `/private/**`.
   contact:
     name: Sang Dang
     email: contact@fundamentals.io.vn
-
 tags:
   - name: AccountProfile
     description: Authenticated account profile (`/private/profile`) for any logged-in user
@@ -16,14 +15,12 @@ tags:
     description: Admin-only classroom member management (`/admin/classrooms/.../members`)
   - name: ClassroomSessions
     description: Admin-only classroom session and attendance management (`/admin/classrooms/.../sessions`)
-
 security:
   - cognitoOAuth:
       - openid
       - email
       - profile
   - bearerAuth: []
-
 paths:
   /private/profile:
     get:
@@ -32,9 +29,8 @@ paths:
       operationId: getMyAccountProfile
       summary: Get the current user's account profile
       description: >
-        Returns the account profile for the authenticated Cognito user (JWT `sub`).
-        When no profile row exists yet, responds with `ACCOUNT_PROFILE_NOT_FOUND` so the
-        client onboard.
+        Returns the account profile for the authenticated Cognito user (JWT `sub`). When no profile row exists yet, responds with `ACCOUNT_PROFILE_NOT_FOUND` so the client onboard.
+
       responses:
         "200":
           description: Account profile found
@@ -60,10 +56,8 @@ paths:
       operationId: updateMyAccountProfile
       summary: Update the current user's account profile
       description: >
-        Upserts the account profile for the authenticated user (JWT `sub`).
-        Request body updates `firstName` and `lastName` only. Email is taken from the
-        Cognito ID token supplied in `X-ID-Token` (must be `token_use=id` and the same `sub`
-        as the access token). Creates the profile when none exists yet (onboarding).
+        Upserts the account profile for the authenticated user (JWT `sub`). Request body updates `firstName` and `lastName` only. Email is taken from the Cognito ID token supplied in `X-ID-Token` (must be `token_use=id` and the same `sub` as the access token). Creates the profile when none exists yet (onboarding).
+
       parameters:
         - $ref: "#/components/parameters/IdToken"
       requestBody:
@@ -81,13 +75,12 @@ paths:
                 $ref: "#/components/schemas/AccountProfileResponse"
         "401":
           description: >
-            Missing/invalid access token, or missing/invalid `X-ID-Token`
-            (`INVALID_ID_TOKEN`)
+            Missing/invalid access token, or missing/invalid `X-ID-Token` (`INVALID_ID_TOKEN`)
+
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-
   /admin/classrooms:
     post:
       tags:
@@ -114,7 +107,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-
   /admin/classrooms/query:
     post:
       tags:
@@ -135,8 +127,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/GetAllClassroomsResponse"
-
-
   /admin/classrooms/{id}:
     get:
       tags:
@@ -192,7 +182,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-
   /admin/classrooms/{classroomId}/members:
     post:
       tags:
@@ -233,7 +222,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-
   /admin/classrooms/{classroomId}/members/query:
     post:
       tags:
@@ -262,7 +250,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-
   /admin/classrooms/{classroomId}/members/{memberId}:
     patch:
       tags:
@@ -316,7 +303,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-
   /admin/classrooms/{classroomId}/sessions:
     post:
       tags:
@@ -351,7 +337,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-
   /admin/classrooms/{classroomId}/sessions/query:
     post:
       tags:
@@ -380,7 +365,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-
   /admin/classrooms/{classroomId}/sessions/{sessionId}:
     get:
       tags:
@@ -422,7 +406,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-
   /admin/classrooms/{classroomId}/sessions/{sessionId}/attendances:
     post:
       tags:
@@ -464,7 +447,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-
   /admin/classrooms/{classroomId}/sessions/{sessionId}/attendances/{attendanceId}:
     delete:
       tags:
@@ -485,18 +467,13 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-
 components:
   securitySchemes:
     cognitoOAuth:
       type: oauth2
       description: >
-        Cognito Hosted UI (authorization code + PKCE). Click Authorize in Swagger UI to
-        open the Cognito login page. OAuth URLs are injected at runtime from
-        COGNITO_DOMAIN (or COGNITO_AUTHORIZATION_URI / COGNITO_TOKEN_URI) — see
-        application.yml under app.cognito. Client id comes from COGNITO_APP_CLIENT_ID.
-        Cognito must allowlist http://localhost:8080/swagger-ui/oauth2-redirect.html
-        (or your API origin) as a callback URL.
+        Cognito Hosted UI (authorization code + PKCE). Click Authorize in Swagger UI to open the Cognito login page. OAuth URLs are injected at runtime from COGNITO_DOMAIN (or COGNITO_AUTHORIZATION_URI / COGNITO_TOKEN_URI) — see application.yml under app.cognito. Client id comes from COGNITO_APP_CLIENT_ID. Cognito must allowlist http://localhost:8080/swagger-ui/oauth2-redirect.html (or your API origin) as a callback URL.
+
       flows:
         authorizationCode:
           # Replaced at serve time by OpenApiSpecController from app.cognito settings.
@@ -511,8 +488,7 @@ components:
       scheme: bearer
       bearerFormat: JWT
       description: >
-        Paste a Cognito JWT access token manually (alternative to Hosted UI login).
-        Admin endpoints require the ADMIN Cognito group.
+        Paste a Cognito JWT access token manually (alternative to Hosted UI login). Admin endpoints require the ADMIN Cognito group.
 
   parameters:
     ClassroomId:
@@ -525,7 +501,6 @@ components:
         format: uuid
         description: Classroom UUID
         example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
-
     ClassroomIdPath:
       name: classroomId
       in: path
@@ -536,7 +511,6 @@ components:
         format: uuid
         description: Classroom UUID
         example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
-
     MemberId:
       name: memberId
       in: path
@@ -547,7 +521,6 @@ components:
         format: uuid
         description: Classroom member UUID
         example: 7c9e6679-7425-40de-944b-e07fc1f90ae7
-
     SessionId:
       name: sessionId
       in: path
@@ -558,7 +531,6 @@ components:
         format: uuid
         description: Classroom session UUID
         example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d
-
     AttendanceId:
       name: attendanceId
       in: path
@@ -569,7 +541,6 @@ components:
         format: uuid
         description: Classroom session attendance UUID
         example: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
-
     IdToken:
       name: X-ID-Token
       in: header
@@ -578,7 +549,6 @@ components:
       schema:
         type: string
         description: ID Token JWT
-
   schemas:
     ClassroomFilter:
       type: object
@@ -599,7 +569,7 @@ components:
           pattern: '^(name)$'
         sortDirection:
           type: string
-          enum: [ ASC, DESC ]
+          enum: [ASC, DESC]
           default: ASC
         filters:
           type: array
@@ -646,13 +616,11 @@ components:
           format: date-time
           description: When the classroom was last modified
           example: 2026-07-14T00:00:00
-
     GetAllClassroomsResponse:
       type: array
       description: Collection of classrooms
       items:
         $ref: "#/components/schemas/ClassroomResponse"
-
     ClassroomMemberFilter:
       type: object
       description: Filter for querying classroom members
@@ -672,7 +640,7 @@ components:
           pattern: '^(accountId|role|status|createdDate)$'
         sortDirection:
           type: string
-          enum: [ ASC, DESC ]
+          enum: [ASC, DESC]
           default: ASC
         filters:
           type: array
@@ -688,19 +656,16 @@ components:
                 pattern: '^(eq|like|gt|lt|gte|lte)$'
               value:
                 type: string
-
     GetAllClassroomMembersResponse:
       type: array
       description: Collection of classroom members
       items:
         $ref: "#/components/schemas/ClassroomMemberResponse"
-
     GetAllClassroomsQuery:
       type: object
       description: Query to retrieve all classrooms
       additionalProperties: false
       properties: {}
-
     GetClassroomByIdQuery:
       type: object
       description: Query to retrieve a classroom by id
@@ -713,7 +678,6 @@ components:
           format: uuid
           description: Classroom identifier to look up
           example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
-
     CreateClassroomCommand:
       type: object
       description: Command to create a classroom
@@ -727,7 +691,6 @@ components:
           minLength: 1
           maxLength: 255
           example: Algebra I
-
     UpdateClassroomCommand:
       type: object
       description: Command to update a classroom
@@ -741,7 +704,6 @@ components:
           minLength: 1
           maxLength: 255
           example: Algebra II
-
     ClassroomMemberRole:
       type: string
       description: Role of a classroom member
@@ -750,7 +712,6 @@ components:
         - TEACHER
         - STUDENT
       example: STUDENT
-
     ClassroomMemberStatus:
       type: string
       description: Membership status
@@ -758,7 +719,6 @@ components:
         - ACTIVE
         - REMOVED
       example: ACTIVE
-
     CreateClassroomMemberCommand:
       type: object
       description: Command to add a member to a classroom
@@ -774,7 +734,6 @@ components:
           example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
         role:
           $ref: "#/components/schemas/ClassroomMemberRole"
-
     UpdateClassroomMemberRoleCommand:
       type: object
       description: Command to update a classroom member role
@@ -784,7 +743,6 @@ components:
       properties:
         role:
           $ref: "#/components/schemas/ClassroomMemberRole"
-
     ClassroomMemberResponse:
       type: object
       description: Classroom member resource returned by the API
@@ -842,7 +800,6 @@ components:
           format: date-time
           description: When the membership was last modified
           example: 2026-07-14T00:00:00
-
     ClassroomSessionAttendanceStatus:
       type: string
       description: Attendance status for a classroom session
@@ -851,7 +808,6 @@ components:
         - ABSENT
         - UNSET
       example: UNSET
-
     CreateClassroomSessionCommand:
       type: object
       description: Command to create a classroom session
@@ -864,7 +820,6 @@ components:
           format: date-time
           description: When the classroom session takes place
           example: 2026-07-19T09:00:00Z
-
     ClassroomSessionFilter:
       type: object
       description: Filter for querying classroom sessions
@@ -884,7 +839,7 @@ components:
           pattern: '^(sessionDate|createdDate)$'
         sortDirection:
           type: string
-          enum: [ ASC, DESC ]
+          enum: [ASC, DESC]
           default: ASC
         filters:
           type: array
@@ -900,7 +855,6 @@ components:
                 pattern: '^(eq|like|gt|lt|gte|lte)$'
               value:
                 type: string
-
     ClassroomSessionResponse:
       type: object
       description: Classroom session resource returned by the API
@@ -937,13 +891,11 @@ components:
           format: date-time
           description: When the session was last modified
           example: 2026-07-14T00:00:00Z
-
     GetAllClassroomSessionsResponse:
       type: array
       description: Collection of classroom sessions
       items:
         $ref: "#/components/schemas/ClassroomSessionResponse"
-
     CreateClassroomSessionAttendanceCommand:
       type: object
       description: Command to create a classroom session attendance record
@@ -964,7 +916,6 @@ components:
           example: 2026-07-19T09:05:00Z
         status:
           $ref: "#/components/schemas/ClassroomSessionAttendanceStatus"
-
     ClassroomSessionAttendanceResponse:
       type: object
       description: Classroom session attendance resource returned by the API
@@ -1009,7 +960,6 @@ components:
           format: date-time
           description: When the attendance record was last modified
           example: 2026-07-14T00:00:00Z
-
     AccountProfileResponse:
       type: object
       description: Account profile for the authenticated user (app-owned user data)
@@ -1063,12 +1013,11 @@ components:
           format: date-time
           description: When the profile was last modified
           example: 2026-07-14T00:00:00Z
-
     UpdateAccountProfileCommand:
       type: object
       description: >
-        Command to update the authenticated user's account profile.
-        Only first and last name are accepted here; email is taken from `X-ID-Token`.
+        Command to update the authenticated user's account profile. Only first and last name are accepted here; email is taken from `X-ID-Token`.
+
       additionalProperties: false
       required:
         - firstName
@@ -1086,7 +1035,6 @@ components:
           minLength: 1
           maxLength: 255
           example: Doe
-
     ErrorResponse:
       type: object
       description: Standard API error payload
