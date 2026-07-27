@@ -5,6 +5,7 @@ info:
   description: Core API for the Learning Management System. Management endpoints under `/admin/**` require the ADMIN role. Authenticated self-service endpoints live under `/private/**`.
   contact:
     name: Sang Dang
+    email: contact@fundamentals.io.vn
 
 tags:
   - name: AccountProfile
