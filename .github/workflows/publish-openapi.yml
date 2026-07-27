@@ -3,8 +3,11 @@ run-name: 🫸 Publish openapi.yml for "${{ github.event.head_commit.message || 
 
 on:
   push:
+    branches:
+      - main
     paths:
-      - "openapi/openapi.yml"
+        - "openapi/openapi.yml"
+  workflow_dispatch:
 
 jobs:
   validate-schema:
