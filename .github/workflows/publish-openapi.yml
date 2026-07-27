@@ -38,7 +38,7 @@ jobs:
         if: github.ref_name != 'main'
         env:
           MAIN_VER: ${{ steps.main_spec.outputs.version }}
-          FEATURE_VER: ${{ step.feature_spec.outputs.version }}
+          FEATURE_VER: ${{ steps.feature_spec.outputs.version }}
         run: |
           if [ "$MAIN_VER" != "$FEATURE_VER" ]; then
             echo "::error::openapi.yml version ($FEATURE_VERSION) doesn't match main ($MAIN_VERSION). Please rebase/merge main branch onto this feature branch to continue..."
