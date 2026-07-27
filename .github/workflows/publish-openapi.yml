@@ -136,10 +136,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REF_NAME: ${{ github.ref_name }}
         run: |
-          if [ $GITHUB_REF_NAME == 'main' ]; then
-#           Publish with "latest" tag
+          if [ ${GITHUB_REF_NAME} == 'main' ]; then
             bun publish
           else
-#           Publish without "latest" tag
             bun publish --tag ${NEW_VERSION}
           fi
