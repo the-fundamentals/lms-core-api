@@ -55,9 +55,17 @@ jobs:
     permissions:
       contents: write
     runs-on: ubuntu-latest
+    environment: lms-version-bump-bot
     outputs:
       version: ${{ steps.set_version.outputs.version }}
     steps:
+      - name: Generate App Token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 #v3.2.0
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 #v7
         with:
@@ -78,8 +86,8 @@ jobs:
             NEW_VERSION="${MAJOR}.${MINOR}.$((PATCH + 1))"
             yq -i ".info.version = \"$NEW_VERSION\"" openapi/openapi.yml
 
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git config user.name "lms-version-bump-bot[bot]"
+            git config user.email "lms-version-bump-bot[bot]@users.noreply.github.com"
             git add openapi/openapi.yml
             git commit -m "chore: bump openapi version to ${NEW_VERSION} [skip ci]"
             git push
