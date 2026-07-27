@@ -5,7 +5,6 @@ on:
   push:
     paths:
       - "openapi/openapi.yml"
-  workflow_dispatch:
 
 jobs:
   validate-schema:
@@ -43,7 +42,7 @@ jobs:
           FEATURE_VER: ${{ steps.feature_spec.outputs.version }}
         run: |
           if [ "$MAIN_VER" != "$FEATURE_VER" ]; then
-            echo "::error::openapi.yml version ($FEATURE_VERSION) doesn't match main ($MAIN_VERSION). Please rebase/merge main branch onto this feature branch to continue..."
+            echo "::error::openapi.yml version ($FEATURE_VER) doesn't match main ($MAIN_VER). Please rebase/merge main branch onto this feature branch to continue..."
             exit 1
           fi
 
@@ -59,8 +58,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 #v7
         with:
-          sparse-checkout: 'openapi'
-          sparse-checkout-cone-mode: true
+          fetch-depth: 0 # Needed to repush
 
       - name: Bump or tag version
         id: set_version
@@ -76,8 +74,8 @@ jobs:
             NEW_VERSION="${MAJOR}.${MINOR}.$((PATCH + 1))"
             yq -i ".info.version = \"$NEW_VERSION\"" openapi/openapi.yml
 
-            git config user.name "github-actions"
-            git config user.email "actions@github.com"
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add openapi/openapi.yml
             git commit -m "chore: bump openapi version to ${NEW_VERSION} [skip ci]"
             git push
@@ -87,6 +85,12 @@ jobs:
           fi
 
           echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Upload updated openapi.yml
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a #v7.0.1
+        with:
+          name: updated-openapi-spec
+          path: openapi/openapi.yml
 
   build:
     name: Build OpenAPI Types
@@ -99,6 +103,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 #v7
+
+      - name: Download updated openapi.yml
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c #v4.0.1
+        with:
+          name: updated-openapi-spec
+          path: openapi
 
       - name: Setup bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 #v2.2.0
@@ -138,7 +148,7 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 #v7
 
       - name: Download artifact
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c #v4.0.1
         with:
           name: dist
           path: openapi/dist
