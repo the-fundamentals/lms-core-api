@@ -29,7 +29,7 @@ paths:
       operationId: getMyAccountProfile
       summary: Get the current user's account profile
       description: >
-        Returns the account profile for the authenticated Cognito user (JWT `sub`). When no profile row exists yet, responds with `ACCOUNT_PROFILE_NOT_FOUND` so the client onboard.
+        Returns the account profile for the authenticated Cognito user (JWT `sub`). When no profile row exists yet, responds with `ACCOUNT_PROFILE_NOT_FOUND` so the client can onboard.
 
       responses:
         "200":
