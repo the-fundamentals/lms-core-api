@@ -7,10 +7,13 @@ export default defineConfig({
         postProcess: ['oxfmt', 'oxlint'],
         entryFile: true,
         clean: true,
+        module: {
+            extension: 'js'
+        }
     },
     logs: {
-      file: true,
-      path: "logs"
+        file: true,
+        path: "logs"
     },
     plugins: [
         {
@@ -22,5 +25,5 @@ export default defineConfig({
         {
             name: "@hey-api/typescript",
         }
-    ]
+    ],
 });
