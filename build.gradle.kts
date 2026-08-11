@@ -64,6 +64,7 @@ repositories {
 val mapstructVersion: String by project
 val springdocVersion: String by project
 val openapiJacksonNullableVersion: String by project
+val awsSdkVersion: String by project
 
 dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-webmvc")
@@ -73,6 +74,7 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
 	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:$springdocVersion")
 	implementation("org.openapitools:jackson-databind-nullable:$openapiJacksonNullableVersion")
+	implementation("software.amazon.awssdk:s3:$awsSdkVersion")
 	compileOnly("org.projectlombok:lombok")
 	compileOnly("org.mapstruct:mapstruct:$mapstructVersion")
 	annotationProcessor("org.projectlombok:lombok")
@@ -87,6 +89,13 @@ dependencies {
 	testAnnotationProcessor("org.projectlombok:lombok")
 	testAnnotationProcessor("org.projectlombok:lombok-mapstruct-binding:0.2.0")
 	testAnnotationProcessor("org.mapstruct:mapstruct-processor:$mapstructVersion")
+}
+
+// Copy the openapi.yml file from `root` to `resources`
+tasks.named<ProcessResources>("processResources") {
+	from(rootProject.file("openapi/openapi.yml")) {
+		into("openapi")
+	}
 }
 
 tasks.withType<Test> {

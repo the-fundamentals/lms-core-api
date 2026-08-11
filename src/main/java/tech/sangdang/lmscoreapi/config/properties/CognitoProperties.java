@@ -4,12 +4,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.util.StringUtils;
 
 @ConfigurationProperties(prefix = "app.cognito")
-public record CognitoProperties(
-    String region,
-    String userPoolId,
-    String appClientId,
-    String clientFullDomain,
-    String baseDomain) {
+public record CognitoProperties(String clientFullDomain) {
 
   private static final String AUTHORIZATION_URL_PLACEHOLDER = "__COGNITO_DOMAIN__/oauth2/authorize";
   private static final String TOKEN_URL_PLACEHOLDER = "__COGNITO_DOMAIN__/oauth2/token";

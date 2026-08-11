@@ -17,7 +17,6 @@ spring:
 
 app:
   cognito:
-    region: ${COGNITO_REGION:ap-southeast-1}
     user-pool-id: ${COGNITO_USER_POOL_ID:ap-southeast-1_3df5bc2f5dfa4269a26a5150e92f7763}
     app-client-id: ${COGNITO_APP_CLIENT_ID:6g6fmxhyvx097ih07p6p5w6y3l}
     base-domain: ${COGNITO_BASE_DOMAIN:http://localhost.localstack.cloud:4566}

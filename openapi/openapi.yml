@@ -15,6 +15,11 @@ tags:
     description: Admin-only classroom member management (`/admin/classrooms/.../members`)
   - name: ClassroomSessions
     description: Admin-only classroom session and attendance management (`/admin/classrooms/.../sessions`)
+  - name: Storage
+    description: Private endpoints to upload files to the system
+  - name: _Test
+    description: >
+      Test endpoints
 security:
   - cognitoOAuth:
       - openid
@@ -467,6 +472,154 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /private/storage:
+    post:
+      tags:
+        - Storage
+      operationId: uploadToStorage
+      summary: Upload a file to the landing zone storage bucket
+      description: Get a presigned URL to upload a file to the landing zone bucket. Form must be submitted to be moved to public (permanent) bucket
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UploadToStorageCommand"
+      responses:
+        "200":
+          description: URL Created. Use the URL to upload file
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadToStorageResponse"
+  /test/storage/confirm-public:
+    post:
+      tags:
+        - _Test
+      operationId: confirmPublicFileUpload
+      summary: Confirm a public file upload (local only)
+      description: >
+        Moves an object from the landing zone to the public store after upload.
+        Local profile only — this endpoint is registered only when the Spring
+        profile `local` is active.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - objectKey
+              properties:
+                objectKey:
+                  type: string
+                  minLength: 1
+                  description: Object key in the landing zone (must start with `public/`)
+                  example: public/540ba3e4-8026-45e9-9834-54aa0eb1a17a
+      responses:
+        "204":
+          description: Public upload confirmed
+        "400":
+          description: Invalid public object key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Object not found in landing zone
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /test/storage/confirm-private:
+    post:
+      tags:
+        - _Test
+      operationId: confirmPrivateFileUpload
+      summary: Confirm a private file upload (local only)
+      description: >
+        Moves an object from the landing zone to the permanent store and records a
+        storage grant for the owner. Local profile only — this endpoint is
+        registered only when the Spring profile `local` is active.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - objectKey
+                - accountProfileId
+              properties:
+                objectKey:
+                  type: string
+                  minLength: 1
+                  description: Object key in the landing zone (must start with `private/`)
+                  example: private/540ba3e4-8026-45e9-9834-54aa0eb1a17a
+                accountProfileId:
+                  type: string
+                  format: uuid
+                  description: Owner account profile id for the storage grant
+                  example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+      responses:
+        "200":
+          description: Private upload confirmed
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - id
+                  - ownerId
+                  - objectKey
+                  - objectBucket
+                  - createdDate
+                  - lastModifiedDate
+                properties:
+                  id:
+                    type: integer
+                    format: int64
+                    description: Storage grant identifier
+                    example: 1
+                  ownerId:
+                    type: string
+                    format: uuid
+                    description: Owner account profile id
+                    example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+                  objectKey:
+                    type: string
+                    description: Object key in the destination bucket
+                    example: private/540ba3e4-8026-45e9-9834-54aa0eb1a17a
+                  objectBucket:
+                    type: string
+                    description: Destination bucket name
+                    example: lms-local-public
+                  createdDate:
+                    type: string
+                    format: date-time
+                    description: When the grant was created
+                  lastModifiedDate:
+                    type: string
+                    format: date-time
+                    description: When the grant was last modified
+        "400":
+          description: Invalid private object key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Object not found in landing zone
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   securitySchemes:
     cognitoOAuth:
@@ -550,6 +703,32 @@ components:
         type: string
         description: ID Token JWT
   schemas:
+    UploadToStorageCommand:
+      description: A command to generate presigned URLs to upload an item to storage
+      properties:
+        isPublic:
+          type: boolean
+          default: false
+          description: Set to true if this is a public resource to be stored in the public bucket
+          example: false
+    UploadToStorageResponse:
+      description: Response containing the presigned URL for uploading files
+      required:
+        - uploadUrl
+        - objectKey
+      properties:
+        uploadUrl:
+          type: string
+          example: http://localhost:8080/upload
+          description: Presigned URL to upload the file
+        downloadUrl:
+          type: string
+          example: http://localhost:8080/download
+          description: Presigned URL to download the file
+        objectKey:
+          type: string
+          example: 540ba3e4-8026-45e9-9834-54aa0eb1a17a
+          description: The key of the object saved in S3
     ClassroomFilter:
       type: object
       description: Student filter
@@ -566,7 +745,7 @@ components:
           maximum: 50
         sortBy:
           type: string
-          pattern: '^(name)$'
+          pattern: '^(name|createdDate|lastModifiedDate)$'
         sortDirection:
           type: string
           enum: [ASC, DESC]
@@ -970,6 +1149,7 @@ components:
         - email
         - firstName
         - lastName
+        - avatarKey
         - createdDate
         - lastModifiedDate
       properties:
@@ -1003,6 +1183,13 @@ components:
           minLength: 1
           maxLength: 255
           example: Doe
+        avatarKey:
+          type: string
+          description: Key to the stored avatar image in the Public S3 Bucket
+          minLength: 1
+          maxLength: 64
+          example: public/3e4ef8d1-9581-402f-9e27-fec209aeb2d8
+          pattern: ^public\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$
         createdDate:
           type: string
           format: date-time
@@ -1022,6 +1209,7 @@ components:
       required:
         - firstName
         - lastName
+        - avatarKey
       properties:
         firstName:
           type: string
@@ -1035,6 +1223,13 @@ components:
           minLength: 1
           maxLength: 255
           example: Doe
+        avatarKey:
+          type: string
+          description: Key to the stored avatar image in the Public S3 Bucket
+          minLength: 1
+          maxLength: 64
+          example: public/3e4ef8d1-9581-402f-9e27-fec209aeb2d8
+          pattern: ^public\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$
     ErrorResponse:
       type: object
       description: Standard API error payload

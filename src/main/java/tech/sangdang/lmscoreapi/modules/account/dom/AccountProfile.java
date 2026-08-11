@@ -28,4 +28,5 @@ public class AccountProfile {
   private String email;
   private String firstName;
   private String lastName;
+  private String avatarKey;
 }
