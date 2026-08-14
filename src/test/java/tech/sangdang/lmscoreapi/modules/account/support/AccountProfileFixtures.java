@@ -11,6 +11,8 @@ public final class AccountProfileFixtures {
   public static final String EMAIL = "jane.doe@example.com";
   public static final String FIRST_NAME = "Jane";
   public static final String LAST_NAME = "Doe";
+  public static final String AVATAR_KEY = "public/3e4ef8d1-9581-402f-9e27-fec209aeb2d8";
+  public static final String NEW_AVATAR_KEY = "public/540ba3e4-8026-45e9-9834-54aa0eb1a17a";
   public static final LocalDateTime CREATED_AT = LocalDateTime.of(2026, 7, 14, 0, 0, 0);
   public static final LocalDateTime MODIFIED_AT = LocalDateTime.of(2026, 7, 14, 0, 0, 0);
 
@@ -23,6 +25,7 @@ public final class AccountProfileFixtures {
         .setEmail(EMAIL)
         .setFirstName(FIRST_NAME)
         .setLastName(LAST_NAME)
+        .setAvatarKey(AVATAR_KEY)
         .setCreatedDate(CREATED_AT)
         .setLastModifiedDate(MODIFIED_AT);
   }

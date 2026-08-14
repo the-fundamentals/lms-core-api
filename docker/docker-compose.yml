@@ -3,7 +3,7 @@ name: LMS Core API Services
 services:
   cloud:
     container_name: localstack
-    image: localstack/localstack-pro
+    image: localstack/localstack
     ports:
       - "127.0.0.1:4566:4566" # Localstack gateway
       - "127.0.0.1:4510-4559:4510-4559" # External services port range

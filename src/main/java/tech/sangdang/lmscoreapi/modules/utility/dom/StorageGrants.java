@@ -1,4 +1,4 @@
-package tech.sangdang.lmscoreapi.modules.account.dom;
+package tech.sangdang.lmscoreapi.modules.utility.dom;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -17,16 +17,15 @@ import org.springframework.data.relational.core.mapping.Table;
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(AccountProfile.TABLE_NAME)
-public class AccountProfile {
-  public static final String TABLE_NAME = "account_profile";
+@Table(StorageGrants.TABLE_NAME)
+public class StorageGrants {
+  public static final String TABLE_NAME = "storage_grants";
 
-  private @Id UUID id;
+  private @Id Long id; // auto increment
   private @CreatedDate LocalDateTime createdDate;
   private @LastModifiedDate LocalDateTime lastModifiedDate;
-  private String cognitoSub;
-  private String email;
-  private String firstName;
-  private String lastName;
-  private String avatarKey;
+
+  private UUID ownerId;
+  private String objectKey;
+  private String objectBucket;
 }

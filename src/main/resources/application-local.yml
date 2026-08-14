@@ -17,11 +17,17 @@ spring:
 
 app:
   cognito:
-    region: ${COGNITO_REGION:ap-southeast-1}
-    user-pool-id: ${COGNITO_USER_POOL_ID:ap-southeast-1_3df5bc2f5dfa4269a26a5150e92f7763}
-    app-client-id: ${COGNITO_APP_CLIENT_ID:6g6fmxhyvx097ih07p6p5w6y3l}
+    user-pool-id: ${COGNITO_USER_POOL_ID:ap-southeast-1_e504a9332e3448879eac389f78fd4844}
+    app-client-id: ${COGNITO_APP_CLIENT_ID:rokz3afjqqov2iihppvmnnka3j}
     base-domain: ${COGNITO_BASE_DOMAIN:http://localhost.localstack.cloud:4566}
     client-full-domain: ${COGNITO_CLIENT_FULL_DOMAIN:${app.cognito.base-domain}/_aws/cognito-idp}
+  utility:
+    storage:
+      landing-zone-bucket-name: lms-local-landing-zone
+      public-store-bucket-name: lms-local-public
+      region: ap-southeast-1
+      use-dummy-credentials: true
+      cloud-mode: localstack
 
 springdoc:
   api-docs:
@@ -37,6 +43,5 @@ springdoc:
       client-id: ${app.cognito.app-client-id}
       scopes: openid,email,profile
       use-pkce-with-authorization-code-grant: true
-      client-secret: ${app.cognito.app-client-secret}
       # Swagger redirect (must be allow-listed in Cognito callback URLs):
       #   {api-origin}/swagger-ui/oauth2-redirect.html
