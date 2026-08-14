@@ -3,6 +3,7 @@ package tech.sangdang.lmscoreapi.modules.account.api;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -11,10 +12,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static tech.sangdang.lmscoreapi.modules.account.support.AccountProfileFixtures.AVATAR_KEY;
 import static tech.sangdang.lmscoreapi.modules.account.support.AccountProfileFixtures.COGNITO_SUB;
 import static tech.sangdang.lmscoreapi.modules.account.support.AccountProfileFixtures.EMAIL;
 import static tech.sangdang.lmscoreapi.modules.account.support.AccountProfileFixtures.FIRST_NAME;
 import static tech.sangdang.lmscoreapi.modules.account.support.AccountProfileFixtures.LAST_NAME;
+import static tech.sangdang.lmscoreapi.modules.account.support.AccountProfileFixtures.NEW_AVATAR_KEY;
 import static tech.sangdang.lmscoreapi.modules.account.support.AccountProfileFixtures.PROFILE_ID;
 import static tech.sangdang.lmscoreapi.modules.account.support.AccountProfileFixtures.accountProfile;
 
@@ -32,6 +35,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tech.sangdang.lmscoreapi.common.exception.GlobalExceptionHandler;
 import tech.sangdang.lmscoreapi.common.exception.InvalidIdTokenException;
+import tech.sangdang.lmscoreapi.common.exception.ObjectNotFoundException;
 import tech.sangdang.lmscoreapi.config.SecurityConfig;
 import tech.sangdang.lmscoreapi.generated.model.UpdateAccountProfileCommand;
 import tech.sangdang.lmscoreapi.modules.account.app.dto.TokenClaims;
@@ -40,6 +44,8 @@ import tech.sangdang.lmscoreapi.modules.account.app.mappers.AccountProfileMapper
 import tech.sangdang.lmscoreapi.modules.account.dom.AccountProfile;
 import tech.sangdang.lmscoreapi.modules.account.dom.ports.TokenUtilityPort;
 import tech.sangdang.lmscoreapi.modules.account.dom.repository.AccountProfileRepository;
+import tech.sangdang.lmscoreapi.modules.utility.app.StorageService;
+import tech.sangdang.lmscoreapi.modules.utility.app.dto.ConfirmUploadPublicCommand;
 import tools.jackson.databind.json.JsonMapper;
 
 @WebMvcTest(controllers = AccountProfileController.class)
@@ -59,6 +65,7 @@ class AccountProfileControllerIntegrationTest {
 
   @MockitoBean private AccountProfileRepository accountProfileRepository;
   @MockitoBean private TokenUtilityPort tokenUtilityPort;
+  @MockitoBean private StorageService storageService;
 
   @Test
   @DisplayName("returns the profile for the authenticated Cognito user")
@@ -100,7 +107,11 @@ class AccountProfileControllerIntegrationTest {
         .thenAnswer(invocation -> invocation.getArgument(0));
 
     UpdateAccountProfileCommand command =
-        UpdateAccountProfileCommand.builder().firstName("Janet").lastName("Smith").build();
+        UpdateAccountProfileCommand.builder()
+            .firstName("Janet")
+            .lastName("Smith")
+            .avatarKey(AVATAR_KEY)
+            .build();
 
     mockMvc
         .perform(
@@ -122,6 +133,7 @@ class AccountProfileControllerIntegrationTest {
     assertThat(captor.getValue().getFirstName()).isEqualTo("Janet");
     assertThat(captor.getValue().getLastName()).isEqualTo("Smith");
     assertThat(captor.getValue().getEmail()).isEqualTo(EMAIL);
+    verify(storageService, never()).confirmPublicFileUpload(any());
   }
 
   @Test
@@ -137,7 +149,11 @@ class AccountProfileControllerIntegrationTest {
             });
 
     UpdateAccountProfileCommand command =
-        UpdateAccountProfileCommand.builder().firstName("Janet").lastName("Smith").build();
+        UpdateAccountProfileCommand.builder()
+            .firstName("Janet")
+            .lastName("Smith")
+            .avatarKey(AVATAR_KEY)
+            .build();
 
     mockMvc
         .perform(
@@ -156,8 +172,103 @@ class AccountProfileControllerIntegrationTest {
     ArgumentCaptor<AccountProfile> captor = ArgumentCaptor.forClass(AccountProfile.class);
     verify(accountProfileRepository).insert(captor.capture());
     verify(accountProfileRepository, never()).update(any(AccountProfile.class));
+    verify(storageService).confirmPublicFileUpload(new ConfirmUploadPublicCommand(AVATAR_KEY));
     assertThat(captor.getValue().getCognitoSub()).isEqualTo(COGNITO_SUB);
     assertThat(captor.getValue().getEmail()).isEqualTo(EMAIL);
+    assertThat(captor.getValue().getAvatarKey()).isEqualTo(AVATAR_KEY);
+  }
+
+  @Test
+  @DisplayName("promotes a new avatar key to public storage before saving the profile")
+  void updateMyAccountProfile_newAvatarKey_confirmsThenSaves() throws Exception {
+    when(accountProfileRepository.findByCognitoSub(COGNITO_SUB))
+        .thenReturn(Optional.of(accountProfile().setAvatarKey(AVATAR_KEY)));
+    when(tokenUtilityPort.validateAndDecodeIdToken(ID_TOKEN)).thenReturn(tokenClaims(COGNITO_SUB));
+    when(accountProfileRepository.update(any(AccountProfile.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    UpdateAccountProfileCommand command =
+        UpdateAccountProfileCommand.builder()
+            .firstName("Janet")
+            .lastName("Smith")
+            .avatarKey(NEW_AVATAR_KEY)
+            .build();
+
+    mockMvc
+        .perform(
+            put("/private/profile")
+                .header("X-ID-Token", ID_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonMapper.writeValueAsString(command))
+                .with(jwt().jwt(j -> j.subject(COGNITO_SUB))))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.avatarKey").value(NEW_AVATAR_KEY));
+
+    verify(storageService).confirmPublicFileUpload(new ConfirmUploadPublicCommand(NEW_AVATAR_KEY));
+    ArgumentCaptor<AccountProfile> captor = ArgumentCaptor.forClass(AccountProfile.class);
+    verify(accountProfileRepository).update(captor.capture());
+    assertThat(captor.getValue().getAvatarKey()).isEqualTo(NEW_AVATAR_KEY);
+  }
+
+  @Test
+  @DisplayName("does not re-confirm an avatar that is already stored on the profile")
+  void updateMyAccountProfile_sameAvatarKey_skipsConfirm() throws Exception {
+    when(accountProfileRepository.findByCognitoSub(COGNITO_SUB))
+        .thenReturn(Optional.of(accountProfile().setAvatarKey(AVATAR_KEY)));
+    when(tokenUtilityPort.validateAndDecodeIdToken(ID_TOKEN)).thenReturn(tokenClaims(COGNITO_SUB));
+    when(accountProfileRepository.update(any(AccountProfile.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    UpdateAccountProfileCommand command =
+        UpdateAccountProfileCommand.builder()
+            .firstName("Janet")
+            .lastName("Smith")
+            .avatarKey(AVATAR_KEY)
+            .build();
+
+    mockMvc
+        .perform(
+            put("/private/profile")
+                .header("X-ID-Token", ID_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonMapper.writeValueAsString(command))
+                .with(jwt().jwt(j -> j.subject(COGNITO_SUB))))
+        .andExpect(status().isOk());
+
+    verify(storageService, never()).confirmPublicFileUpload(any());
+    ArgumentCaptor<AccountProfile> captor = ArgumentCaptor.forClass(AccountProfile.class);
+    verify(accountProfileRepository).update(captor.capture());
+    assertThat(captor.getValue().getAvatarKey()).isEqualTo(AVATAR_KEY);
+  }
+
+  @Test
+  @DisplayName("does not save the profile when public confirm fails")
+  void updateMyAccountProfile_confirmFails_doesNotPersist() throws Exception {
+    when(accountProfileRepository.findByCognitoSub(COGNITO_SUB))
+        .thenReturn(Optional.of(accountProfile()));
+    when(tokenUtilityPort.validateAndDecodeIdToken(ID_TOKEN)).thenReturn(tokenClaims(COGNITO_SUB));
+    doThrow(new ObjectNotFoundException("StorageObject", NEW_AVATAR_KEY))
+        .when(storageService)
+        .confirmPublicFileUpload(new ConfirmUploadPublicCommand(NEW_AVATAR_KEY));
+
+    UpdateAccountProfileCommand command =
+        UpdateAccountProfileCommand.builder()
+            .firstName("Janet")
+            .lastName("Smith")
+            .avatarKey(NEW_AVATAR_KEY)
+            .build();
+
+    mockMvc
+        .perform(
+            put("/private/profile")
+                .header("X-ID-Token", ID_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonMapper.writeValueAsString(command))
+                .with(jwt().jwt(j -> j.subject(COGNITO_SUB))))
+        .andExpect(status().isNotFound());
+
+    verify(accountProfileRepository, never()).insert(any(AccountProfile.class));
+    verify(accountProfileRepository, never()).update(any(AccountProfile.class));
   }
 
   @Test
@@ -167,7 +278,11 @@ class AccountProfileControllerIntegrationTest {
         .thenReturn(tokenClaims("other-cognito-sub"));
 
     UpdateAccountProfileCommand command =
-        UpdateAccountProfileCommand.builder().firstName("Janet").lastName("Smith").build();
+        UpdateAccountProfileCommand.builder()
+            .firstName("Janet")
+            .lastName("Smith")
+            .avatarKey(AVATAR_KEY)
+            .build();
 
     mockMvc
         .perform(
@@ -192,7 +307,11 @@ class AccountProfileControllerIntegrationTest {
         .thenThrow(InvalidIdTokenException.of("token_use must be id"));
 
     UpdateAccountProfileCommand command =
-        UpdateAccountProfileCommand.builder().firstName("Janet").lastName("Smith").build();
+        UpdateAccountProfileCommand.builder()
+            .firstName("Janet")
+            .lastName("Smith")
+            .avatarKey(AVATAR_KEY)
+            .build();
 
     mockMvc
         .perform(

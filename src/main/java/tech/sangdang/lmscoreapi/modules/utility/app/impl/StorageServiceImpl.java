@@ -6,8 +6,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 import tech.sangdang.lmscoreapi.common.exception.GenericBadRequestException;
 import tech.sangdang.lmscoreapi.common.exception.ObjectNotFoundException;
 import tech.sangdang.lmscoreapi.generated.model.UploadToStorageCommand;
@@ -55,10 +53,13 @@ public class StorageServiceImpl implements StorageService {
   }
 
   @Override
-  @Transactional(propagation = Propagation.NEVER)
   public void confirmPublicFileUpload(ConfirmUploadPublicCommand command) {
     if (!validatePublicKey(command.objectKey())) {
       throw new GenericBadRequestException("BAD_KEY", "Invalid public key");
+    }
+
+    if (s3Port.exists(command.objectKey(), configurationProperties.publicStoreBucketName())) {
+      return;
     }
 
     if (!s3Port.exists(command.objectKey(), configurationProperties.landingZoneBucketName())) {

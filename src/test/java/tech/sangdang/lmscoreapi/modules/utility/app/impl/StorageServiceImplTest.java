@@ -3,6 +3,7 @@ package tech.sangdang.lmscoreapi.modules.utility.app.impl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -62,6 +63,7 @@ class StorageServiceImplTest {
   @Test
   @DisplayName("confirms a public file upload")
   void confirmPublicFileUpload_valid_copiesAndDeletes() {
+    when(s3Port.exists(PUBLIC_OBJECT_KEY, PUBLIC_STORE_BUCKET)).thenReturn(false);
     when(s3Port.exists(PUBLIC_OBJECT_KEY, LANDING_ZONE_BUCKET)).thenReturn(true);
 
     storageService.confirmPublicFileUpload(new ConfirmUploadPublicCommand(PUBLIC_OBJECT_KEY));
@@ -70,6 +72,18 @@ class StorageServiceImplTest {
         .copy(PUBLIC_OBJECT_KEY, LANDING_ZONE_BUCKET, PUBLIC_OBJECT_KEY, PUBLIC_STORE_BUCKET);
     verify(s3Port).delete(PUBLIC_OBJECT_KEY, LANDING_ZONE_BUCKET);
     verify(storageGrantsRepository, never()).insert(any());
+  }
+
+  @Test
+  @DisplayName("skips copy when the public object already exists")
+  void confirmPublicFileUpload_alreadyInPublic_isIdempotent() {
+    when(s3Port.exists(PUBLIC_OBJECT_KEY, PUBLIC_STORE_BUCKET)).thenReturn(true);
+
+    storageService.confirmPublicFileUpload(new ConfirmUploadPublicCommand(PUBLIC_OBJECT_KEY));
+
+    verify(s3Port, never()).exists(PUBLIC_OBJECT_KEY, LANDING_ZONE_BUCKET);
+    verify(s3Port, never()).copy(any(), any(), any(), any());
+    verify(s3Port, never()).delete(any(), any());
   }
 
   @Test
@@ -123,7 +137,7 @@ class StorageServiceImplTest {
   @MethodSource("missingObjectCases")
   void confirmFileUpload_missingObject_throwsNotFound(
       String displayName, Consumer<StorageServiceImpl> action, String objectKey) {
-    when(s3Port.exists(objectKey, LANDING_ZONE_BUCKET)).thenReturn(false);
+    when(s3Port.exists(eq(objectKey), any())).thenReturn(false);
 
     assertThatThrownBy(() -> action.accept(storageService))
         .isInstanceOfSatisfying(

@@ -16,6 +16,7 @@ import tech.sangdang.lmscoreapi.modules.account.dom.AccountProfile;
 import tech.sangdang.lmscoreapi.modules.account.dom.ports.TokenUtilityPort;
 import tech.sangdang.lmscoreapi.modules.account.dom.repository.AccountProfileRepository;
 import tech.sangdang.lmscoreapi.modules.utility.app.StorageService;
+import tech.sangdang.lmscoreapi.modules.utility.app.dto.ConfirmUploadPublicCommand;
 
 @Service
 @RequiredArgsConstructor
@@ -49,11 +50,17 @@ public class AccountProfileServiceImpl implements AccountProfileService {
     AccountProfile profile =
         accountProfileRepository.findByCognitoSub(cognitoSub).orElse(new AccountProfile());
 
+    String previousAvatarKey = profile.getAvatarKey();
+    String newAvatarKey = command.getAvatarKey();
+    if (newAvatarKey != null && !Objects.equals(previousAvatarKey, newAvatarKey)) {
+      storageService.confirmPublicFileUpload(new ConfirmUploadPublicCommand(newAvatarKey));
+    }
+
     profile.setFirstName(command.getFirstName());
     profile.setLastName(command.getLastName());
     profile.setCognitoSub(cognitoSub);
     profile.setEmail(tokenClaims.email());
-    profile.setAvatarKey(command.getAvatarKey());
+    profile.setAvatarKey(newAvatarKey);
 
     if (Objects.nonNull(profile.getId())) {
       return accountProfileMapper.toResponse(accountProfileRepository.update(profile));
