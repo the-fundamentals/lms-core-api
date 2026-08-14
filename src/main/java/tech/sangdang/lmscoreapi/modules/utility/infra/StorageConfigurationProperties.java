@@ -1,9 +1,8 @@
 package tech.sangdang.lmscoreapi.modules.utility.infra;
 
+import java.util.Objects;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import tech.sangdang.lmscoreapi.common.CloudMode;
-
-import java.util.Objects;
 
 @ConfigurationProperties(prefix = "app.utility.storage")
 public record StorageConfigurationProperties(
@@ -14,7 +13,6 @@ public record StorageConfigurationProperties(
     Boolean useDummyCredentials,
     Integer presignedExpirationMinutes,
     CloudMode cloudMode) {
-
 
   public StorageConfigurationProperties {
     cloudMode = Objects.requireNonNullElse(cloudMode, CloudMode.AWS);

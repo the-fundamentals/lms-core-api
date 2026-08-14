@@ -1,6 +1,6 @@
 package tech.sangdang.lmscoreapi.common;
 
 public enum CloudMode {
-    AWS,
-    LOCALSTACK
+  AWS,
+  LOCALSTACK
 }

@@ -15,6 +15,7 @@ import tech.sangdang.lmscoreapi.modules.account.app.mappers.AccountProfileMapper
 import tech.sangdang.lmscoreapi.modules.account.dom.AccountProfile;
 import tech.sangdang.lmscoreapi.modules.account.dom.ports.TokenUtilityPort;
 import tech.sangdang.lmscoreapi.modules.account.dom.repository.AccountProfileRepository;
+import tech.sangdang.lmscoreapi.modules.utility.app.StorageService;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +24,7 @@ public class AccountProfileServiceImpl implements AccountProfileService {
   private final AccountProfileRepository accountProfileRepository;
   private final AccountProfileMapper accountProfileMapper;
   private final TokenUtilityPort tokenUtilityPort;
+  private final StorageService storageService;
 
   @Override
   @Transactional(readOnly = true)
@@ -51,6 +53,7 @@ public class AccountProfileServiceImpl implements AccountProfileService {
     profile.setLastName(command.getLastName());
     profile.setCognitoSub(cognitoSub);
     profile.setEmail(tokenClaims.email());
+    profile.setAvatarKey(command.getAvatarKey());
 
     if (Objects.nonNull(profile.getId())) {
       return accountProfileMapper.toResponse(accountProfileRepository.update(profile));

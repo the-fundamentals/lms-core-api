@@ -1,7 +1,6 @@
 package tech.sangdang.lmscoreapi.modules.utility.infra;
 
 import java.time.Duration;
-
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -20,15 +19,12 @@ import tech.sangdang.lmscoreapi.modules.utility.dom.ports.S3Port;
 public class S3PortImpl implements S3Port {
   private final S3Presigner s3Presigner;
   private final S3Client s3Client;
-  private final StorageConfigurationProperties storageConfigurationProperties;
 
   public S3PortImpl(
       @Qualifier("storage") S3Presigner s3Presigner,
-      @Qualifier("storage") S3Client s3Client,
-      StorageConfigurationProperties storageConfigurationProperties) {
+      @Qualifier("storage") S3Client s3Client) {
     this.s3Presigner = s3Presigner;
     this.s3Client = s3Client;
-    this.storageConfigurationProperties = storageConfigurationProperties;
   }
 
   @Override
@@ -69,7 +65,7 @@ public class S3PortImpl implements S3Port {
     HeadObjectRequest headObjectRequest =
         HeadObjectRequest.builder().key(objectKey).bucket(bucket).build();
 
-    log.info("Exist (objectKey: {}, bucket: {})",  objectKey, bucket);
+    log.info("Exist (objectKey: {}, bucket: {})", objectKey, bucket);
 
     try {
       s3Client.headObject(headObjectRequest);

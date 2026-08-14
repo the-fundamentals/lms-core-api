@@ -8,10 +8,16 @@ import tech.sangdang.lmscoreapi.modules.utility.app.dto.ConfirmUploadPublicComma
 import tech.sangdang.lmscoreapi.modules.utility.dom.StorageGrants;
 
 public interface StorageService {
-    UploadToStorageResponse getPresignedUploadUrl(@Nullable UploadToStorageCommand uploadToStorageCommand);
-    void confirmPublicFileUpload(ConfirmUploadPublicCommand command);
-    boolean validatePublicKey(String key);
-    StorageGrants confirmPrivateFileUpload(ConfirmUploadPrivateCommand command);
-    boolean validatePrivateKey(String key);
+  UploadToStorageResponse getPresignedUploadUrl(
+      @Nullable UploadToStorageCommand uploadToStorageCommand);
 
+  void confirmPublicFileUpload(ConfirmUploadPublicCommand command);
+
+  boolean validatePublicKey(String key);
+
+  default StorageGrants confirmPrivateFileUpload(ConfirmUploadPrivateCommand command) {
+    throw new UnsupportedOperationException("Not supported yet.");
+  };
+
+  boolean validatePrivateKey(String key);
 }

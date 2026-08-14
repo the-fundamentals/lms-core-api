@@ -83,8 +83,7 @@ class StorageControllerIntegrationTest {
     MockHttpServletRequestBuilder request =
         post("/private/storage").with(jwt().jwt(j -> j.subject(COGNITO_SUB)));
     if (isPublic != null) {
-      UploadToStorageCommand command =
-          UploadToStorageCommand.builder().isPublic(isPublic).build();
+      UploadToStorageCommand command = UploadToStorageCommand.builder().isPublic(isPublic).build();
       request
           .contentType(MediaType.APPLICATION_JSON)
           .content(jsonMapper.writeValueAsString(command));
