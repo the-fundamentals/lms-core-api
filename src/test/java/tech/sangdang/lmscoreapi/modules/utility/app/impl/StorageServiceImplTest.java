@@ -42,7 +42,6 @@ class StorageServiceImplTest {
             "http://localhost.localstack.cloud:4566",
             "ap-southeast-1",
             true,
-            5,
             null);
     storageService = new StorageServiceImpl(s3Port, properties, storageGrantsRepository);
   }

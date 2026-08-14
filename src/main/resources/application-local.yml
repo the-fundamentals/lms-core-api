@@ -26,9 +26,7 @@ app:
       landing-zone-bucket-name: lms-local-landing-zone
       public-store-bucket-name: lms-local-public
       region: ap-southeast-1
-      s3-endpoint: http://localhost.localstack.cloud:4566
       use-dummy-credentials: true
-      presigned-expiration-minutes: 5
       cloud-mode: localstack
 
 springdoc:

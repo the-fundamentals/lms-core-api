@@ -11,7 +11,6 @@ public record StorageConfigurationProperties(
     String endpointOverride,
     String region,
     Boolean useDummyCredentials,
-    Integer presignedExpirationMinutes,
     CloudMode cloudMode) {
 
   public StorageConfigurationProperties {

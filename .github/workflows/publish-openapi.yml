@@ -145,11 +145,6 @@ jobs:
           bunx @hey-api/openapi-ts@next -f openapi-ts.config.ts
           bun run build
 
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 24
-          package-manager-cache: false
-
       - name: Publish
         working-directory: ./openapi
         env:
@@ -157,7 +152,7 @@ jobs:
           GITHUB_REF_NAME: ${{ github.ref_name }}
         run: |
           if [ ${GITHUB_REF_NAME} == 'main' ]; then
-            npm publish
+            bun publish
           else
-            npm publish --tag ${NEW_VERSION}
+            bun publish --tag ${NEW_VERSION}
           fi
