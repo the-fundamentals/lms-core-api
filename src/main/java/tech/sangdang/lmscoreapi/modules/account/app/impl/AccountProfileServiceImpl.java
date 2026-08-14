@@ -11,6 +11,7 @@ import tech.sangdang.lmscoreapi.generated.model.AccountProfileResponse;
 import tech.sangdang.lmscoreapi.generated.model.UpdateAccountProfileCommand;
 import tech.sangdang.lmscoreapi.modules.account.app.AccountProfileService;
 import tech.sangdang.lmscoreapi.modules.account.app.dto.TokenClaims;
+import tech.sangdang.lmscoreapi.modules.account.app.internal.UpdateAccountProfileService;
 import tech.sangdang.lmscoreapi.modules.account.app.mappers.AccountProfileMapper;
 import tech.sangdang.lmscoreapi.modules.account.dom.AccountProfile;
 import tech.sangdang.lmscoreapi.modules.account.dom.ports.TokenUtilityPort;
@@ -27,6 +28,8 @@ public class AccountProfileServiceImpl implements AccountProfileService {
   private final TokenUtilityPort tokenUtilityPort;
   private final StorageService storageService;
 
+  private final UpdateAccountProfileService updateAccountProfileService;
+
   @Override
   @Transactional(readOnly = true)
   public AccountProfileResponse getMyAccountProfile() {
@@ -38,33 +41,23 @@ public class AccountProfileServiceImpl implements AccountProfileService {
   }
 
   @Override
-  @Transactional
   public AccountProfileResponse updateMyAccountProfile(
       UpdateAccountProfileCommand command, String idToken) {
+
+    // Fetch & Validate the current ID Token details
     String cognitoSub = CurrentUser.requireCognitoSub();
     TokenClaims tokenClaims = tokenUtilityPort.validateAndDecodeIdToken(idToken);
     if (!Objects.equals(tokenClaims.sub(), cognitoSub)) {
       throw InvalidIdTokenException.of("ID token sub does not match the authenticated user");
     }
 
-    AccountProfile profile =
-        accountProfileRepository.findByCognitoSub(cognitoSub).orElse(new AccountProfile());
+    // Update the database
+    AccountProfile accountProfile =
+        updateAccountProfileService.updateAccountProfile(command, cognitoSub, tokenClaims);
 
-    String previousAvatarKey = profile.getAvatarKey();
-    String newAvatarKey = command.getAvatarKey();
-    if (newAvatarKey != null && !Objects.equals(previousAvatarKey, newAvatarKey)) {
-      storageService.confirmPublicFileUpload(new ConfirmUploadPublicCommand(newAvatarKey));
-    }
+    // Move S3 file to Public Bucket
+    storageService.confirmPublicFileUpload(new ConfirmUploadPublicCommand(command.getAvatarKey()));
 
-    profile.setFirstName(command.getFirstName());
-    profile.setLastName(command.getLastName());
-    profile.setCognitoSub(cognitoSub);
-    profile.setEmail(tokenClaims.email());
-    profile.setAvatarKey(newAvatarKey);
-
-    if (Objects.nonNull(profile.getId())) {
-      return accountProfileMapper.toResponse(accountProfileRepository.update(profile));
-    }
-    return accountProfileMapper.toResponse(accountProfileRepository.insert(profile));
+    return accountProfileMapper.toResponse(accountProfile);
   }
 }
