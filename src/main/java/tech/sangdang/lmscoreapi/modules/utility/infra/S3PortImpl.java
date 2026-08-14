@@ -21,8 +21,7 @@ public class S3PortImpl implements S3Port {
   private final S3Client s3Client;
 
   public S3PortImpl(
-      @Qualifier("storage") S3Presigner s3Presigner,
-      @Qualifier("storage") S3Client s3Client) {
+      @Qualifier("storage") S3Presigner s3Presigner, @Qualifier("storage") S3Client s3Client) {
     this.s3Presigner = s3Presigner;
     this.s3Client = s3Client;
   }

@@ -20,7 +20,8 @@ public interface StorageService {
 
   default StorageGrants confirmPrivateFileUpload(ConfirmUploadPrivateCommand command) {
     throw new UnsupportedOperationException("Not supported yet.");
-  };
+  }
+  ;
 
   boolean validatePrivateKey(String key);
 }

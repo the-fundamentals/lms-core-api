@@ -1,5 +1,6 @@
 package tech.sangdang.lmscoreapi.modules.account.app.internal;
 
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
 import org.springframework.transaction.annotation.Transactional;
@@ -9,8 +10,6 @@ import tech.sangdang.lmscoreapi.modules.account.app.dto.TokenClaims;
 import tech.sangdang.lmscoreapi.modules.account.dom.AccountProfile;
 import tech.sangdang.lmscoreapi.modules.account.dom.repository.AccountProfileRepository;
 
-import java.util.Objects;
-
 @RequiredArgsConstructor
 @InternalService
 public class UpdateAccountProfileService {
@@ -18,7 +17,9 @@ public class UpdateAccountProfileService {
 
   @Transactional
   public AccountProfile updateAccountProfile(
-          @NonNull UpdateAccountProfileCommand command, @NonNull String cognitoSub, @NonNull TokenClaims tokenClaims) {
+      @NonNull UpdateAccountProfileCommand command,
+      @NonNull String cognitoSub,
+      @NonNull TokenClaims tokenClaims) {
     AccountProfile profile =
         accountProfileRepository.findByCognitoSub(cognitoSub).orElse(new AccountProfile());
 
