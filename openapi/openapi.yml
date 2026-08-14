@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: LMS Core API
-  version: 0.2.5
+  version: 0.2.6
   description: Core API for the Learning Management System. Management endpoints under `/admin/**` require the ADMIN role. Authenticated self-service endpoints live under `/private/**`.
   contact:
     name: Sang Dang
@@ -20,6 +20,7 @@ tags:
   - name: _Test
     description: >
       Test endpoints
+
 security:
   - cognitoOAuth:
       - openid
@@ -499,9 +500,8 @@ paths:
       operationId: confirmPublicFileUpload
       summary: Confirm a public file upload (local only)
       description: >
-        Moves an object from the landing zone to the public store after upload.
-        Local profile only — this endpoint is registered only when the Spring
-        profile `local` is active.
+        Moves an object from the landing zone to the public store after upload. Local profile only — this endpoint is registered only when the Spring profile `local` is active.
+
       security: []
       requestBody:
         required: true
@@ -540,9 +540,8 @@ paths:
       operationId: confirmPrivateFileUpload
       summary: Confirm a private file upload (local only)
       description: >
-        Moves an object from the landing zone to the permanent store and records a
-        storage grant for the owner. Local profile only — this endpoint is
-        registered only when the Spring profile `local` is active.
+        Moves an object from the landing zone to the permanent store and records a storage grant for the owner. Local profile only — this endpoint is registered only when the Spring profile `local` is active.
+
       security: []
       requestBody:
         required: true
@@ -619,7 +618,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-
 components:
   securitySchemes:
     cognitoOAuth:
