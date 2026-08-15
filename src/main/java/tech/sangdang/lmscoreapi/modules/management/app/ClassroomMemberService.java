@@ -4,12 +4,12 @@ import java.util.List;
 import java.util.UUID;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomMemberFilter;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomMemberResponse;
-import tech.sangdang.lmscoreapi.generated.model.CreateClassroomMemberCommand;
+import tech.sangdang.lmscoreapi.generated.model.CreateClassroomMembersCommand;
 
 public interface ClassroomMemberService {
 
-  ClassroomMemberResponse createClassroomMember(
-      UUID classroomId, CreateClassroomMemberCommand command);
+  List<ClassroomMemberResponse> createClassroomMembers(
+      UUID classroomId, CreateClassroomMembersCommand command);
 
   void removeClassroomMember(UUID classroomId, UUID memberId);
 

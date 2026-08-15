@@ -214,11 +214,12 @@ paths:
     post:
       tags:
         - ClassroomMembers
-      operationId: createClassroomMember
-      summary: Add a member to a classroom
+      operationId: createClassroomMembers
+      summary: Add members to a classroom
       description: >
-        Creates a classroom membership, reactivates a previously removed member, or updates the
-        role of an already active member.
+        Creates classroom memberships, reactivates previously removed members, or updates the
+        role of already active members. Up to 30 members may be submitted in one request.
+        Account profiles and existing memberships are loaded in batch.
       parameters:
         - $ref: "#/components/parameters/ClassroomIdPath"
       requestBody:
@@ -226,14 +227,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateClassroomMemberCommand"
+              $ref: "#/components/schemas/CreateClassroomMembersCommand"
       responses:
         "201":
-          description: Classroom member created
+          description: Classroom members created or updated
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ClassroomMemberResponse"
+                $ref: "#/components/schemas/GetAllClassroomMembersResponse"
         "400":
           description: Invalid create command
           content:
@@ -909,7 +910,7 @@ components:
       example: ACTIVE
     CreateClassroomMemberCommand:
       type: object
-      description: Command to add a member to a classroom
+      description: A single membership to create or update in a classroom
       additionalProperties: false
       required:
         - accountId
@@ -922,6 +923,19 @@ components:
           example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
         role:
           $ref: "#/components/schemas/ClassroomMemberRole"
+    CreateClassroomMembersCommand:
+      type: object
+      description: Command to add or update up to 30 classroom members in one request
+      additionalProperties: false
+      required:
+        - members
+      properties:
+        members:
+          type: array
+          minItems: 1
+          maxItems: 30
+          items:
+            $ref: "#/components/schemas/CreateClassroomMemberCommand"
     ClassroomMemberResponse:
       type: object
       description: Classroom member resource returned by the API
