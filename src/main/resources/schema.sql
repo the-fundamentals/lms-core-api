@@ -14,6 +14,8 @@ CREATE TABLE IF NOT EXISTS account_profile (
 CREATE TABLE IF NOT EXISTS classroom (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
+    banner_key VARCHAR(255),
+    number_of_members INTEGER NOT NULL DEFAULT 0,
     created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_modified_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

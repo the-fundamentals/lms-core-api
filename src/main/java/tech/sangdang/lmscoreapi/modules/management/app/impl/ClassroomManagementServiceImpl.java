@@ -11,9 +11,12 @@ import tech.sangdang.lmscoreapi.generated.model.ClassroomResponse;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomCommand;
 import tech.sangdang.lmscoreapi.generated.model.UpdateClassroomCommand;
 import tech.sangdang.lmscoreapi.modules.management.app.ClassroomManagementService;
+import tech.sangdang.lmscoreapi.modules.management.app.internal.ClassroomRecordService;
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomMapper;
 import tech.sangdang.lmscoreapi.modules.management.dom.Classroom;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomRepository;
+import tech.sangdang.lmscoreapi.modules.utility.app.StorageService;
+import tech.sangdang.lmscoreapi.modules.utility.app.dto.ConfirmUploadPublicCommand;
 
 @Service
 @RequiredArgsConstructor
@@ -21,23 +24,27 @@ public class ClassroomManagementServiceImpl implements ClassroomManagementServic
 
   private final ClassroomRepository classroomRepository;
   private final ClassroomMapper classroomMapper;
+  private final ClassroomRecordService classroomRecordService;
+  private final StorageService storageService;
 
   @Override
-  @Transactional
   public ClassroomResponse createClassroom(CreateClassroomCommand command) {
-    Classroom classroom = new Classroom().setName(command.getName());
-    return classroomMapper.toResponse(classroomRepository.insert(classroom));
+    Classroom classroom = classroomRecordService.createClassroom(command);
+    if (command.getBannerKey() != null) {
+      storageService.confirmPublicFileUpload(
+          new ConfirmUploadPublicCommand(command.getBannerKey()));
+    }
+    return classroomMapper.toResponse(classroom);
   }
 
   @Override
-  @Transactional
   public ClassroomResponse updateClassroom(UUID id, UpdateClassroomCommand command) {
-    Classroom classroom =
-        classroomRepository
-            .findById(id)
-            .orElseThrow(() -> ObjectNotFoundException.of(Classroom.class, id));
-    classroom.setName(command.getName());
-    return classroomMapper.toResponse(classroomRepository.update(classroom));
+    Classroom classroom = classroomRecordService.updateClassroom(id, command);
+    if (command.getBannerKey() != null) {
+      storageService.confirmPublicFileUpload(
+          new ConfirmUploadPublicCommand(command.getBannerKey()));
+    }
+    return classroomMapper.toResponse(classroom);
   }
 
   @Override

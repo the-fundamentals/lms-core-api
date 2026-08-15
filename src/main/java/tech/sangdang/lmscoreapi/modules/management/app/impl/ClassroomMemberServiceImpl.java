@@ -17,6 +17,7 @@ import tech.sangdang.lmscoreapi.generated.model.UpdateClassroomMemberRoleCommand
 import tech.sangdang.lmscoreapi.modules.account.dom.AccountProfile;
 import tech.sangdang.lmscoreapi.modules.account.dom.repository.AccountProfileRepository;
 import tech.sangdang.lmscoreapi.modules.management.app.ClassroomMemberService;
+import tech.sangdang.lmscoreapi.modules.management.app.internal.ClassroomRecordService;
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomMemberMapper;
 import tech.sangdang.lmscoreapi.modules.management.dom.Classroom;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomMember;
@@ -33,15 +34,18 @@ public class ClassroomMemberServiceImpl implements ClassroomMemberService {
   private final ClassroomMemberRepository classroomMemberRepository;
   private final ClassroomMemberMapper classroomMemberMapper;
   private final AccountProfileRepository accountProfileRepository;
+  private final ClassroomRecordService classroomRecordService;
 
   @Override
   @Transactional
   public ClassroomMemberResponse createClassroomMember(
       UUID classroomId, CreateClassroomMemberCommand command) {
+    // Ensure the classroom exists
     classroomRepository
         .findById(classroomId)
         .orElseThrow(() -> ObjectNotFoundException.of(Classroom.class, classroomId));
 
+    // Load the account profile used to denormalize name/email
     UUID accountProfileId = command.getAccountId();
     AccountProfile profile =
         accountProfileRepository
@@ -61,13 +65,17 @@ public class ClassroomMemberServiceImpl implements ClassroomMemberService {
             "CLASSROOM_MEMBER_ALREADY_EXISTS",
             "Classroom member already active for account: " + member.getAccountId());
       }
+      // Reactivate a previously removed member
       member.setRole(role);
       member.setStatus(ClassroomMemberStatus.ACTIVE);
       member.setEmail(profile.getEmail());
       member.setName(displayName);
-      return classroomMemberMapper.toResponse(classroomMemberRepository.update(member));
+      ClassroomMember saved = classroomMemberRepository.update(member);
+      classroomRecordService.adjustNumberOfMembers(classroomId, 1);
+      return classroomMemberMapper.toResponse(saved);
     }
 
+    // Insert a new active membership
     ClassroomMember member =
         new ClassroomMember()
             .setClassroomId(classroomId)
@@ -76,7 +84,11 @@ public class ClassroomMemberServiceImpl implements ClassroomMemberService {
             .setStatus(ClassroomMemberStatus.ACTIVE)
             .setEmail(profile.getEmail())
             .setName(displayName);
-    return classroomMemberMapper.toResponse(classroomMemberRepository.insert(member));
+    ClassroomMember saved = classroomMemberRepository.insert(member);
+
+    // Update the classroom record
+    classroomRecordService.adjustNumberOfMembers(classroomId, 1);
+    return classroomMemberMapper.toResponse(saved);
   }
 
   @Override
@@ -88,6 +100,7 @@ public class ClassroomMemberServiceImpl implements ClassroomMemberService {
             .findById(memberId)
             .orElseThrow(() -> ObjectNotFoundException.of(ClassroomMember.class, memberId));
 
+    // Hide members that belong to another classroom or were already removed
     if (!classroomId.equals(member.getClassroomId())
         || member.getStatus() == ClassroomMemberStatus.REMOVED) {
       throw ObjectNotFoundException.of(ClassroomMember.class, memberId);
@@ -105,19 +118,23 @@ public class ClassroomMemberServiceImpl implements ClassroomMemberService {
             .findById(memberId)
             .orElseThrow(() -> ObjectNotFoundException.of(ClassroomMember.class, memberId));
 
+    // Hide members that belong to another classroom or were already removed
     if (!classroomId.equals(member.getClassroomId())
         || member.getStatus() == ClassroomMemberStatus.REMOVED) {
       throw ObjectNotFoundException.of(ClassroomMember.class, memberId);
     }
 
+    // Soft-delete and decrement the classroom member count
     member.setStatus(ClassroomMemberStatus.REMOVED);
     classroomMemberRepository.update(member);
+    classroomRecordService.adjustNumberOfMembers(classroomId, -1);
   }
 
   @Override
   @Transactional(readOnly = true)
   public List<ClassroomMemberResponse> queryClassroomMembers(
       UUID classroomId, ClassroomMemberFilter filter) {
+    // Ensure the classroom exists
     classroomRepository
         .findById(classroomId)
         .orElseThrow(() -> ObjectNotFoundException.of(Classroom.class, classroomId));
@@ -126,6 +143,7 @@ public class ClassroomMemberServiceImpl implements ClassroomMemberService {
     List<QueryFilterConditions> filters =
         query.getFilters() == null ? new ArrayList<>() : new ArrayList<>(query.getFilters());
 
+    // Scope the query to this classroom
     filters.add(QueryFilterConditions.of("classroomId", "eq", classroomId.toString()));
     query.setFilters(filters);
 
