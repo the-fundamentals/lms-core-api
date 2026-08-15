@@ -9,6 +9,8 @@ info:
 tags:
   - name: AccountProfile
     description: Authenticated account profile (`/private/profile`) for any logged-in user
+  - name: Accounts
+    description: Admin-only Account querying capabilities (`/admin/account`)
   - name: Classroom
     description: Admin-only classroom management (`/admin/classrooms`)
   - name: ClassroomMembers
@@ -28,6 +30,26 @@ security:
       - profile
   - bearerAuth: []
 paths:
+  /admin/account/query:
+    post:
+      tags:
+        - Accounts
+      operationId: getAllAccounts
+      summary: Get all accounts
+      description: Query all account profiles in the database.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccountFilter"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetAllAccountsResponse"
   /private/profile:
     get:
       tags:
@@ -1164,6 +1186,46 @@ components:
           format: date-time
           description: When the attendance record was last modified
           example: 2026-07-14T00:00:00Z
+    AccountFilter:
+      type: object
+      description: Filter for querying account profiles
+      additionalProperties: false
+      properties:
+        page:
+          type: integer
+          default: 0
+          minimum: 0
+        size:
+          type: integer
+          default: 10
+          minimum: 1
+          maximum: 50
+        sortBy:
+          type: string
+          pattern: '^(email|firstName|lastName|createdDate|lastModifiedDate)$'
+        sortDirection:
+          type: string
+          enum: [ASC, DESC]
+          default: ASC
+        filters:
+          type: array
+          items:
+            type: object
+            required: [field, operator, value]
+            properties:
+              field:
+                type: string
+                pattern: '^(email|firstName|lastName|cognitoSub)$'
+              operator:
+                type: string
+                pattern: '^(eq|like|gt|lt|gte|lte)$'
+              value:
+                type: string
+    GetAllAccountsResponse:
+      type: array
+      description: Collection of account profiles
+      items:
+        $ref: "#/components/schemas/AccountProfileResponse"
     AccountProfileResponse:
       type: object
       description: Account profile for the authenticated user (app-owned user data)
