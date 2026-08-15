@@ -6,7 +6,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -39,7 +38,6 @@ import tech.sangdang.lmscoreapi.config.SecurityConfig;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomMemberFilter;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomMemberRole;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomMemberCommand;
-import tech.sangdang.lmscoreapi.generated.model.UpdateClassroomMemberRoleCommand;
 import tech.sangdang.lmscoreapi.modules.account.dom.AccountProfile;
 import tech.sangdang.lmscoreapi.modules.account.dom.repository.AccountProfileRepository;
 import tech.sangdang.lmscoreapi.modules.management.app.impl.ClassroomMemberServiceImpl;
@@ -128,9 +126,8 @@ class ClassroomMemberControllerIntegrationTest {
 
   @ParameterizedTest(name = "{0}")
   @CsvSource({
-    "fails to create a member when the classroom does not exist, STUDENT, 404, CLASSROOM_NOT_FOUND, false, false, false",
-    "fails to create a member when the account profile is missing, STUDENT, 404, ACCOUNT_PROFILE_NOT_FOUND, true, false, false",
-    "rejects creating a member that is already active, TEACHER, 409, CLASSROOM_MEMBER_ALREADY_EXISTS, true, true, true"
+    "fails to create a member when the classroom does not exist, STUDENT, 404, CLASSROOM_NOT_FOUND, false, false",
+    "fails to create a member when the account profile is missing, STUDENT, 404, ACCOUNT_PROFILE_NOT_FOUND, true, false"
   })
   void createClassroomMember_fails(
       String displayName,
@@ -138,18 +135,13 @@ class ClassroomMemberControllerIntegrationTest {
       int httpStatus,
       String errorCode,
       boolean classroomExists,
-      boolean accountExists,
-      boolean memberAlreadyActive)
+      boolean accountExists)
       throws Exception {
     when(classroomRepository.findById(CLASSROOM_ID))
         .thenReturn(classroomExists ? Optional.of(classroom()) : Optional.empty());
     if (classroomExists) {
       when(accountProfileRepository.findById(ACCOUNT_PROFILE_ID))
           .thenReturn(accountExists ? Optional.of(accountProfile()) : Optional.empty());
-    }
-    if (memberAlreadyActive) {
-      when(classroomMemberRepository.findByClassroomIdAndAccountId(CLASSROOM_ID, ACCOUNT_ID))
-          .thenReturn(Optional.of(classroomMember()));
     }
 
     CreateClassroomMemberCommand command =
@@ -165,9 +157,7 @@ class ClassroomMemberControllerIntegrationTest {
         .andExpect(jsonPath("$.code").value(errorCode));
 
     verify(classroomMemberRepository, never()).insert(any());
-    if (memberAlreadyActive) {
-      verify(classroomMemberRepository, never()).update(any());
-    }
+    verify(classroomMemberRepository, never()).update(any());
     verify(classroomRepository, never()).update(any());
   }
 
@@ -217,29 +207,39 @@ class ClassroomMemberControllerIntegrationTest {
   }
 
   @Test
-  @DisplayName("updates a classroom member role")
-  void updateClassroomMemberRole_valid_returns200() throws Exception {
-    when(classroomMemberRepository.findById(MEMBER_ID)).thenReturn(Optional.of(classroomMember()));
+  @DisplayName("updates the role of an already active classroom member")
+  void createClassroomMember_alreadyActive_updatesRole() throws Exception {
+    when(classroomRepository.findById(CLASSROOM_ID)).thenReturn(Optional.of(classroom()));
+    when(accountProfileRepository.findById(ACCOUNT_PROFILE_ID))
+        .thenReturn(Optional.of(accountProfile()));
+    when(classroomMemberRepository.findByClassroomIdAndAccountId(CLASSROOM_ID, ACCOUNT_ID))
+        .thenReturn(Optional.of(classroomMember()));
     when(classroomMemberRepository.update(any(ClassroomMember.class)))
         .thenAnswer(invocation -> invocation.getArgument(0));
 
-    UpdateClassroomMemberRoleCommand command =
-        UpdateClassroomMemberRoleCommand.builder().role(ClassroomMemberRole.ADMIN).build();
+    CreateClassroomMemberCommand command =
+        CreateClassroomMemberCommand.builder()
+            .accountId(ACCOUNT_PROFILE_ID)
+            .role(ClassroomMemberRole.TEACHER)
+            .build();
 
     mockMvc
         .perform(
-            patch("/admin/classrooms/{classroomId}/members/{memberId}", CLASSROOM_ID, MEMBER_ID)
+            post("/admin/classrooms/{classroomId}/members", CLASSROOM_ID)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(jsonMapper.writeValueAsString(command))
                 .with(adminJwt()))
-        .andExpect(status().isOk())
+        .andExpect(status().isCreated())
         .andExpect(jsonPath("$.id").value(MEMBER_ID.toString()))
-        .andExpect(jsonPath("$.role").value("ADMIN"));
+        .andExpect(jsonPath("$.role").value("TEACHER"))
+        .andExpect(jsonPath("$.status").value("ACTIVE"));
 
     ArgumentCaptor<ClassroomMember> captor = ArgumentCaptor.forClass(ClassroomMember.class);
     verify(classroomMemberRepository).update(captor.capture());
     assertThat(captor.getValue().getRole())
-        .isEqualTo(tech.sangdang.lmscoreapi.modules.management.dom.ClassroomMemberRole.ADMIN);
+        .isEqualTo(tech.sangdang.lmscoreapi.modules.management.dom.ClassroomMemberRole.TEACHER);
+    verify(classroomMemberRepository, never()).insert(any());
+    verify(classroomRepository, never()).update(any());
   }
 
   @Test
@@ -268,42 +268,15 @@ class ClassroomMemberControllerIntegrationTest {
     assertThat(classroomCaptor.getValue().getNumberOfMembers()).isZero();
   }
 
-  @ParameterizedTest(name = "{0}")
-  @CsvSource({
-    "fails to update the role of a member that does not exist, PATCH, MISSING",
-    "fails to update the role of a removed member, PATCH, REMOVED",
-    "fails to remove a member that does not exist, DELETE, MISSING"
-  })
-  void memberMutation_failsWhenMemberUnavailable(
-      String displayName, String httpMethod, String memberState) throws Exception {
-    when(classroomMemberRepository.findById(MEMBER_ID))
-        .thenReturn(
-            switch (memberState) {
-              case "MISSING" -> Optional.empty();
-              case "REMOVED" ->
-                  Optional.of(
-                      classroomMember(
-                          MEMBER_ID, CLASSROOM_ID, ACCOUNT_ID, ClassroomMemberStatus.REMOVED));
-              default -> throw new IllegalArgumentException("Unsupported state: " + memberState);
-            });
-
-    var request =
-        switch (httpMethod) {
-          case "PATCH" ->
-              patch("/admin/classrooms/{classroomId}/members/{memberId}", CLASSROOM_ID, MEMBER_ID)
-                  .contentType(MediaType.APPLICATION_JSON)
-                  .content(
-                      jsonMapper.writeValueAsString(
-                          UpdateClassroomMemberRoleCommand.builder()
-                              .role(ClassroomMemberRole.ADMIN)
-                              .build()));
-          case "DELETE" ->
-              delete("/admin/classrooms/{classroomId}/members/{memberId}", CLASSROOM_ID, MEMBER_ID);
-          default -> throw new IllegalArgumentException("Unsupported method: " + httpMethod);
-        };
+  @Test
+  @DisplayName("fails to remove a member that does not exist")
+  void removeClassroomMember_missing_returns404() throws Exception {
+    when(classroomMemberRepository.findById(MEMBER_ID)).thenReturn(Optional.empty());
 
     mockMvc
-        .perform(request.with(adminJwt()))
+        .perform(
+            delete("/admin/classrooms/{classroomId}/members/{memberId}", CLASSROOM_ID, MEMBER_ID)
+                .with(adminJwt()))
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.code").value("CLASSROOM_MEMBER_NOT_FOUND"));
 

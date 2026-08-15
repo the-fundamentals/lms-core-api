@@ -216,7 +216,9 @@ paths:
         - ClassroomMembers
       operationId: createClassroomMember
       summary: Add a member to a classroom
-      description: Creates a classroom membership, or reactivates a previously removed member.
+      description: >
+        Creates a classroom membership, reactivates a previously removed member, or updates the
+        role of an already active member.
       parameters:
         - $ref: "#/components/parameters/ClassroomIdPath"
       requestBody:
@@ -240,12 +242,6 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "404":
           description: Classroom not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "409":
-          description: Member already active in the classroom
           content:
             application/json:
               schema:
@@ -279,40 +275,6 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
   /admin/classrooms/{classroomId}/members/{memberId}:
-    patch:
-      tags:
-        - ClassroomMembers
-      operationId: updateClassroomMemberRole
-      summary: Update a classroom member role
-      description: Updates only the role of an active classroom member.
-      parameters:
-        - $ref: "#/components/parameters/ClassroomIdPath"
-        - $ref: "#/components/parameters/MemberId"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UpdateClassroomMemberRoleCommand"
-      responses:
-        "200":
-          description: Classroom member role updated
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ClassroomMemberResponse"
-        "400":
-          description: Invalid update command
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "404":
-          description: Classroom member not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
     delete:
       tags:
         - ClassroomMembers
@@ -958,15 +920,6 @@ components:
           format: uuid
           description: Account profile identifier for the member
           example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
-        role:
-          $ref: "#/components/schemas/ClassroomMemberRole"
-    UpdateClassroomMemberRoleCommand:
-      type: object
-      description: Command to update a classroom member role
-      additionalProperties: false
-      required:
-        - role
-      properties:
         role:
           $ref: "#/components/schemas/ClassroomMemberRole"
     ClassroomMemberResponse:

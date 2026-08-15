@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.RestController;
 import tech.sangdang.lmscoreapi.generated.api.ClassroomMembersApi;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomMemberFilter;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomMemberCommand;
-import tech.sangdang.lmscoreapi.generated.model.UpdateClassroomMemberRoleCommand;
 import tech.sangdang.lmscoreapi.modules.management.app.ClassroomMemberService;
 
 @RestController
@@ -26,16 +25,6 @@ public class ClassroomMemberController implements ClassroomMembersApi {
         .body(
             classroomMemberService.createClassroomMember(
                 classroomId, createClassroomMemberCommand));
-  }
-
-  @Override
-  public ResponseEntity<?> updateClassroomMemberRole(
-      @NonNull UUID classroomId,
-      @NonNull UUID memberId,
-      @NonNull UpdateClassroomMemberRoleCommand updateClassroomMemberRoleCommand) {
-    return ResponseEntity.ok(
-        classroomMemberService.updateClassroomMemberRole(
-            classroomId, memberId, updateClassroomMemberRoleCommand));
   }
 
   @Override
