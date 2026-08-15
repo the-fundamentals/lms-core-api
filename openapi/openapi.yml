@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: LMS Core API
-  version: 0.2.6
+  version: 0.2.7
   description: Core API for the Learning Management System. Management endpoints under `/admin/**` require the ADMIN role. Authenticated self-service endpoints live under `/private/**`.
   contact:
     name: Sang Dang
