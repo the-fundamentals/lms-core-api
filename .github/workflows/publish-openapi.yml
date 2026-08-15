@@ -59,6 +59,7 @@ jobs:
     environment: lms-version-bump-bot
     outputs:
       version: ${{ steps.set_version.outputs.version }}
+      dist_tag: ${{ steps.set_version.outputs.dist_tag }}
     steps:
       - name: Generate App Token
         id: app-token
@@ -94,9 +95,12 @@ jobs:
             git add openapi/openapi.yml
             git commit -m "chore: bump openapi version to ${NEW_VERSION} [skip ci]"
             git push origin HEAD:${{ github.ref_name }}
+            echo "dist_tag=latest" >> "$GITHUB_OUTPUT"
           else
-            SANITIZED_BRANCH_NAME=$(echo "${GITHUB_REF_NAME}" | sed 's/[^a-zA-Z0-9]/-/g')
+            SANITIZED_BRANCH_NAME=$(echo "${GITHUB_REF_NAME}" | sed 's/[^a-zA-Z0-9]/-/g' | tr '[:upper:]' '[:lower:]')
             NEW_VERSION="${OLD_VERSION}-feature-branch-${SANITIZED_BRANCH_NAME}-${GITHUB_SHA}"
+            # npm --tag is a dist-tag (latest/next/branch-*), not the package version
+            echo "dist_tag=branch-${SANITIZED_BRANCH_NAME}" >> "$GITHUB_OUTPUT"
           fi
 
           echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
@@ -116,6 +120,7 @@ jobs:
       packages: write
     env:
       NEW_VERSION: ${{ needs.version-bump.outputs.version }}
+      DIST_TAG: ${{ needs.version-bump.outputs.dist_tag }}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout
@@ -156,8 +161,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REF_NAME: ${{ github.ref_name }}
         run: |
-          if [ ${GITHUB_REF_NAME} == 'main' ]; then
+          if [ "${GITHUB_REF_NAME}" = "main" ]; then
             npm publish
           else
-            npm publish --tag ${NEW_VERSION}
+            npm publish --tag "${DIST_TAG}"
           fi

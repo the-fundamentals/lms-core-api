@@ -806,6 +806,14 @@ components:
           format: date-time
           description: When the classroom was last modified
           example: 2026-07-14T00:00:00
+        bannerKey:
+          type: string
+          description: The Public S3 Object key to access the classroom banner
+          example: public/540ba3e4-8026-45e9-9834-54aa0eb1a17a
+        numberOfMembers:
+          type: number
+          description: The number of members in the classroom
+          example: 10
     GetAllClassroomsResponse:
       type: array
       description: Collection of classrooms
