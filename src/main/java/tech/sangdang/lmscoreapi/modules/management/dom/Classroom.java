@@ -25,4 +25,6 @@ public class Classroom {
   private @CreatedDate LocalDateTime createdDate;
   private @LastModifiedDate LocalDateTime lastModifiedDate;
   private String name;
+  private String bannerKey;
+  private Integer numberOfMembers;
 }

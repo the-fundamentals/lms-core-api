@@ -2,6 +2,7 @@ package tech.sangdang.lmscoreapi.modules.management.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -11,8 +12,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static tech.sangdang.lmscoreapi.helpers.SecurityTestSupport.adminJwt;
+import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomFixtures.BANNER_KEY;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomFixtures.CLASSROOM_ID;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomFixtures.CLASSROOM_NAME;
+import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomFixtures.NEW_BANNER_KEY;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomFixtures.classroom;
 
 import java.util.Optional;
@@ -22,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -36,15 +40,19 @@ import tech.sangdang.lmscoreapi.generated.model.ClassroomFilter;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomCommand;
 import tech.sangdang.lmscoreapi.generated.model.UpdateClassroomCommand;
 import tech.sangdang.lmscoreapi.modules.management.app.impl.ClassroomManagementServiceImpl;
+import tech.sangdang.lmscoreapi.modules.management.app.internal.ClassroomRecordService;
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomMapperImpl;
 import tech.sangdang.lmscoreapi.modules.management.dom.Classroom;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomRepository;
+import tech.sangdang.lmscoreapi.modules.utility.app.StorageService;
+import tech.sangdang.lmscoreapi.modules.utility.app.dto.ConfirmUploadPublicCommand;
 import tools.jackson.databind.json.JsonMapper;
 
 @WebMvcTest(controllers = ClassroomController.class)
 @Import({
   GlobalExceptionHandler.class,
   ClassroomManagementServiceImpl.class,
+  ClassroomRecordService.class,
   ClassroomMapperImpl.class,
   SecurityConfig.class,
 })
@@ -55,6 +63,7 @@ class ClassroomControllerIntegrationTest {
   @Autowired private JsonMapper jsonMapper;
 
   @MockitoBean private ClassroomRepository classroomRepository;
+  @MockitoBean private StorageService storageService;
 
   @Test
   @DisplayName("creates a classroom")
@@ -63,10 +72,13 @@ class ClassroomControllerIntegrationTest {
         .thenAnswer(
             invocation -> {
               Classroom incoming = invocation.getArgument(0);
-              return classroom(CLASSROOM_ID, incoming.getName());
+              return classroom(CLASSROOM_ID, incoming.getName())
+                  .setBannerKey(incoming.getBannerKey())
+                  .setNumberOfMembers(incoming.getNumberOfMembers());
             });
 
-    CreateClassroomCommand command = CreateClassroomCommand.builder().name(CLASSROOM_NAME).build();
+    CreateClassroomCommand command =
+        CreateClassroomCommand.builder().name(CLASSROOM_NAME).bannerKey(BANNER_KEY).build();
 
     mockMvc
         .perform(
@@ -77,12 +89,20 @@ class ClassroomControllerIntegrationTest {
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.id").value(CLASSROOM_ID.toString()))
         .andExpect(jsonPath("$.name").value(CLASSROOM_NAME))
+        .andExpect(jsonPath("$.bannerKey").value(BANNER_KEY))
+        .andExpect(jsonPath("$.numberOfMembers").value(0))
         .andExpect(jsonPath("$.createdDate").exists())
         .andExpect(jsonPath("$.lastModifiedDate").exists());
 
     ArgumentCaptor<Classroom> captor = ArgumentCaptor.forClass(Classroom.class);
-    verify(classroomRepository).insert(captor.capture());
+    InOrder order = inOrder(classroomRepository, storageService);
+    order.verify(classroomRepository).insert(captor.capture());
+    order
+        .verify(storageService)
+        .confirmPublicFileUpload(new ConfirmUploadPublicCommand(BANNER_KEY));
     assertThat(captor.getValue().getName()).isEqualTo(CLASSROOM_NAME);
+    assertThat(captor.getValue().getBannerKey()).isEqualTo(BANNER_KEY);
+    assertThat(captor.getValue().getNumberOfMembers()).isZero();
   }
 
   @Test
@@ -95,18 +115,21 @@ class ClassroomControllerIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value(CLASSROOM_ID.toString()))
         .andExpect(jsonPath("$.name").value(CLASSROOM_NAME))
+        .andExpect(jsonPath("$.bannerKey").value(BANNER_KEY))
+        .andExpect(jsonPath("$.numberOfMembers").value(0))
         .andExpect(jsonPath("$.createdDate").exists())
         .andExpect(jsonPath("$.lastModifiedDate").exists());
   }
 
   @Test
-  @DisplayName("updates a classroom name")
+  @DisplayName("updates a classroom name and banner")
   void updateClassroom_valid_returns200() throws Exception {
     when(classroomRepository.findById(CLASSROOM_ID)).thenReturn(Optional.of(classroom()));
     when(classroomRepository.update(any(Classroom.class)))
         .thenAnswer(invocation -> invocation.getArgument(0));
 
-    UpdateClassroomCommand command = UpdateClassroomCommand.builder().name("Algebra II").build();
+    UpdateClassroomCommand command =
+        UpdateClassroomCommand.builder().name("Algebra II").bannerKey(NEW_BANNER_KEY).build();
 
     mockMvc
         .perform(
@@ -116,11 +139,17 @@ class ClassroomControllerIntegrationTest {
                 .with(adminJwt()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value(CLASSROOM_ID.toString()))
-        .andExpect(jsonPath("$.name").value("Algebra II"));
+        .andExpect(jsonPath("$.name").value("Algebra II"))
+        .andExpect(jsonPath("$.bannerKey").value(NEW_BANNER_KEY));
 
     ArgumentCaptor<Classroom> captor = ArgumentCaptor.forClass(Classroom.class);
-    verify(classroomRepository).update(captor.capture());
+    InOrder order = inOrder(classroomRepository, storageService);
+    order.verify(classroomRepository).update(captor.capture());
+    order
+        .verify(storageService)
+        .confirmPublicFileUpload(new ConfirmUploadPublicCommand(NEW_BANNER_KEY));
     assertThat(captor.getValue().getName()).isEqualTo("Algebra II");
+    assertThat(captor.getValue().getBannerKey()).isEqualTo(NEW_BANNER_KEY);
   }
 
   @ParameterizedTest(name = "{0}")
@@ -169,7 +198,9 @@ class ClassroomControllerIntegrationTest {
         .andExpect(jsonPath("$").isArray())
         .andExpect(jsonPath("$.length()").value(1))
         .andExpect(jsonPath("$[0].id").value(CLASSROOM_ID.toString()))
-        .andExpect(jsonPath("$[0].name").value(CLASSROOM_NAME));
+        .andExpect(jsonPath("$[0].name").value(CLASSROOM_NAME))
+        .andExpect(jsonPath("$[0].bannerKey").value(BANNER_KEY))
+        .andExpect(jsonPath("$[0].numberOfMembers").value(0));
 
     verify(classroomRepository).query(any(BaseQuery.class));
   }

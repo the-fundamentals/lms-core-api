@@ -43,7 +43,9 @@ import tech.sangdang.lmscoreapi.generated.model.UpdateClassroomMemberRoleCommand
 import tech.sangdang.lmscoreapi.modules.account.dom.AccountProfile;
 import tech.sangdang.lmscoreapi.modules.account.dom.repository.AccountProfileRepository;
 import tech.sangdang.lmscoreapi.modules.management.app.impl.ClassroomMemberServiceImpl;
+import tech.sangdang.lmscoreapi.modules.management.app.internal.ClassroomRecordService;
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomMemberMapperImpl;
+import tech.sangdang.lmscoreapi.modules.management.dom.Classroom;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomMember;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomMemberStatus;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomMemberRepository;
@@ -54,6 +56,7 @@ import tools.jackson.databind.json.JsonMapper;
 @Import({
   GlobalExceptionHandler.class,
   ClassroomMemberServiceImpl.class,
+  ClassroomRecordService.class,
   ClassroomMemberMapperImpl.class,
   SecurityConfig.class,
 })
@@ -88,6 +91,8 @@ class ClassroomMemberControllerIntegrationTest {
                   .setEmail(incoming.getEmail())
                   .setName(incoming.getName());
             });
+    when(classroomRepository.update(any(Classroom.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
 
     CreateClassroomMemberCommand command =
         CreateClassroomMemberCommand.builder()
@@ -115,6 +120,10 @@ class ClassroomMemberControllerIntegrationTest {
     assertThat(captor.getValue().getAccountId()).isEqualTo(ACCOUNT_ID);
     assertThat(captor.getValue().getEmail()).isEqualTo(MEMBER_EMAIL);
     assertThat(captor.getValue().getName()).isEqualTo(MEMBER_NAME);
+
+    ArgumentCaptor<Classroom> classroomCaptor = ArgumentCaptor.forClass(Classroom.class);
+    verify(classroomRepository).update(classroomCaptor.capture());
+    assertThat(classroomCaptor.getValue().getNumberOfMembers()).isEqualTo(1);
   }
 
   @ParameterizedTest(name = "{0}")
@@ -159,6 +168,7 @@ class ClassroomMemberControllerIntegrationTest {
     if (memberAlreadyActive) {
       verify(classroomMemberRepository, never()).update(any());
     }
+    verify(classroomRepository, never()).update(any());
   }
 
   @Test
@@ -173,6 +183,8 @@ class ClassroomMemberControllerIntegrationTest {
     when(classroomMemberRepository.findByClassroomIdAndAccountId(CLASSROOM_ID, ACCOUNT_ID))
         .thenReturn(Optional.of(removed));
     when(classroomMemberRepository.update(any(ClassroomMember.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+    when(classroomRepository.update(any(Classroom.class)))
         .thenAnswer(invocation -> invocation.getArgument(0));
 
     CreateClassroomMemberCommand command =
@@ -198,6 +210,10 @@ class ClassroomMemberControllerIntegrationTest {
     assertThat(captor.getValue().getRole())
         .isEqualTo(tech.sangdang.lmscoreapi.modules.management.dom.ClassroomMemberRole.TEACHER);
     verify(classroomMemberRepository, never()).insert(any());
+
+    ArgumentCaptor<Classroom> classroomCaptor = ArgumentCaptor.forClass(Classroom.class);
+    verify(classroomRepository).update(classroomCaptor.capture());
+    assertThat(classroomCaptor.getValue().getNumberOfMembers()).isEqualTo(1);
   }
 
   @Test
@@ -232,6 +248,10 @@ class ClassroomMemberControllerIntegrationTest {
     when(classroomMemberRepository.findById(MEMBER_ID)).thenReturn(Optional.of(classroomMember()));
     when(classroomMemberRepository.update(any(ClassroomMember.class)))
         .thenAnswer(invocation -> invocation.getArgument(0));
+    when(classroomRepository.findById(CLASSROOM_ID))
+        .thenReturn(Optional.of(classroom().setNumberOfMembers(1)));
+    when(classroomRepository.update(any(Classroom.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
 
     mockMvc
         .perform(
@@ -242,6 +262,10 @@ class ClassroomMemberControllerIntegrationTest {
     ArgumentCaptor<ClassroomMember> captor = ArgumentCaptor.forClass(ClassroomMember.class);
     verify(classroomMemberRepository).update(captor.capture());
     assertThat(captor.getValue().getStatus()).isEqualTo(ClassroomMemberStatus.REMOVED);
+
+    ArgumentCaptor<Classroom> classroomCaptor = ArgumentCaptor.forClass(Classroom.class);
+    verify(classroomRepository).update(classroomCaptor.capture());
+    assertThat(classroomCaptor.getValue().getNumberOfMembers()).isZero();
   }
 
   @ParameterizedTest(name = "{0}")

@@ -769,6 +769,7 @@ components:
       required:
         - id
         - name
+        - numberOfMembers
         - createdDate
         - lastModifiedDate
       properties:
@@ -783,6 +784,18 @@ components:
           minLength: 1
           maxLength: 255
           example: Algebra I
+        bannerKey:
+          type: string
+          description: Key to the stored classroom banner image in the Public S3 Bucket
+          minLength: 1
+          maxLength: 64
+          example: public/3e4ef8d1-9581-402f-9e27-fec209aeb2d8
+          pattern: ^public\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$
+        numberOfMembers:
+          type: integer
+          minimum: 0
+          description: Number of active members in the classroom
+          example: 12
         createdDate:
           type: string
           format: date-time
@@ -868,6 +881,13 @@ components:
           minLength: 1
           maxLength: 255
           example: Algebra I
+        bannerKey:
+          type: string
+          description: Key to the stored classroom banner image in the Public S3 Bucket
+          minLength: 1
+          maxLength: 64
+          example: public/3e4ef8d1-9581-402f-9e27-fec209aeb2d8
+          pattern: ^public\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$
     UpdateClassroomCommand:
       type: object
       description: Command to update a classroom
@@ -881,6 +901,13 @@ components:
           minLength: 1
           maxLength: 255
           example: Algebra II
+        bannerKey:
+          type: string
+          description: Key to the stored classroom banner image in the Public S3 Bucket
+          minLength: 1
+          maxLength: 64
+          example: public/3e4ef8d1-9581-402f-9e27-fec209aeb2d8
+          pattern: ^public\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$
     ClassroomMemberRole:
       type: string
       description: Role of a classroom member
