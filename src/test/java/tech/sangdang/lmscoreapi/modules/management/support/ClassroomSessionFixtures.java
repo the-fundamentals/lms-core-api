@@ -17,6 +17,9 @@ public final class ClassroomSessionFixtures {
   public static final UUID ATTENDANCE_ID = UUID.fromString("1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed");
   public static final LocalDateTime SESSION_DATE = LocalDateTime.of(2026, 7, 19, 9, 0, 0);
   public static final LocalDateTime ATTENDANCE_DATE = LocalDateTime.of(2026, 7, 19, 9, 5, 0);
+  public static final String SESSION_NAME = "Week 1 lecture";
+  public static final String SESSION_DESCRIPTION =
+      "Introduction to the course and classroom expectations";
 
   private ClassroomSessionFixtures() {}
 
@@ -30,6 +33,8 @@ public final class ClassroomSessionFixtures {
         .setId(id)
         .setClassroomId(classroomId)
         .setSessionDate(sessionDate)
+        .setName(SESSION_NAME)
+        .setDescription(SESSION_DESCRIPTION)
         .setCreatedDate(CREATED_AT)
         .setLastModifiedDate(MODIFIED_AT);
   }

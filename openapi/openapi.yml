@@ -1013,6 +1013,18 @@ components:
           format: date-time
           description: When the classroom session takes place
           example: 2026-07-19T09:00:00Z
+        name:
+          type: string
+          description: Optional display name of the classroom session
+          minLength: 1
+          maxLength: 255
+          example: Week 1 lecture
+        description:
+          type: string
+          description: Optional description of the classroom session
+          minLength: 1
+          maxLength: 2000
+          example: Introduction to the course and classroom expectations
     ClassroomSessionFilter:
       type: object
       description: Filter for querying classroom sessions
@@ -1029,7 +1041,7 @@ components:
           maximum: 50
         sortBy:
           type: string
-          pattern: '^(sessionDate|createdDate)$'
+          pattern: '^(sessionDate|name|createdDate)$'
         sortDirection:
           type: string
           enum: [ASC, DESC]
@@ -1042,7 +1054,7 @@ components:
             properties:
               field:
                 type: string
-                pattern: '^(sessionDate)$'
+                pattern: '^(sessionDate|name)$'
               operator:
                 type: string
                 pattern: '^(eq|like|gt|lt|gte|lte)$'
@@ -1074,6 +1086,18 @@ components:
           format: date-time
           description: When the classroom session takes place
           example: 2026-07-19T09:00:00Z
+        name:
+          type: string
+          description: Optional display name of the classroom session
+          minLength: 1
+          maxLength: 255
+          example: Week 1 lecture
+        description:
+          type: string
+          description: Optional description of the classroom session
+          minLength: 1
+          maxLength: 2000
+          example: Introduction to the course and classroom expectations
         createdDate:
           type: string
           format: date-time

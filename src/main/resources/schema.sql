@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS classroom_member (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_modified_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    account_id VARCHAR(255) NOT NULL,
+    account_id UUID NOT NULL,
     classroom_id UUID NOT NULL,
     role VARCHAR(32),
     status VARCHAR(32) NOT NULL,
@@ -42,6 +42,8 @@ CREATE TABLE IF NOT EXISTS classroom_session (
     last_modified_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     session_date TIMESTAMP NOT NULL,
     classroom_id UUID NOT NULL,
+    name VARCHAR(255),
+    description VARCHAR(2000),
 
     FOREIGN KEY (classroom_id) REFERENCES classroom(id)
 );

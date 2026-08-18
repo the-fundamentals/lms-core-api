@@ -52,7 +52,9 @@ public class ClassroomSessionServiceImpl implements ClassroomSessionService {
     ClassroomSession session =
         new ClassroomSession()
             .setClassroomId(classroomId)
-            .setSessionDate(command.getSessionDate().toLocalDateTime());
+            .setSessionDate(command.getSessionDate().toLocalDateTime())
+            .setName(command.getName())
+            .setDescription(command.getDescription());
     return classroomSessionMapper.toResponse(classroomSessionRepository.insert(session));
   }
 

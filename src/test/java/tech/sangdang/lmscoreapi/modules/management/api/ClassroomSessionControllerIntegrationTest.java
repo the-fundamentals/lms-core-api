@@ -18,7 +18,9 @@ import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomMembe
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomMemberFixtures.classroomMember;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomSessionFixtures.ATTENDANCE_ID;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomSessionFixtures.SESSION_DATE;
+import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomSessionFixtures.SESSION_DESCRIPTION;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomSessionFixtures.SESSION_ID;
+import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomSessionFixtures.SESSION_NAME;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomSessionFixtures.classroomSession;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomSessionFixtures.classroomSessionAttendance;
 
@@ -89,7 +91,53 @@ class ClassroomSessionControllerIntegrationTest {
             invocation -> {
               ClassroomSession incoming = invocation.getArgument(0);
               return classroomSession(
-                  SESSION_ID, incoming.getClassroomId(), incoming.getSessionDate());
+                      SESSION_ID, incoming.getClassroomId(), incoming.getSessionDate())
+                  .setName(incoming.getName())
+                  .setDescription(incoming.getDescription());
+            });
+
+    CreateClassroomSessionCommand command =
+        CreateClassroomSessionCommand.builder()
+            .sessionDate(SESSION_DATE.atOffset(ZoneOffset.UTC))
+            .name(SESSION_NAME)
+            .description(SESSION_DESCRIPTION)
+            .build();
+
+    mockMvc
+        .perform(
+            post("/admin/classrooms/{classroomId}/sessions", CLASSROOM_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonMapper.writeValueAsString(command))
+                .with(adminJwt()))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.id").value(SESSION_ID.toString()))
+        .andExpect(jsonPath("$.classroomId").value(CLASSROOM_ID.toString()))
+        .andExpect(jsonPath("$.sessionDate").exists())
+        .andExpect(jsonPath("$.name").value(SESSION_NAME))
+        .andExpect(jsonPath("$.description").value(SESSION_DESCRIPTION))
+        .andExpect(jsonPath("$.createdDate").exists())
+        .andExpect(jsonPath("$.lastModifiedDate").exists());
+
+    ArgumentCaptor<ClassroomSession> captor = ArgumentCaptor.forClass(ClassroomSession.class);
+    verify(classroomSessionRepository).insert(captor.capture());
+    assertThat(captor.getValue().getClassroomId()).isEqualTo(CLASSROOM_ID);
+    assertThat(captor.getValue().getSessionDate()).isEqualTo(SESSION_DATE);
+    assertThat(captor.getValue().getName()).isEqualTo(SESSION_NAME);
+    assertThat(captor.getValue().getDescription()).isEqualTo(SESSION_DESCRIPTION);
+  }
+
+  @Test
+  @DisplayName("creates a classroom session without a name or description")
+  void createClassroomSession_withoutOptionalFields_returns201() throws Exception {
+    when(classroomRepository.findById(CLASSROOM_ID)).thenReturn(Optional.of(classroom()));
+    when(classroomSessionRepository.insert(any(ClassroomSession.class)))
+        .thenAnswer(
+            invocation -> {
+              ClassroomSession incoming = invocation.getArgument(0);
+              return classroomSession(
+                      SESSION_ID, incoming.getClassroomId(), incoming.getSessionDate())
+                  .setName(incoming.getName())
+                  .setDescription(incoming.getDescription());
             });
 
     CreateClassroomSessionCommand command =
@@ -105,15 +153,13 @@ class ClassroomSessionControllerIntegrationTest {
                 .with(adminJwt()))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.id").value(SESSION_ID.toString()))
-        .andExpect(jsonPath("$.classroomId").value(CLASSROOM_ID.toString()))
-        .andExpect(jsonPath("$.sessionDate").exists())
-        .andExpect(jsonPath("$.createdDate").exists())
-        .andExpect(jsonPath("$.lastModifiedDate").exists());
+        .andExpect(jsonPath("$.name").doesNotExist())
+        .andExpect(jsonPath("$.description").doesNotExist());
 
     ArgumentCaptor<ClassroomSession> captor = ArgumentCaptor.forClass(ClassroomSession.class);
     verify(classroomSessionRepository).insert(captor.capture());
-    assertThat(captor.getValue().getClassroomId()).isEqualTo(CLASSROOM_ID);
-    assertThat(captor.getValue().getSessionDate()).isEqualTo(SESSION_DATE);
+    assertThat(captor.getValue().getName()).isNull();
+    assertThat(captor.getValue().getDescription()).isNull();
   }
 
   @Test
@@ -151,7 +197,9 @@ class ClassroomSessionControllerIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value(SESSION_ID.toString()))
         .andExpect(jsonPath("$.classroomId").value(CLASSROOM_ID.toString()))
-        .andExpect(jsonPath("$.sessionDate").exists());
+        .andExpect(jsonPath("$.sessionDate").exists())
+        .andExpect(jsonPath("$.name").value(SESSION_NAME))
+        .andExpect(jsonPath("$.description").value(SESSION_DESCRIPTION));
   }
 
   @ParameterizedTest(name = "{0}")
@@ -209,7 +257,9 @@ class ClassroomSessionControllerIntegrationTest {
         .andExpect(jsonPath("$").isArray())
         .andExpect(jsonPath("$.length()").value(1))
         .andExpect(jsonPath("$[0].id").value(SESSION_ID.toString()))
-        .andExpect(jsonPath("$[0].classroomId").value(CLASSROOM_ID.toString()));
+        .andExpect(jsonPath("$[0].classroomId").value(CLASSROOM_ID.toString()))
+        .andExpect(jsonPath("$[0].name").value(SESSION_NAME))
+        .andExpect(jsonPath("$[0].description").value(SESSION_DESCRIPTION));
 
     ArgumentCaptor<BaseQuery> queryCaptor = ArgumentCaptor.forClass(BaseQuery.class);
     verify(classroomSessionRepository).query(queryCaptor.capture());
