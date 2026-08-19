@@ -11,6 +11,7 @@ import tech.sangdang.lmscoreapi.common.exception.ConflictException;
 import tech.sangdang.lmscoreapi.common.exception.ObjectNotFoundException;
 import tech.sangdang.lmscoreapi.common.querying.BaseQuery;
 import tech.sangdang.lmscoreapi.common.querying.QueryFilterConditions;
+import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionAttendanceFilter;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionAttendanceResponse;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionFilter;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionResponse;
@@ -80,6 +81,28 @@ public class ClassroomSessionServiceImpl implements ClassroomSessionService {
     query.setFilters(filters);
 
     return classroomSessionRepository.query(query).map(classroomSessionMapper::toResponse).toList();
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public List<ClassroomSessionAttendanceResponse> queryClassroomSessionAttendancesByMember(
+      UUID classroomId, UUID memberId, ClassroomSessionAttendanceFilter filter) {
+    classroomRepository
+        .findById(classroomId)
+        .orElseThrow(() -> ObjectNotFoundException.of(Classroom.class, classroomId));
+    requireMemberInClassroom(classroomId, memberId);
+
+    BaseQuery query = classroomSessionAttendanceMapper.toBaseQuery(filter);
+    List<QueryFilterConditions> filters =
+        query.getFilters() == null ? new ArrayList<>() : new ArrayList<>(query.getFilters());
+
+    filters.add(QueryFilterConditions.of("classroomMemberId", "eq", memberId.toString()));
+    query.setFilters(filters);
+
+    return classroomSessionAttendanceRepository
+        .query(query)
+        .map(classroomSessionAttendanceMapper::toResponse)
+        .toList();
   }
 
   @Override
@@ -155,13 +178,20 @@ public class ClassroomSessionServiceImpl implements ClassroomSessionService {
   }
 
   private ClassroomMember requireActiveMemberInClassroom(UUID classroomId, UUID memberId) {
+    ClassroomMember member = requireMemberInClassroom(classroomId, memberId);
+    if (member.getStatus() == ClassroomMemberStatus.REMOVED) {
+      throw ObjectNotFoundException.of(ClassroomMember.class, memberId);
+    }
+    return member;
+  }
+
+  private ClassroomMember requireMemberInClassroom(UUID classroomId, UUID memberId) {
     ClassroomMember member =
         classroomMemberRepository
             .findById(memberId)
             .orElseThrow(() -> ObjectNotFoundException.of(ClassroomMember.class, memberId));
 
-    if (!classroomId.equals(member.getClassroomId())
-        || member.getStatus() == ClassroomMemberStatus.REMOVED) {
+    if (!classroomId.equals(member.getClassroomId())) {
       throw ObjectNotFoundException.of(ClassroomMember.class, memberId);
     }
     return member;

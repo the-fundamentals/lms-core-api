@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: LMS Core API
-  version: 0.2.7
+  version: 0.2.8
   description: Core API for the Learning Management System. Management endpoints under `/admin/**` require the ADMIN role. Authenticated self-service endpoints live under `/private/**`.
   contact:
     name: Sang Dang
@@ -16,7 +16,7 @@ tags:
   - name: ClassroomMembers
     description: Admin-only classroom member management (`/admin/classrooms/.../members`)
   - name: ClassroomSessions
-    description: Admin-only classroom session and attendance management (`/admin/classrooms/.../sessions`)
+    description: Admin-only classroom session and attendance management (`/admin/classrooms/.../sessions` and member attendance history)
   - name: Storage
     description: Private endpoints to upload files to the system
   - name: _Test
@@ -290,6 +290,39 @@ paths:
           description: Classroom member removed
         "404":
           description: Classroom member not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /admin/classrooms/{classroomId}/members/{memberId}/attendances/query:
+    post:
+      tags:
+        - ClassroomSessions
+      operationId: getClassroomMemberAttendances
+      summary: Get classroom session attendances for a member
+      description: >
+        Query a classroom member's session attendance history. Use `attendanceDate`
+        filters (for example `gte` / `lte`) to limit the range, and `status` (for
+        example `ATTENDED`) to see sessions the member joined. Pagination and
+        sorting follow the same pattern as other query endpoints.
+      parameters:
+        - $ref: "#/components/parameters/ClassroomIdPath"
+        - $ref: "#/components/parameters/MemberId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClassroomSessionAttendanceFilter"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetAllClassroomSessionAttendancesResponse"
+        "404":
+          description: Classroom or classroom member not found
           content:
             application/json:
               schema:
@@ -1133,6 +1166,46 @@ components:
           example: 2026-07-19T09:05:00Z
         status:
           $ref: "#/components/schemas/ClassroomSessionAttendanceStatus"
+    ClassroomSessionAttendanceFilter:
+      type: object
+      description: Filter for querying a classroom member's session attendance history
+      additionalProperties: false
+      properties:
+        page:
+          type: integer
+          default: 0
+          minimum: 0
+        size:
+          type: integer
+          default: 10
+          minimum: 1
+          maximum: 50
+        sortBy:
+          type: string
+          pattern: '^(attendanceDate|status|createdDate)$'
+        sortDirection:
+          type: string
+          enum: [ASC, DESC]
+          default: ASC
+        filters:
+          type: array
+          items:
+            type: object
+            required: [field, operator, value]
+            properties:
+              field:
+                type: string
+                pattern: '^(attendanceDate|status|sessionId)$'
+              operator:
+                type: string
+                pattern: '^(eq|like|gt|lt|gte|lte)$'
+              value:
+                type: string
+    GetAllClassroomSessionAttendancesResponse:
+      type: array
+      description: Collection of classroom session attendance records
+      items:
+        $ref: "#/components/schemas/ClassroomSessionAttendanceResponse"
     ClassroomSessionAttendanceResponse:
       type: object
       description: Classroom session attendance resource returned by the API

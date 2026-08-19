@@ -2,6 +2,7 @@ package tech.sangdang.lmscoreapi.modules.management.app;
 
 import java.util.List;
 import java.util.UUID;
+import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionAttendanceFilter;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionAttendanceResponse;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionFilter;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionResponse;
@@ -17,6 +18,9 @@ public interface ClassroomSessionService {
 
   List<ClassroomSessionResponse> queryClassroomSessions(
       UUID classroomId, ClassroomSessionFilter filter);
+
+  List<ClassroomSessionAttendanceResponse> queryClassroomSessionAttendancesByMember(
+      UUID classroomId, UUID memberId, ClassroomSessionAttendanceFilter filter);
 
   void deleteClassroomSession(UUID classroomId, UUID sessionId);
 

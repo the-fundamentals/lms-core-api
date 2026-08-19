@@ -44,6 +44,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import tech.sangdang.lmscoreapi.common.exception.GlobalExceptionHandler;
 import tech.sangdang.lmscoreapi.common.querying.BaseQuery;
 import tech.sangdang.lmscoreapi.config.SecurityConfig;
+import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionAttendanceFilter;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionAttendanceStatus;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionFilter;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionAttendanceCommand;
@@ -286,6 +287,129 @@ class ClassroomSessionControllerIntegrationTest {
         .andExpect(jsonPath("$.code").value("CLASSROOM_NOT_FOUND"));
 
     verify(classroomSessionRepository, never()).query(any());
+  }
+
+  @Test
+  @DisplayName("queries classroom session attendances for a member")
+  void getClassroomMemberAttendances_returns200() throws Exception {
+    when(classroomRepository.findById(CLASSROOM_ID)).thenReturn(Optional.of(classroom()));
+    when(classroomMemberRepository.findById(MEMBER_ID)).thenReturn(Optional.of(classroomMember()));
+    when(classroomSessionAttendanceRepository.query(any(BaseQuery.class)))
+        .thenReturn(Stream.of(classroomSessionAttendance()));
+
+    ClassroomSessionAttendanceFilter filter = ClassroomSessionAttendanceFilter.builder().build();
+
+    mockMvc
+        .perform(
+            post(
+                    "/admin/classrooms/{classroomId}/members/{memberId}/attendances/query",
+                    CLASSROOM_ID,
+                    MEMBER_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonMapper.writeValueAsString(filter))
+                .with(adminJwt()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$").isArray())
+        .andExpect(jsonPath("$.length()").value(1))
+        .andExpect(jsonPath("$[0].id").value(ATTENDANCE_ID.toString()))
+        .andExpect(jsonPath("$[0].sessionId").value(SESSION_ID.toString()))
+        .andExpect(jsonPath("$[0].classroomMemberId").value(MEMBER_ID.toString()))
+        .andExpect(jsonPath("$[0].status").value("ATTENDED"));
+
+    ArgumentCaptor<BaseQuery> queryCaptor = ArgumentCaptor.forClass(BaseQuery.class);
+    verify(classroomSessionAttendanceRepository).query(queryCaptor.capture());
+    assertThat(queryCaptor.getValue().getFilters())
+        .anyMatch(
+            f ->
+                "classroomMemberId".equals(f.getField())
+                    && MEMBER_ID.toString().equals(f.getValue()));
+  }
+
+  @Test
+  @DisplayName("queries attendance history for a previously removed classroom member")
+  void getClassroomMemberAttendances_removedMember_returns200() throws Exception {
+    when(classroomRepository.findById(CLASSROOM_ID)).thenReturn(Optional.of(classroom()));
+    when(classroomMemberRepository.findById(MEMBER_ID))
+        .thenReturn(
+            Optional.of(
+                classroomMember(
+                    MEMBER_ID, CLASSROOM_ID, ACCOUNT_ID, ClassroomMemberStatus.REMOVED)));
+    when(classroomSessionAttendanceRepository.query(any(BaseQuery.class)))
+        .thenReturn(Stream.of(classroomSessionAttendance()));
+
+    ClassroomSessionAttendanceFilter filter = ClassroomSessionAttendanceFilter.builder().build();
+
+    mockMvc
+        .perform(
+            post(
+                    "/admin/classrooms/{classroomId}/members/{memberId}/attendances/query",
+                    CLASSROOM_ID,
+                    MEMBER_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonMapper.writeValueAsString(filter))
+                .with(adminJwt()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.length()").value(1));
+
+    verify(classroomSessionAttendanceRepository).query(any(BaseQuery.class));
+  }
+
+  @Test
+  @DisplayName("fails to query member attendances when the classroom does not exist")
+  void getClassroomMemberAttendances_classroomNotFound_returns404() throws Exception {
+    when(classroomRepository.findById(CLASSROOM_ID)).thenReturn(Optional.empty());
+
+    ClassroomSessionAttendanceFilter filter = ClassroomSessionAttendanceFilter.builder().build();
+
+    mockMvc
+        .perform(
+            post(
+                    "/admin/classrooms/{classroomId}/members/{memberId}/attendances/query",
+                    CLASSROOM_ID,
+                    MEMBER_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonMapper.writeValueAsString(filter))
+                .with(adminJwt()))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value("CLASSROOM_NOT_FOUND"));
+
+    verify(classroomSessionAttendanceRepository, never()).query(any());
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @CsvSource({
+    "fails to query attendances when the member does not exist, MISSING",
+    "fails to query attendances when the member belongs to another classroom, WRONG_CLASSROOM"
+  })
+  void getClassroomMemberAttendances_memberUnavailable_returns404(
+      String displayName, String memberState) throws Exception {
+    when(classroomRepository.findById(CLASSROOM_ID)).thenReturn(Optional.of(classroom()));
+    when(classroomMemberRepository.findById(MEMBER_ID))
+        .thenReturn(
+            switch (memberState) {
+              case "MISSING" -> Optional.empty();
+              case "WRONG_CLASSROOM" ->
+                  Optional.of(
+                      classroomMember(
+                          MEMBER_ID, OTHER_CLASSROOM_ID, ACCOUNT_ID, ClassroomMemberStatus.ACTIVE));
+              default -> throw new IllegalArgumentException("Unsupported state: " + memberState);
+            });
+
+    ClassroomSessionAttendanceFilter filter = ClassroomSessionAttendanceFilter.builder().build();
+
+    mockMvc
+        .perform(
+            post(
+                    "/admin/classrooms/{classroomId}/members/{memberId}/attendances/query",
+                    CLASSROOM_ID,
+                    MEMBER_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonMapper.writeValueAsString(filter))
+                .with(adminJwt()))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value("CLASSROOM_MEMBER_NOT_FOUND"));
+
+    verify(classroomSessionAttendanceRepository, never()).query(any());
   }
 
   @Test

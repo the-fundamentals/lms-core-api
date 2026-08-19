@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import tech.sangdang.lmscoreapi.generated.api.ClassroomSessionsApi;
+import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionAttendanceFilter;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionFilter;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionAttendanceCommand;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionCommand;
@@ -33,6 +34,16 @@ public class ClassroomSessionController implements ClassroomSessionsApi {
       @NonNull UUID classroomId, @NonNull ClassroomSessionFilter classroomSessionFilter) {
     return ResponseEntity.ok(
         classroomSessionService.queryClassroomSessions(classroomId, classroomSessionFilter));
+  }
+
+  @Override
+  public ResponseEntity<?> getClassroomMemberAttendances(
+      @NonNull UUID classroomId,
+      @NonNull UUID memberId,
+      @NonNull ClassroomSessionAttendanceFilter classroomSessionAttendanceFilter) {
+    return ResponseEntity.ok(
+        classroomSessionService.queryClassroomSessionAttendancesByMember(
+            classroomId, memberId, classroomSessionAttendanceFilter));
   }
 
   @Override
