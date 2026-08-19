@@ -1,14 +1,9 @@
 package tech.sangdang.lmscoreapi.modules.management.app.impl;
 
-import java.text.ParseException;
 import java.time.LocalDateTime;
-import java.time.temporal.Temporal;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import net.fortuna.ical4j.model.property.RRule;
-import net.fortuna.ical4j.validate.ValidationException;
-import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tech.sangdang.lmscoreapi.common.exception.GenericBadRequestException;
@@ -39,7 +34,7 @@ public class ClassroomScheduleServiceImpl implements ClassroomScheduleService {
         .findById(classroomId)
         .orElseThrow(() -> ObjectNotFoundException.of(Classroom.class, classroomId));
 
-    if(!RRuleValidation.validateRecurrenceRule(command.getScheduleRule())) {
+    if (!RRuleValidation.validateRecurrenceRule(command.getScheduleRule())) {
       throw new GenericBadRequestException("INVALID_RRULE", "Invalid Recurrence Rule");
     }
 

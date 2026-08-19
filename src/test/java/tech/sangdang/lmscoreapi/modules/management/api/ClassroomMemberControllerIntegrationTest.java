@@ -410,8 +410,7 @@ class ClassroomMemberControllerIntegrationTest {
             invocation -> {
               List<ClassroomMember> result = new ArrayList<>();
               for (ClassroomMember incoming : toList(invocation.getArgument(0))) {
-                UUID id =
-                    ACCOUNT_ID.equals(incoming.getAccountId()) ? MEMBER_ID : SECOND_MEMBER_ID;
+                UUID id = ACCOUNT_ID.equals(incoming.getAccountId()) ? MEMBER_ID : SECOND_MEMBER_ID;
                 result.add(
                     classroomMember(
                             id,
