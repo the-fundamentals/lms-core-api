@@ -1,6 +1,7 @@
 package tech.sangdang.lmscoreapi.modules.management.dom.repository;
 
-import java.util.Optional;
+import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 import org.jspecify.annotations.NonNull;
 import org.springframework.data.jdbc.repository.query.Query;
@@ -18,9 +19,9 @@ public interface ClassroomSessionAttendanceRepository
   @Query(
       """
       SELECT * FROM classroom_attendance
-      WHERE session_id = :sessionId AND classroom_member_id = :classroomMemberId
+      WHERE session_id = :sessionId AND classroom_member_id IN (:classroomMemberIds)
       """)
-  Optional<ClassroomSessionAttendance> findBySessionIdAndClassroomMemberId(
+  List<ClassroomSessionAttendance> findBySessionIdAndClassroomMemberIdIn(
       @NonNull @Param("sessionId") UUID sessionId,
-      @NonNull @Param("classroomMemberId") UUID classroomMemberId);
+      @NonNull @Param("classroomMemberIds") Collection<UUID> classroomMemberIds);
 }

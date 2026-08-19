@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 import tech.sangdang.lmscoreapi.generated.api.ClassroomSessionsApi;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionAttendanceFilter;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionFilter;
-import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionAttendanceCommand;
+import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionAttendancesCommand;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionCommand;
 import tech.sangdang.lmscoreapi.modules.management.app.ClassroomSessionService;
 
@@ -61,14 +61,14 @@ public class ClassroomSessionController implements ClassroomSessionsApi {
   }
 
   @Override
-  public ResponseEntity<?> createClassroomSessionAttendance(
+  public ResponseEntity<?> createClassroomSessionAttendances(
       @NonNull UUID classroomId,
       @NonNull UUID sessionId,
-      @NonNull CreateClassroomSessionAttendanceCommand createClassroomSessionAttendanceCommand) {
+      @NonNull CreateClassroomSessionAttendancesCommand createClassroomSessionAttendancesCommand) {
     return ResponseEntity.status(HttpStatus.CREATED)
         .body(
-            classroomSessionService.createClassroomSessionAttendance(
-                classroomId, sessionId, createClassroomSessionAttendanceCommand));
+            classroomSessionService.createClassroomSessionAttendances(
+                classroomId, sessionId, createClassroomSessionAttendancesCommand));
   }
 
   @Override

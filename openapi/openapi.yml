@@ -436,9 +436,12 @@ paths:
     post:
       tags:
         - ClassroomSessions
-      operationId: createClassroomSessionAttendance
-      summary: Create a classroom session attendance
-      description: Records attendance for a classroom member in a session.
+      operationId: createClassroomSessionAttendances
+      summary: Create classroom session attendances
+      description: >
+        Records attendance for up to 30 classroom members in a session. Duplicate
+        classroom member ids in the request are rejected. If any member already has
+        attendance for the session, the entire request fails.
       parameters:
         - $ref: "#/components/parameters/ClassroomIdPath"
         - $ref: "#/components/parameters/SessionId"
@@ -447,14 +450,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateClassroomSessionAttendanceCommand"
+              $ref: "#/components/schemas/CreateClassroomSessionAttendancesCommand"
       responses:
         "201":
-          description: Classroom session attendance created
+          description: Classroom session attendances created
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ClassroomSessionAttendanceResponse"
+                $ref: "#/components/schemas/GetAllClassroomSessionAttendancesResponse"
         "400":
           description: Invalid create command
           content:
@@ -468,7 +471,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
         "409":
-          description: Attendance already exists for the member in this session
+          description: Attendance already exists for a member in this session
           content:
             application/json:
               schema:
@@ -1252,6 +1255,19 @@ components:
           example: 2026-07-19T09:05:00Z
         status:
           $ref: "#/components/schemas/ClassroomSessionAttendanceStatus"
+    CreateClassroomSessionAttendancesCommand:
+      type: object
+      description: Command to create up to 30 classroom session attendance records in one request
+      additionalProperties: false
+      required:
+        - attendances
+      properties:
+        attendances:
+          type: array
+          minItems: 1
+          maxItems: 30
+          items:
+            $ref: "#/components/schemas/CreateClassroomSessionAttendanceCommand"
     ClassroomSessionAttendanceFilter:
       type: object
       description: Filter for querying a classroom member's session attendance history

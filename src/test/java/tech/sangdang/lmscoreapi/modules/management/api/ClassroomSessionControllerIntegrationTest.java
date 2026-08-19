@@ -3,6 +3,7 @@ package tech.sangdang.lmscoreapi.modules.management.api;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -15,8 +16,11 @@ import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomFixtu
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomFixtures.classroom;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomMemberFixtures.ACCOUNT_ID;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomMemberFixtures.MEMBER_ID;
+import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomMemberFixtures.SECOND_ACCOUNT_ID;
+import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomMemberFixtures.SECOND_MEMBER_ID;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomMemberFixtures.classroomMember;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomSessionFixtures.ATTENDANCE_ID;
+import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomSessionFixtures.SECOND_ATTENDANCE_ID;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomSessionFixtures.SESSION_DATE;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomSessionFixtures.SESSION_DESCRIPTION;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomSessionFixtures.SESSION_ID;
@@ -26,9 +30,12 @@ import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomSessi
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -48,6 +55,7 @@ import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionAttendanceFilter
 import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionAttendanceStatus;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionFilter;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionAttendanceCommand;
+import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionAttendancesCommand;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionCommand;
 import tech.sangdang.lmscoreapi.modules.management.app.impl.ClassroomSessionServiceImpl;
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomSessionAttendanceMapperImpl;
@@ -429,31 +437,16 @@ class ClassroomSessionControllerIntegrationTest {
 
   @Test
   @DisplayName("creates a classroom session attendance")
-  void createClassroomSessionAttendance_valid_returns201() throws Exception {
+  void createClassroomSessionAttendances_valid_returns201() throws Exception {
     when(classroomSessionRepository.findById(SESSION_ID))
         .thenReturn(Optional.of(classroomSession()));
-    when(classroomMemberRepository.findById(MEMBER_ID)).thenReturn(Optional.of(classroomMember()));
-    when(classroomSessionAttendanceRepository.findBySessionIdAndClassroomMemberId(
-            SESSION_ID, MEMBER_ID))
-        .thenReturn(Optional.empty());
-    when(classroomSessionAttendanceRepository.insert(any(ClassroomSessionAttendance.class)))
-        .thenAnswer(
-            invocation -> {
-              ClassroomSessionAttendance incoming = invocation.getArgument(0);
-              return classroomSessionAttendance(
-                      ATTENDANCE_ID,
-                      incoming.getSessionId(),
-                      incoming.getClassroomMemberId(),
-                      incoming.getStatus())
-                  .setAttendanceDate(incoming.getAttendanceDate());
-            });
+    when(classroomMemberRepository.findAllById(any())).thenReturn(List.of(classroomMember()));
+    when(classroomSessionAttendanceRepository.findBySessionIdAndClassroomMemberIdIn(
+            any(), any()))
+        .thenReturn(List.of());
+    stubInsertAll();
 
-    CreateClassroomSessionAttendanceCommand command =
-        CreateClassroomSessionAttendanceCommand.builder()
-            .classroomMemberId(MEMBER_ID)
-            .attendanceDate(OffsetDateTime.of(2026, 7, 19, 9, 5, 0, 0, ZoneOffset.UTC))
-            .status(ClassroomSessionAttendanceStatus.ATTENDED)
-            .build();
+    CreateClassroomSessionAttendancesCommand command = attendancesCommand(attendanceItem(MEMBER_ID));
 
     mockMvc
         .perform(
@@ -465,31 +458,95 @@ class ClassroomSessionControllerIntegrationTest {
                 .content(jsonMapper.writeValueAsString(command))
                 .with(adminJwt()))
         .andExpect(status().isCreated())
-        .andExpect(jsonPath("$.id").value(ATTENDANCE_ID.toString()))
-        .andExpect(jsonPath("$.sessionId").value(SESSION_ID.toString()))
-        .andExpect(jsonPath("$.classroomMemberId").value(MEMBER_ID.toString()))
-        .andExpect(jsonPath("$.status").value("ATTENDED"))
-        .andExpect(jsonPath("$.attendanceDate").exists());
+        .andExpect(jsonPath("$").isArray())
+        .andExpect(jsonPath("$.length()").value(1))
+        .andExpect(jsonPath("$[0].id").value(ATTENDANCE_ID.toString()))
+        .andExpect(jsonPath("$[0].sessionId").value(SESSION_ID.toString()))
+        .andExpect(jsonPath("$[0].classroomMemberId").value(MEMBER_ID.toString()))
+        .andExpect(jsonPath("$[0].status").value("ATTENDED"))
+        .andExpect(jsonPath("$[0].attendanceDate").exists());
 
-    ArgumentCaptor<ClassroomSessionAttendance> captor =
-        ArgumentCaptor.forClass(ClassroomSessionAttendance.class);
-    verify(classroomSessionAttendanceRepository).insert(captor.capture());
-    assertThat(captor.getValue().getSessionId()).isEqualTo(SESSION_ID);
-    assertThat(captor.getValue().getClassroomMemberId()).isEqualTo(MEMBER_ID);
-    assertThat(captor.getValue().getStatus())
+    ArgumentCaptor<Iterable<ClassroomSessionAttendance>> captor = iterableCaptor();
+    verify(classroomSessionAttendanceRepository).insertAll(captor.capture());
+    ClassroomSessionAttendance saved = only(captor.getValue());
+    assertThat(saved.getSessionId()).isEqualTo(SESSION_ID);
+    assertThat(saved.getClassroomMemberId()).isEqualTo(MEMBER_ID);
+    assertThat(saved.getStatus())
         .isEqualTo(
             tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionAttendanceStatus
                 .ATTENDED);
+  }
+
+  @Test
+  @DisplayName("creates classroom session attendances for multiple members in one request")
+  void createClassroomSessionAttendances_multipleMembers_returns201() throws Exception {
+    when(classroomSessionRepository.findById(SESSION_ID))
+        .thenReturn(Optional.of(classroomSession()));
+    when(classroomMemberRepository.findAllById(any()))
+        .thenReturn(
+            List.of(
+                classroomMember(),
+                classroomMember(
+                    SECOND_MEMBER_ID, CLASSROOM_ID, SECOND_ACCOUNT_ID, ClassroomMemberStatus.ACTIVE)));
+    when(classroomSessionAttendanceRepository.findBySessionIdAndClassroomMemberIdIn(
+            any(), any()))
+        .thenReturn(List.of());
+    stubInsertAll();
+
+    CreateClassroomSessionAttendancesCommand command =
+        attendancesCommand(attendanceItem(MEMBER_ID), attendanceItem(SECOND_MEMBER_ID));
+
+    mockMvc
+        .perform(
+            post(
+                    "/admin/classrooms/{classroomId}/sessions/{sessionId}/attendances",
+                    CLASSROOM_ID,
+                    SESSION_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonMapper.writeValueAsString(command))
+                .with(adminJwt()))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$").isArray())
+        .andExpect(jsonPath("$.length()").value(2))
+        .andExpect(jsonPath("$[0].classroomMemberId").value(MEMBER_ID.toString()))
+        .andExpect(jsonPath("$[1].classroomMemberId").value(SECOND_MEMBER_ID.toString()));
+
+    verify(classroomMemberRepository, times(1)).findAllById(any());
+    verify(classroomSessionAttendanceRepository, times(1)).insertAll(any());
+  }
+
+  @Test
+  @DisplayName("rejects duplicate classroom member ids in one create request")
+  void createClassroomSessionAttendances_duplicateMemberId_returns400() throws Exception {
+    when(classroomSessionRepository.findById(SESSION_ID))
+        .thenReturn(Optional.of(classroomSession()));
+
+    CreateClassroomSessionAttendancesCommand command =
+        attendancesCommand(attendanceItem(MEMBER_ID), attendanceItem(MEMBER_ID));
+
+    mockMvc
+        .perform(
+            post(
+                    "/admin/classrooms/{classroomId}/sessions/{sessionId}/attendances",
+                    CLASSROOM_ID,
+                    SESSION_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonMapper.writeValueAsString(command))
+                .with(adminJwt()))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("DUPLICATE_CLASSROOM_MEMBER_ID"));
+
+    verify(classroomMemberRepository, never()).findAllById(any());
+    verify(classroomSessionAttendanceRepository, never()).insertAll(any());
   }
 
   @ParameterizedTest(name = "{0}")
   @CsvSource({
     "fails to create attendance when the session does not exist, MISSING_SESSION, ACTIVE, false, 404, CLASSROOM_SESSION_NOT_FOUND",
     "fails to create attendance when the member does not exist, FOUND, MISSING, false, 404, CLASSROOM_MEMBER_NOT_FOUND",
-    "fails to create attendance when the member is removed, FOUND, REMOVED, false, 404, CLASSROOM_MEMBER_NOT_FOUND",
     "rejects creating attendance that already exists, FOUND, ACTIVE, true, 409, CLASSROOM_SESSION_ATTENDANCE_ALREADY_EXISTS"
   })
-  void createClassroomSessionAttendance_fails(
+  void createClassroomSessionAttendances_fails(
       String displayName,
       String sessionState,
       String memberState,
@@ -506,30 +563,20 @@ class ClassroomSessionControllerIntegrationTest {
             });
 
     if ("FOUND".equals(sessionState)) {
-      when(classroomMemberRepository.findById(MEMBER_ID))
+      when(classroomMemberRepository.findAllById(any()))
           .thenReturn(
               switch (memberState) {
-                case "MISSING" -> Optional.empty();
-                case "REMOVED" ->
-                    Optional.of(
-                        classroomMember(
-                            MEMBER_ID, CLASSROOM_ID, ACCOUNT_ID, ClassroomMemberStatus.REMOVED));
-                case "ACTIVE" -> Optional.of(classroomMember());
+                case "MISSING" -> List.of();
+                case "ACTIVE" -> List.of(classroomMember());
                 default -> throw new IllegalArgumentException("Unsupported state: " + memberState);
               });
     }
 
     if (attendanceExists) {
-      when(classroomSessionAttendanceRepository.findBySessionIdAndClassroomMemberId(
-              SESSION_ID, MEMBER_ID))
-          .thenReturn(Optional.of(classroomSessionAttendance()));
+      when(classroomSessionAttendanceRepository.findBySessionIdAndClassroomMemberIdIn(
+              any(), any()))
+          .thenReturn(List.of(classroomSessionAttendance()));
     }
-
-    CreateClassroomSessionAttendanceCommand command =
-        CreateClassroomSessionAttendanceCommand.builder()
-            .classroomMemberId(MEMBER_ID)
-            .status(ClassroomSessionAttendanceStatus.ATTENDED)
-            .build();
 
     mockMvc
         .perform(
@@ -538,12 +585,12 @@ class ClassroomSessionControllerIntegrationTest {
                     CLASSROOM_ID,
                     SESSION_ID)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(jsonMapper.writeValueAsString(command))
+                .content(jsonMapper.writeValueAsString(attendancesCommand(attendanceItem(MEMBER_ID))))
                 .with(adminJwt()))
         .andExpect(status().is(httpStatus))
         .andExpect(jsonPath("$.code").value(errorCode));
 
-    verify(classroomSessionAttendanceRepository, never()).insert(any());
+    verify(classroomSessionAttendanceRepository, never()).insertAll(any());
   }
 
   @Test
@@ -620,5 +667,56 @@ class ClassroomSessionControllerIntegrationTest {
                         : "CLASSROOM_SESSION_ATTENDANCE_NOT_FOUND"));
 
     verify(classroomSessionAttendanceRepository, never()).deleteById(any());
+  }
+
+  private void stubInsertAll() {
+    when(classroomSessionAttendanceRepository.insertAll(any()))
+        .thenAnswer(
+            invocation -> {
+              List<ClassroomSessionAttendance> result = new ArrayList<>();
+              for (ClassroomSessionAttendance incoming : toList(invocation.getArgument(0))) {
+                UUID id =
+                    MEMBER_ID.equals(incoming.getClassroomMemberId())
+                        ? ATTENDANCE_ID
+                        : SECOND_ATTENDANCE_ID;
+                result.add(
+                    classroomSessionAttendance(
+                            id,
+                            incoming.getSessionId(),
+                            incoming.getClassroomMemberId(),
+                            incoming.getStatus())
+                        .setAttendanceDate(incoming.getAttendanceDate()));
+              }
+              return result;
+            });
+  }
+
+  private static CreateClassroomSessionAttendancesCommand attendancesCommand(
+      CreateClassroomSessionAttendanceCommand... items) {
+    return CreateClassroomSessionAttendancesCommand.builder().attendances(List.of(items)).build();
+  }
+
+  private static CreateClassroomSessionAttendanceCommand attendanceItem(UUID memberId) {
+    return CreateClassroomSessionAttendanceCommand.builder()
+        .classroomMemberId(memberId)
+        .attendanceDate(OffsetDateTime.of(2026, 7, 19, 9, 5, 0, 0, ZoneOffset.UTC))
+        .status(ClassroomSessionAttendanceStatus.ATTENDED)
+        .build();
+  }
+
+  @SuppressWarnings("unchecked")
+  private static ArgumentCaptor<Iterable<ClassroomSessionAttendance>> iterableCaptor() {
+    return ArgumentCaptor.forClass(Iterable.class);
+  }
+
+  private static ClassroomSessionAttendance only(Iterable<ClassroomSessionAttendance> attendances) {
+    List<ClassroomSessionAttendance> list = toList(attendances);
+    assertThat(list).hasSize(1);
+    return list.getFirst();
+  }
+
+  private static List<ClassroomSessionAttendance> toList(
+      Iterable<ClassroomSessionAttendance> attendances) {
+    return StreamSupport.stream(attendances.spliterator(), false).toList();
   }
 }
