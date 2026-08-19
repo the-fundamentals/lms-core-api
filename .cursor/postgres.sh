@@ -18,6 +18,12 @@ fi
 if pg_ctl -D "${PGDATA}" status >/dev/null 2>&1; then
   echo "[postgres] already running"
 else
+  # A snapshot/unclean shutdown can leave a stale postmaster.pid that blocks
+  # startup even though no server is running; remove it before starting.
+  if [ -f "${PGDATA}/postmaster.pid" ]; then
+    echo "[postgres] removing stale postmaster.pid"
+    rm -f "${PGDATA}/postmaster.pid"
+  fi
   echo "[postgres] starting"
   pg_ctl -D "${PGDATA}" -l "${PGLOG}" -o "-p 5432 -c listen_addresses=localhost -c unix_socket_directories=/tmp" -w start
 fi
