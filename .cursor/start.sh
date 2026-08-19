@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
-# Per-boot runtime reconciliation for Cloud Agents.
-# Brings up the local PostgreSQL instance the application depends on and applies
-# the schema. Idempotent and safe to run on every boot; returns once the
-# database is ready. The application itself runs in the "api" terminal.
+# Per-boot startup for Cloud Agents.
+# Brings up the local PostgreSQL instance (idempotent) and then launches the
+# Spring Boot API in the foreground so the environment runs the application on
+# boot. PostgreSQL is started as a background daemon by postgres.sh, which
+# returns once the database is ready; bootRun then stays attached.
 set -euo pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
+export JAVA_HOME="${JAVA_HOME:-/usr/lib/jvm/temurin-25-jdk-amd64}"
+
 bash .cursor/postgres.sh
 
-echo "[start] PostgreSQL ready. The API is launched by the 'api' terminal (./gradlew bootRun)."
+echo "[start] PostgreSQL ready. Launching LMS Core API on http://localhost:8080 ..."
+exec ./gradlew bootRun --args="--spring.profiles.active=local"
