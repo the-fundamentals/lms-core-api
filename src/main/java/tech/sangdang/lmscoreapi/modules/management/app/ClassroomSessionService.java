@@ -27,5 +27,8 @@ public interface ClassroomSessionService {
   List<ClassroomSessionAttendanceResponse> createClassroomSessionAttendances(
       UUID classroomId, UUID sessionId, CreateClassroomSessionAttendancesCommand command);
 
+  List<ClassroomSessionAttendanceResponse> getClassroomSessionAttendances(
+      UUID classroomId, UUID sessionId);
+
   void deleteClassroomSessionAttendance(UUID classroomId, UUID sessionId, UUID attendanceId);
 }

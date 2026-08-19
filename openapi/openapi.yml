@@ -433,6 +433,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
   /admin/classrooms/{classroomId}/sessions/{sessionId}/attendances:
+    get:
+      tags:
+        - ClassroomSessions
+      operationId: getAllClassroomSessionAttendances
+      summary: Get all classroom session attendances
+      description: Returns every attendance record for a classroom session. Not paginated.
+      parameters:
+        - $ref: "#/components/parameters/ClassroomIdPath"
+        - $ref: "#/components/parameters/SessionId"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetAllClassroomSessionAttendancesResponse"
+        "404":
+          description: Classroom session not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
     post:
       tags:
         - ClassroomSessions

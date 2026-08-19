@@ -72,6 +72,13 @@ public class ClassroomSessionController implements ClassroomSessionsApi {
   }
 
   @Override
+  public ResponseEntity<?> getAllClassroomSessionAttendances(
+      @NonNull UUID classroomId, @NonNull UUID sessionId) {
+    return ResponseEntity.ok(
+        classroomSessionService.getClassroomSessionAttendances(classroomId, sessionId));
+  }
+
+  @Override
   public ResponseEntity<?> deleteClassroomSessionAttendance(
       @NonNull UUID classroomId, @NonNull UUID sessionId, @NonNull UUID attendanceId) {
     classroomSessionService.deleteClassroomSessionAttendance(classroomId, sessionId, attendanceId);

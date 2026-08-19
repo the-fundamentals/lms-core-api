@@ -421,6 +421,61 @@ class ClassroomSessionControllerIntegrationTest {
   }
 
   @Test
+  @DisplayName("gets all attendances for a classroom session")
+  void getAllClassroomSessionAttendances_returns200() throws Exception {
+    when(classroomSessionRepository.findById(SESSION_ID))
+        .thenReturn(Optional.of(classroomSession()));
+    when(classroomSessionAttendanceRepository.findBySessionId(SESSION_ID))
+        .thenReturn(List.of(classroomSessionAttendance()));
+
+    mockMvc
+        .perform(
+            get(
+                    "/admin/classrooms/{classroomId}/sessions/{sessionId}/attendances",
+                    CLASSROOM_ID,
+                    SESSION_ID)
+                .with(adminJwt()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$").isArray())
+        .andExpect(jsonPath("$.length()").value(1))
+        .andExpect(jsonPath("$[0].id").value(ATTENDANCE_ID.toString()))
+        .andExpect(jsonPath("$[0].sessionId").value(SESSION_ID.toString()))
+        .andExpect(jsonPath("$[0].classroomMemberId").value(MEMBER_ID.toString()))
+        .andExpect(jsonPath("$[0].status").value("ATTENDED"));
+
+    verify(classroomSessionAttendanceRepository).findBySessionId(SESSION_ID);
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @CsvSource({
+    "fails to get session attendances when the session does not exist, MISSING",
+    "fails to get session attendances when the session belongs to another classroom, WRONG_CLASSROOM"
+  })
+  void getAllClassroomSessionAttendances_sessionUnavailable_returns404(
+      String displayName, String sessionState) throws Exception {
+    when(classroomSessionRepository.findById(SESSION_ID))
+        .thenReturn(
+            switch (sessionState) {
+              case "MISSING" -> Optional.empty();
+              case "WRONG_CLASSROOM" ->
+                  Optional.of(classroomSession(SESSION_ID, OTHER_CLASSROOM_ID, SESSION_DATE));
+              default -> throw new IllegalArgumentException("Unsupported state: " + sessionState);
+            });
+
+    mockMvc
+        .perform(
+            get(
+                    "/admin/classrooms/{classroomId}/sessions/{sessionId}/attendances",
+                    CLASSROOM_ID,
+                    SESSION_ID)
+                .with(adminJwt()))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value("CLASSROOM_SESSION_NOT_FOUND"));
+
+    verify(classroomSessionAttendanceRepository, never()).findBySessionId(any());
+  }
+
+  @Test
   @DisplayName("deletes a classroom session")
   void deleteClassroomSession_valid_returns204() throws Exception {
     when(classroomSessionRepository.findById(SESSION_ID))

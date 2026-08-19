@@ -24,4 +24,11 @@ public interface ClassroomSessionAttendanceRepository
   List<ClassroomSessionAttendance> findBySessionIdAndClassroomMemberIdIn(
       @NonNull @Param("sessionId") UUID sessionId,
       @NonNull @Param("classroomMemberIds") Collection<UUID> classroomMemberIds);
+
+  @Query(
+      """
+      SELECT * FROM classroom_attendance
+      WHERE session_id = :sessionId
+      """)
+  List<ClassroomSessionAttendance> findBySessionId(@NonNull @Param("sessionId") UUID sessionId);
 }

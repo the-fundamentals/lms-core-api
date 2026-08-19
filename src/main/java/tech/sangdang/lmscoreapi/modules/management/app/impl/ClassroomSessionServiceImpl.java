@@ -203,6 +203,18 @@ public class ClassroomSessionServiceImpl implements ClassroomSessionService {
   }
 
   @Override
+  @Transactional(readOnly = true)
+  public List<ClassroomSessionAttendanceResponse> getClassroomSessionAttendances(
+      UUID classroomId, UUID sessionId) {
+    // check session exists in classroom
+    ClassroomSession session = requireSessionInClassroom(classroomId, sessionId);
+
+    return classroomSessionAttendanceRepository.findBySessionId(session.getId()).stream()
+        .map(classroomSessionAttendanceMapper::toResponse)
+        .toList();
+  }
+
+  @Override
   @Transactional
   public void deleteClassroomSessionAttendance(
       UUID classroomId, UUID sessionId, UUID attendanceId) {
