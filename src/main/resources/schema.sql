@@ -62,6 +62,18 @@ CREATE TABLE IF NOT EXISTS classroom_attendance (
     UNIQUE(session_id, classroom_member_id)
 );
 
+CREATE TABLE classroom_schedule
+(
+    id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    created_date       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_modified_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_date       TIMESTAMP,
+    schedule_rule      VARCHAR(256),
+    classroom_id       UUID,
+
+    FOREIGN KEY (classroom_id) REFERENCES classroom(id)
+);
+
 CREATE TABLE IF NOT EXISTS storage_grants (
     id BIGSERIAL PRIMARY KEY,
     created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

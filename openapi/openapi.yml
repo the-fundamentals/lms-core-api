@@ -15,6 +15,8 @@ tags:
     description: Admin-only classroom management (`/admin/classrooms`)
   - name: ClassroomMembers
     description: Admin-only classroom member management (`/admin/classrooms/.../members`)
+  - name: ClassroomSchedule
+    description: Admin-only classroom schedule management (`/admin/classrooms/.../schedule`)
   - name: ClassroomSessions
     description: Admin-only classroom session and attendance management (`/admin/classrooms/.../sessions` and member attendance history)
   - name: Storage
@@ -636,6 +638,80 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /admin/classrooms/{classroomId}/schedule:
+    get:
+      tags:
+        - ClassroomSchedule
+      operationId: getAllClassroomSchedules
+      summary: Get all classroom schedules
+      description: Returns all non-deleted schedules for a classroom.
+      parameters:
+        - $ref: "#/components/parameters/ClassroomIdPath"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetAllClassroomSchedulesResponse"
+        "404":
+          description: Classroom not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      tags:
+        - ClassroomSchedule
+      operationId: createClassroomSchedule
+      summary: Create a classroom schedule
+      description: Creates a new schedule for a classroom and returns it.
+      parameters:
+        - $ref: "#/components/parameters/ClassroomIdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateClassroomScheduleCommand"
+      responses:
+        "201":
+          description: Classroom schedule created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassroomScheduleResponse"
+        "400":
+          description: Invalid create command
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Classroom not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /admin/classrooms/{classroomId}/schedule/{scheduleId}:
+    delete:
+      tags:
+        - ClassroomSchedule
+      operationId: deleteClassroomSchedule
+      summary: Delete a classroom schedule
+      description: Soft-deletes a classroom schedule by setting its deleted date for audit purposes.
+      parameters:
+        - $ref: "#/components/parameters/ClassroomIdPath"
+        - $ref: "#/components/parameters/ScheduleId"
+      responses:
+        "204":
+          description: Classroom schedule deleted
+        "404":
+          description: Classroom schedule not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   securitySchemes:
     cognitoOAuth:
@@ -710,6 +786,16 @@ components:
         format: uuid
         description: Classroom session attendance UUID
         example: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+    ScheduleId:
+      name: scheduleId
+      in: path
+      required: true
+      description: Classroom schedule identifier
+      schema:
+        type: string
+        format: uuid
+        description: Classroom schedule UUID
+        example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
     IdToken:
       name: X-ID-Token
       in: header
@@ -1290,6 +1376,63 @@ components:
       description: Collection of account profiles
       items:
         $ref: "#/components/schemas/AccountProfileResponse"
+    CreateClassroomScheduleCommand:
+      type: object
+      description: Command to create a Classroom Schedule
+      additionalProperties: false
+      required:
+        - scheduleRule
+      properties:
+        scheduleRule:
+          type: string
+          minLength: 1
+          description: An iCal Recurrence Rule
+          example: FREQ=MONTHLY;BYMONTHDAY=10,15
+    ClassroomScheduleResponse:
+      type: object
+      description: Classroom schedule resource returned by the API
+      additionalProperties: false
+      required:
+        - id
+        - classroomId
+        - scheduleRule
+        - createdDate
+        - lastModifiedDate
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique classroom schedule identifier
+          example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+        classroomId:
+          type: string
+          format: uuid
+          description: Classroom this schedule belongs to
+          example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+        scheduleRule:
+          type: string
+          description: An iCal Recurrence Rule
+          example: FREQ=MONTHLY;BYMONTHDAY=10,15
+        deletedDate:
+          type: string
+          format: date-time
+          description: When the schedule was soft-deleted (null if active)
+          example: null
+        createdDate:
+          type: string
+          format: date-time
+          description: When the schedule was created
+          example: 2026-07-14T00:00:00Z
+        lastModifiedDate:
+          type: string
+          format: date-time
+          description: When the schedule was last modified
+          example: 2026-07-14T00:00:00Z
+    GetAllClassroomSchedulesResponse:
+      type: array
+      description: Collection of classroom schedules
+      items:
+        $ref: "#/components/schemas/ClassroomScheduleResponse"
     AccountProfileResponse:
       type: object
       description: Account profile for the authenticated user (app-owned user data)
