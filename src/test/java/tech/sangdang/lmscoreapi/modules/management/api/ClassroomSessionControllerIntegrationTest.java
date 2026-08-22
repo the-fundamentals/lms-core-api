@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static tech.sangdang.lmscoreapi.helpers.SecurityTestSupport.adminJwt;
@@ -57,6 +58,7 @@ import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionFilter;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionAttendanceCommand;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionAttendancesCommand;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionCommand;
+import tech.sangdang.lmscoreapi.generated.model.UpdateClassroomSessionAttendanceCommand;
 import tech.sangdang.lmscoreapi.modules.management.app.impl.ClassroomSessionServiceImpl;
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomSessionAttendanceMapperImpl;
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomSessionMapperImpl;
@@ -496,12 +498,12 @@ class ClassroomSessionControllerIntegrationTest {
     when(classroomSessionRepository.findById(SESSION_ID))
         .thenReturn(Optional.of(classroomSession()));
     when(classroomMemberRepository.findAllById(any())).thenReturn(List.of(classroomMember()));
-    when(classroomSessionAttendanceRepository.findBySessionIdAndClassroomMemberIdIn(
-            any(), any()))
+    when(classroomSessionAttendanceRepository.findBySessionIdAndClassroomMemberIdIn(any(), any()))
         .thenReturn(List.of());
     stubInsertAll();
 
-    CreateClassroomSessionAttendancesCommand command = attendancesCommand(attendanceItem(MEMBER_ID));
+    CreateClassroomSessionAttendancesCommand command =
+        attendancesCommand(attendanceItem(MEMBER_ID));
 
     mockMvc
         .perform(
@@ -542,9 +544,11 @@ class ClassroomSessionControllerIntegrationTest {
             List.of(
                 classroomMember(),
                 classroomMember(
-                    SECOND_MEMBER_ID, CLASSROOM_ID, SECOND_ACCOUNT_ID, ClassroomMemberStatus.ACTIVE)));
-    when(classroomSessionAttendanceRepository.findBySessionIdAndClassroomMemberIdIn(
-            any(), any()))
+                    SECOND_MEMBER_ID,
+                    CLASSROOM_ID,
+                    SECOND_ACCOUNT_ID,
+                    ClassroomMemberStatus.ACTIVE)));
+    when(classroomSessionAttendanceRepository.findBySessionIdAndClassroomMemberIdIn(any(), any()))
         .thenReturn(List.of());
     stubInsertAll();
 
@@ -628,8 +632,7 @@ class ClassroomSessionControllerIntegrationTest {
     }
 
     if (attendanceExists) {
-      when(classroomSessionAttendanceRepository.findBySessionIdAndClassroomMemberIdIn(
-              any(), any()))
+      when(classroomSessionAttendanceRepository.findBySessionIdAndClassroomMemberIdIn(any(), any()))
           .thenReturn(List.of(classroomSessionAttendance()));
     }
 
@@ -640,12 +643,126 @@ class ClassroomSessionControllerIntegrationTest {
                     CLASSROOM_ID,
                     SESSION_ID)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(jsonMapper.writeValueAsString(attendancesCommand(attendanceItem(MEMBER_ID))))
+                .content(
+                    jsonMapper.writeValueAsString(attendancesCommand(attendanceItem(MEMBER_ID))))
                 .with(adminJwt()))
         .andExpect(status().is(httpStatus))
         .andExpect(jsonPath("$.code").value(errorCode));
 
     verify(classroomSessionAttendanceRepository, never()).insertAll(any());
+  }
+
+  @Test
+  @DisplayName("updates a classroom session attendance status")
+  void updateClassroomSessionAttendance_valid_returns200() throws Exception {
+    ClassroomSessionAttendance existing =
+        classroomSessionAttendance(
+            ATTENDANCE_ID,
+            SESSION_ID,
+            MEMBER_ID,
+            tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionAttendanceStatus
+                .ATTENDED);
+    when(classroomSessionRepository.findById(SESSION_ID))
+        .thenReturn(Optional.of(classroomSession()));
+    when(classroomSessionAttendanceRepository.findById(ATTENDANCE_ID))
+        .thenReturn(Optional.of(existing));
+    when(classroomSessionAttendanceRepository.update(any(ClassroomSessionAttendance.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    UpdateClassroomSessionAttendanceCommand command =
+        UpdateClassroomSessionAttendanceCommand.builder()
+            .status(ClassroomSessionAttendanceStatus.ABSENT)
+            .build();
+
+    mockMvc
+        .perform(
+            put(
+                    "/admin/classrooms/{classroomId}/sessions/{sessionId}/attendances/{attendanceId}",
+                    CLASSROOM_ID,
+                    SESSION_ID,
+                    ATTENDANCE_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonMapper.writeValueAsString(command))
+                .with(adminJwt()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value(ATTENDANCE_ID.toString()))
+        .andExpect(jsonPath("$.sessionId").value(SESSION_ID.toString()))
+        .andExpect(jsonPath("$.classroomMemberId").value(MEMBER_ID.toString()))
+        .andExpect(jsonPath("$.status").value("ABSENT"));
+
+    ArgumentCaptor<ClassroomSessionAttendance> captor =
+        ArgumentCaptor.forClass(ClassroomSessionAttendance.class);
+    verify(classroomSessionAttendanceRepository).update(captor.capture());
+    ClassroomSessionAttendance saved = captor.getValue();
+    assertThat(saved.getStatus())
+        .isEqualTo(
+            tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionAttendanceStatus
+                .ABSENT);
+    assertThat(saved.getClassroomMemberId()).isEqualTo(MEMBER_ID);
+    assertThat(saved.getSessionId()).isEqualTo(SESSION_ID);
+    assertThat(saved.getAttendanceDate()).isEqualTo(existing.getAttendanceDate());
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @CsvSource({
+    "fails to update attendance when the session does not exist, MISSING_SESSION, FOUND",
+    "fails to update attendance that does not exist, FOUND, MISSING",
+    "fails to update attendance that belongs to another session, FOUND, WRONG_SESSION"
+  })
+  void updateClassroomSessionAttendance_failsWhenUnavailable(
+      String displayName, String sessionState, String attendanceState) throws Exception {
+    when(classroomSessionRepository.findById(SESSION_ID))
+        .thenReturn(
+            switch (sessionState) {
+              case "MISSING_SESSION" -> Optional.empty();
+              case "FOUND" -> Optional.of(classroomSession());
+              default -> throw new IllegalArgumentException("Unsupported state: " + sessionState);
+            });
+
+    if ("FOUND".equals(sessionState)) {
+      UUID otherSessionId = UUID.fromString("22222222-3333-4444-5555-666666666666");
+      when(classroomSessionAttendanceRepository.findById(ATTENDANCE_ID))
+          .thenReturn(
+              switch (attendanceState) {
+                case "MISSING" -> Optional.empty();
+                case "WRONG_SESSION" ->
+                    Optional.of(
+                        classroomSessionAttendance(
+                            ATTENDANCE_ID,
+                            otherSessionId,
+                            MEMBER_ID,
+                            tech.sangdang.lmscoreapi.modules.management.dom
+                                .ClassroomSessionAttendanceStatus.ATTENDED));
+                case "FOUND" -> Optional.of(classroomSessionAttendance());
+                default ->
+                    throw new IllegalArgumentException("Unsupported state: " + attendanceState);
+              });
+    }
+
+    UpdateClassroomSessionAttendanceCommand command =
+        UpdateClassroomSessionAttendanceCommand.builder()
+            .status(ClassroomSessionAttendanceStatus.ABSENT)
+            .build();
+
+    mockMvc
+        .perform(
+            put(
+                    "/admin/classrooms/{classroomId}/sessions/{sessionId}/attendances/{attendanceId}",
+                    CLASSROOM_ID,
+                    SESSION_ID,
+                    ATTENDANCE_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonMapper.writeValueAsString(command))
+                .with(adminJwt()))
+        .andExpect(status().isNotFound())
+        .andExpect(
+            jsonPath("$.code")
+                .value(
+                    "MISSING_SESSION".equals(sessionState)
+                        ? "CLASSROOM_SESSION_NOT_FOUND"
+                        : "CLASSROOM_SESSION_ATTENDANCE_NOT_FOUND"));
+
+    verify(classroomSessionAttendanceRepository, never()).update(any());
   }
 
   @Test

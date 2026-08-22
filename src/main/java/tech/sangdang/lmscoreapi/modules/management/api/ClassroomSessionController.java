@@ -11,6 +11,7 @@ import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionAttendanceFilter
 import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionFilter;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionAttendancesCommand;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionCommand;
+import tech.sangdang.lmscoreapi.generated.model.UpdateClassroomSessionAttendanceCommand;
 import tech.sangdang.lmscoreapi.modules.management.app.ClassroomSessionService;
 
 @RestController
@@ -76,6 +77,17 @@ public class ClassroomSessionController implements ClassroomSessionsApi {
       @NonNull UUID classroomId, @NonNull UUID sessionId) {
     return ResponseEntity.ok(
         classroomSessionService.getClassroomSessionAttendances(classroomId, sessionId));
+  }
+
+  @Override
+  public ResponseEntity<?> updateClassroomSessionAttendance(
+      @NonNull UUID classroomId,
+      @NonNull UUID sessionId,
+      @NonNull UUID attendanceId,
+      @NonNull UpdateClassroomSessionAttendanceCommand updateClassroomSessionAttendanceCommand) {
+    return ResponseEntity.ok(
+        classroomSessionService.updateClassroomSessionAttendance(
+            classroomId, sessionId, attendanceId, updateClassroomSessionAttendanceCommand));
   }
 
   @Override

@@ -8,6 +8,7 @@ import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionFilter;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionResponse;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionAttendancesCommand;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionCommand;
+import tech.sangdang.lmscoreapi.generated.model.UpdateClassroomSessionAttendanceCommand;
 
 public interface ClassroomSessionService {
 
@@ -29,6 +30,12 @@ public interface ClassroomSessionService {
 
   List<ClassroomSessionAttendanceResponse> getClassroomSessionAttendances(
       UUID classroomId, UUID sessionId);
+
+  ClassroomSessionAttendanceResponse updateClassroomSessionAttendance(
+      UUID classroomId,
+      UUID sessionId,
+      UUID attendanceId,
+      UpdateClassroomSessionAttendanceCommand command);
 
   void deleteClassroomSessionAttendance(UUID classroomId, UUID sessionId, UUID attendanceId);
 }

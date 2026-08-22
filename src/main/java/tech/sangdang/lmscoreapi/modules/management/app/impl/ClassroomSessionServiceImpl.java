@@ -24,6 +24,7 @@ import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionResponse;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionAttendanceCommand;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionAttendancesCommand;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionCommand;
+import tech.sangdang.lmscoreapi.generated.model.UpdateClassroomSessionAttendanceCommand;
 import tech.sangdang.lmscoreapi.modules.management.app.ClassroomSessionService;
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomSessionAttendanceMapper;
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomSessionMapper;
@@ -216,21 +217,32 @@ public class ClassroomSessionServiceImpl implements ClassroomSessionService {
 
   @Override
   @Transactional
+  public ClassroomSessionAttendanceResponse updateClassroomSessionAttendance(
+      UUID classroomId,
+      UUID sessionId,
+      UUID attendanceId,
+      UpdateClassroomSessionAttendanceCommand command) {
+    // check session exists in classroom
+    requireSessionInClassroom(classroomId, sessionId);
+
+    // check attendance exists on this session
+    ClassroomSessionAttendance attendance = requireAttendanceOnSession(sessionId, attendanceId);
+
+    // update attendance status only
+    attendance.setStatus(ClassroomSessionAttendanceStatus.valueOf(command.getStatus().getValue()));
+    return classroomSessionAttendanceMapper.toResponse(
+        classroomSessionAttendanceRepository.update(attendance));
+  }
+
+  @Override
+  @Transactional
   public void deleteClassroomSessionAttendance(
       UUID classroomId, UUID sessionId, UUID attendanceId) {
     // check session exists in classroom
     requireSessionInClassroom(classroomId, sessionId);
 
     // check attendance exists on this session
-    ClassroomSessionAttendance attendance =
-        classroomSessionAttendanceRepository
-            .findById(attendanceId)
-            .orElseThrow(
-                () -> ObjectNotFoundException.of(ClassroomSessionAttendance.class, attendanceId));
-
-    if (!sessionId.equals(attendance.getSessionId())) {
-      throw ObjectNotFoundException.of(ClassroomSessionAttendance.class, attendanceId);
-    }
+    requireAttendanceOnSession(sessionId, attendanceId);
 
     classroomSessionAttendanceRepository.deleteById(attendanceId);
   }
@@ -245,6 +257,19 @@ public class ClassroomSessionServiceImpl implements ClassroomSessionService {
       throw ObjectNotFoundException.of(ClassroomSession.class, sessionId);
     }
     return session;
+  }
+
+  private ClassroomSessionAttendance requireAttendanceOnSession(UUID sessionId, UUID attendanceId) {
+    ClassroomSessionAttendance attendance =
+        classroomSessionAttendanceRepository
+            .findById(attendanceId)
+            .orElseThrow(
+                () -> ObjectNotFoundException.of(ClassroomSessionAttendance.class, attendanceId));
+
+    if (!sessionId.equals(attendance.getSessionId())) {
+      throw ObjectNotFoundException.of(ClassroomSessionAttendance.class, attendanceId);
+    }
+    return attendance;
   }
 
   private ClassroomMember requireMemberInClassroom(UUID classroomId, UUID memberId) {
