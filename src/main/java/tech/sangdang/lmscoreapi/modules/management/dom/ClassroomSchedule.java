@@ -17,15 +17,14 @@ import org.springframework.data.relational.core.mapping.Table;
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(ClassroomSession.TABLE_NAME)
-public class ClassroomSession {
-  public static final String TABLE_NAME = "classroom_session";
+@Table(ClassroomSchedule.TABLE_NAME)
+public class ClassroomSchedule {
+  public static final String TABLE_NAME = "classroom_schedule";
 
   private @Id UUID id;
   private @CreatedDate LocalDateTime createdDate;
   private @LastModifiedDate LocalDateTime lastModifiedDate;
-  private LocalDateTime sessionDate;
+  private LocalDateTime deletedDate;
+  private String scheduleRule;
   private UUID classroomId;
-  private String name;
-  private String description;
 }

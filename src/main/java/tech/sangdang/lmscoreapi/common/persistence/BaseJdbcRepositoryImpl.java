@@ -67,6 +67,11 @@ public class BaseJdbcRepositoryImpl<Entity, IdType>
   }
 
   @Override
+  public List<Entity> findAllById(@NonNull Iterable<@NonNull IdType> ids) {
+    return toList(operations.findAllById(ids, entityClass));
+  }
+
+  @Override
   public boolean existsById(@NonNull IdType id) {
     return operations.existsById(id, entityClass);
   }

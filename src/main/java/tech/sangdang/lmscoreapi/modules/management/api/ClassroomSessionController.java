@@ -7,9 +7,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import tech.sangdang.lmscoreapi.generated.api.ClassroomSessionsApi;
+import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionAttendanceFilter;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionFilter;
-import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionAttendanceCommand;
+import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionAttendancesCommand;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionCommand;
+import tech.sangdang.lmscoreapi.generated.model.UpdateClassroomSessionAttendanceCommand;
 import tech.sangdang.lmscoreapi.modules.management.app.ClassroomSessionService;
 
 @RestController
@@ -36,6 +38,16 @@ public class ClassroomSessionController implements ClassroomSessionsApi {
   }
 
   @Override
+  public ResponseEntity<?> getClassroomMemberAttendances(
+      @NonNull UUID classroomId,
+      @NonNull UUID memberId,
+      @NonNull ClassroomSessionAttendanceFilter classroomSessionAttendanceFilter) {
+    return ResponseEntity.ok(
+        classroomSessionService.queryClassroomSessionAttendancesByMember(
+            classroomId, memberId, classroomSessionAttendanceFilter));
+  }
+
+  @Override
   public ResponseEntity<?> getClassroomSessionById(
       @NonNull UUID classroomId, @NonNull UUID sessionId) {
     return ResponseEntity.ok(
@@ -50,14 +62,32 @@ public class ClassroomSessionController implements ClassroomSessionsApi {
   }
 
   @Override
-  public ResponseEntity<?> createClassroomSessionAttendance(
+  public ResponseEntity<?> createClassroomSessionAttendances(
       @NonNull UUID classroomId,
       @NonNull UUID sessionId,
-      @NonNull CreateClassroomSessionAttendanceCommand createClassroomSessionAttendanceCommand) {
+      @NonNull CreateClassroomSessionAttendancesCommand createClassroomSessionAttendancesCommand) {
     return ResponseEntity.status(HttpStatus.CREATED)
         .body(
-            classroomSessionService.createClassroomSessionAttendance(
-                classroomId, sessionId, createClassroomSessionAttendanceCommand));
+            classroomSessionService.createClassroomSessionAttendances(
+                classroomId, sessionId, createClassroomSessionAttendancesCommand));
+  }
+
+  @Override
+  public ResponseEntity<?> getAllClassroomSessionAttendances(
+      @NonNull UUID classroomId, @NonNull UUID sessionId) {
+    return ResponseEntity.ok(
+        classroomSessionService.getClassroomSessionAttendances(classroomId, sessionId));
+  }
+
+  @Override
+  public ResponseEntity<?> updateClassroomSessionAttendance(
+      @NonNull UUID classroomId,
+      @NonNull UUID sessionId,
+      @NonNull UUID attendanceId,
+      @NonNull UpdateClassroomSessionAttendanceCommand updateClassroomSessionAttendanceCommand) {
+    return ResponseEntity.ok(
+        classroomSessionService.updateClassroomSessionAttendance(
+            classroomId, sessionId, attendanceId, updateClassroomSessionAttendanceCommand));
   }
 
   @Override

@@ -9,12 +9,16 @@ info:
 tags:
   - name: AccountProfile
     description: Authenticated account profile (`/private/profile`) for any logged-in user
+  - name: Accounts
+    description: Admin-only Account querying capabilities (`/admin/account`)
   - name: Classroom
     description: Admin-only classroom management (`/admin/classrooms`)
   - name: ClassroomMembers
     description: Admin-only classroom member management (`/admin/classrooms/.../members`)
+  - name: ClassroomSchedule
+    description: Admin-only classroom schedule management (`/admin/classrooms/.../schedule`)
   - name: ClassroomSessions
-    description: Admin-only classroom session and attendance management (`/admin/classrooms/.../sessions`)
+    description: Admin-only classroom session and attendance management (`/admin/classrooms/.../sessions` and member attendance history)
   - name: Storage
     description: Private endpoints to upload files to the system
   - name: _Test
@@ -28,6 +32,26 @@ security:
       - profile
   - bearerAuth: []
 paths:
+  /admin/account/query:
+    post:
+      tags:
+        - Accounts
+      operationId: getAllAccounts
+      summary: Get all accounts
+      description: Query all account profiles in the database.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccountFilter"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetAllAccountsResponse"
   /private/profile:
     get:
       tags:
@@ -192,9 +216,12 @@ paths:
     post:
       tags:
         - ClassroomMembers
-      operationId: createClassroomMember
-      summary: Add a member to a classroom
-      description: Creates a classroom membership, or reactivates a previously removed member.
+      operationId: createClassroomMembers
+      summary: Add members to a classroom
+      description: >
+        Creates classroom memberships, reactivates previously removed members, or updates the
+        role of already active members. Up to 30 members may be submitted in one request.
+        Account profiles and existing memberships are loaded in batch.
       parameters:
         - $ref: "#/components/parameters/ClassroomIdPath"
       requestBody:
@@ -202,14 +229,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateClassroomMemberCommand"
+              $ref: "#/components/schemas/CreateClassroomMembersCommand"
       responses:
         "201":
-          description: Classroom member created
+          description: Classroom members created or updated
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ClassroomMemberResponse"
+                $ref: "#/components/schemas/GetAllClassroomMembersResponse"
         "400":
           description: Invalid create command
           content:
@@ -218,12 +245,6 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "404":
           description: Classroom not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "409":
-          description: Member already active in the classroom
           content:
             application/json:
               schema:
@@ -257,40 +278,6 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
   /admin/classrooms/{classroomId}/members/{memberId}:
-    patch:
-      tags:
-        - ClassroomMembers
-      operationId: updateClassroomMemberRole
-      summary: Update a classroom member role
-      description: Updates only the role of an active classroom member.
-      parameters:
-        - $ref: "#/components/parameters/ClassroomIdPath"
-        - $ref: "#/components/parameters/MemberId"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UpdateClassroomMemberRoleCommand"
-      responses:
-        "200":
-          description: Classroom member role updated
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ClassroomMemberResponse"
-        "400":
-          description: Invalid update command
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "404":
-          description: Classroom member not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
     delete:
       tags:
         - ClassroomMembers
@@ -305,6 +292,39 @@ paths:
           description: Classroom member removed
         "404":
           description: Classroom member not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /admin/classrooms/{classroomId}/members/{memberId}/attendances/query:
+    post:
+      tags:
+        - ClassroomSessions
+      operationId: getClassroomMemberAttendances
+      summary: Get classroom session attendances for a member
+      description: >
+        Query a classroom member's session attendance history. Use `attendanceDate`
+        filters (for example `gte` / `lte`) to limit the range, and `status` (for
+        example `ATTENDED`) to see sessions the member joined. Pagination and
+        sorting follow the same pattern as other query endpoints.
+      parameters:
+        - $ref: "#/components/parameters/ClassroomIdPath"
+        - $ref: "#/components/parameters/MemberId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClassroomSessionAttendanceFilter"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetAllClassroomSessionAttendancesResponse"
+        "404":
+          description: Classroom or classroom member not found
           content:
             application/json:
               schema:
@@ -413,12 +433,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
   /admin/classrooms/{classroomId}/sessions/{sessionId}/attendances:
+    get:
+      tags:
+        - ClassroomSessions
+      operationId: getAllClassroomSessionAttendances
+      summary: Get all classroom session attendances
+      description: Returns every attendance record for a classroom session. Not paginated.
+      parameters:
+        - $ref: "#/components/parameters/ClassroomIdPath"
+        - $ref: "#/components/parameters/SessionId"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetAllClassroomSessionAttendancesResponse"
+        "404":
+          description: Classroom session not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
     post:
       tags:
         - ClassroomSessions
-      operationId: createClassroomSessionAttendance
-      summary: Create a classroom session attendance
-      description: Records attendance for a classroom member in a session.
+      operationId: createClassroomSessionAttendances
+      summary: Create classroom session attendances
+      description: >
+        Records attendance for up to 30 classroom members in a session. Duplicate
+        classroom member ids in the request are rejected. If any member already has
+        attendance for the session, the entire request fails.
       parameters:
         - $ref: "#/components/parameters/ClassroomIdPath"
         - $ref: "#/components/parameters/SessionId"
@@ -427,14 +472,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateClassroomSessionAttendanceCommand"
+              $ref: "#/components/schemas/CreateClassroomSessionAttendancesCommand"
       responses:
         "201":
-          description: Classroom session attendance created
+          description: Classroom session attendances created
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ClassroomSessionAttendanceResponse"
+                $ref: "#/components/schemas/GetAllClassroomSessionAttendancesResponse"
         "400":
           description: Invalid create command
           content:
@@ -448,12 +493,49 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
         "409":
-          description: Attendance already exists for the member in this session
+          description: Attendance already exists for a member in this session
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
   /admin/classrooms/{classroomId}/sessions/{sessionId}/attendances/{attendanceId}:
+    put:
+      tags:
+        - ClassroomSessions
+      operationId: updateClassroomSessionAttendance
+      summary: Update a classroom session attendance
+      description: >
+        Updates only the attendance status (present or absent) for an existing
+        classroom session attendance record.
+      parameters:
+        - $ref: "#/components/parameters/ClassroomIdPath"
+        - $ref: "#/components/parameters/SessionId"
+        - $ref: "#/components/parameters/AttendanceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateClassroomSessionAttendanceCommand"
+      responses:
+        "200":
+          description: Classroom session attendance updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassroomSessionAttendanceResponse"
+        "400":
+          description: Invalid update command
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Classroom session attendance not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
     delete:
       tags:
         - ClassroomSessions
@@ -618,6 +700,80 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /admin/classrooms/{classroomId}/schedule:
+    get:
+      tags:
+        - ClassroomSchedule
+      operationId: getAllClassroomSchedules
+      summary: Get all classroom schedules
+      description: Returns all non-deleted schedules for a classroom.
+      parameters:
+        - $ref: "#/components/parameters/ClassroomIdPath"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetAllClassroomSchedulesResponse"
+        "404":
+          description: Classroom not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      tags:
+        - ClassroomSchedule
+      operationId: createClassroomSchedule
+      summary: Create a classroom schedule
+      description: Creates a new schedule for a classroom and returns it.
+      parameters:
+        - $ref: "#/components/parameters/ClassroomIdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateClassroomScheduleCommand"
+      responses:
+        "201":
+          description: Classroom schedule created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassroomScheduleResponse"
+        "400":
+          description: Invalid create command
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Classroom not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /admin/classrooms/{classroomId}/schedule/{scheduleId}:
+    delete:
+      tags:
+        - ClassroomSchedule
+      operationId: deleteClassroomSchedule
+      summary: Delete a classroom schedule
+      description: Soft-deletes a classroom schedule by setting its deleted date for audit purposes.
+      parameters:
+        - $ref: "#/components/parameters/ClassroomIdPath"
+        - $ref: "#/components/parameters/ScheduleId"
+      responses:
+        "204":
+          description: Classroom schedule deleted
+        "404":
+          description: Classroom schedule not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   securitySchemes:
     cognitoOAuth:
@@ -692,6 +848,16 @@ components:
         format: uuid
         description: Classroom session attendance UUID
         example: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
+    ScheduleId:
+      name: scheduleId
+      in: path
+      required: true
+      description: Classroom schedule identifier
+      schema:
+        type: string
+        format: uuid
+        description: Classroom schedule UUID
+        example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
     IdToken:
       name: X-ID-Token
       in: header
@@ -925,7 +1091,7 @@ components:
       example: ACTIVE
     CreateClassroomMemberCommand:
       type: object
-      description: Command to add a member to a classroom
+      description: A single membership to create or update in a classroom
       additionalProperties: false
       required:
         - accountId
@@ -938,15 +1104,19 @@ components:
           example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
         role:
           $ref: "#/components/schemas/ClassroomMemberRole"
-    UpdateClassroomMemberRoleCommand:
+    CreateClassroomMembersCommand:
       type: object
-      description: Command to update a classroom member role
+      description: Command to add or update up to 30 classroom members in one request
       additionalProperties: false
       required:
-        - role
+        - members
       properties:
-        role:
-          $ref: "#/components/schemas/ClassroomMemberRole"
+        members:
+          type: array
+          minItems: 1
+          maxItems: 30
+          items:
+            $ref: "#/components/schemas/CreateClassroomMemberCommand"
     ClassroomMemberResponse:
       type: object
       description: Classroom member resource returned by the API
@@ -1024,6 +1194,18 @@ components:
           format: date-time
           description: When the classroom session takes place
           example: 2026-07-19T09:00:00Z
+        name:
+          type: string
+          description: Optional display name of the classroom session
+          minLength: 1
+          maxLength: 255
+          example: Week 1 lecture
+        description:
+          type: string
+          description: Optional description of the classroom session
+          minLength: 1
+          maxLength: 2000
+          example: Introduction to the course and classroom expectations
     ClassroomSessionFilter:
       type: object
       description: Filter for querying classroom sessions
@@ -1040,7 +1222,7 @@ components:
           maximum: 50
         sortBy:
           type: string
-          pattern: '^(sessionDate|createdDate)$'
+          pattern: '^(sessionDate|name|createdDate)$'
         sortDirection:
           type: string
           enum: [ASC, DESC]
@@ -1053,7 +1235,7 @@ components:
             properties:
               field:
                 type: string
-                pattern: '^(sessionDate)$'
+                pattern: '^(sessionDate|name)$'
               operator:
                 type: string
                 pattern: '^(eq|like|gt|lt|gte|lte)$'
@@ -1085,6 +1267,18 @@ components:
           format: date-time
           description: When the classroom session takes place
           example: 2026-07-19T09:00:00Z
+        name:
+          type: string
+          description: Optional display name of the classroom session
+          minLength: 1
+          maxLength: 255
+          example: Week 1 lecture
+        description:
+          type: string
+          description: Optional description of the classroom session
+          minLength: 1
+          maxLength: 2000
+          example: Introduction to the course and classroom expectations
         createdDate:
           type: string
           format: date-time
@@ -1120,6 +1314,68 @@ components:
           example: 2026-07-19T09:05:00Z
         status:
           $ref: "#/components/schemas/ClassroomSessionAttendanceStatus"
+    CreateClassroomSessionAttendancesCommand:
+      type: object
+      description: Command to create up to 30 classroom session attendance records in one request
+      additionalProperties: false
+      required:
+        - attendances
+      properties:
+        attendances:
+          type: array
+          minItems: 1
+          maxItems: 30
+          items:
+            $ref: "#/components/schemas/CreateClassroomSessionAttendanceCommand"
+    UpdateClassroomSessionAttendanceCommand:
+      type: object
+      description: Command to update a classroom session attendance status
+      additionalProperties: false
+      required:
+        - status
+      properties:
+        status:
+          $ref: "#/components/schemas/ClassroomSessionAttendanceStatus"
+    ClassroomSessionAttendanceFilter:
+      type: object
+      description: Filter for querying a classroom member's session attendance history
+      additionalProperties: false
+      properties:
+        page:
+          type: integer
+          default: 0
+          minimum: 0
+        size:
+          type: integer
+          default: 10
+          minimum: 1
+          maximum: 50
+        sortBy:
+          type: string
+          pattern: '^(attendanceDate|status|createdDate)$'
+        sortDirection:
+          type: string
+          enum: [ASC, DESC]
+          default: ASC
+        filters:
+          type: array
+          items:
+            type: object
+            required: [field, operator, value]
+            properties:
+              field:
+                type: string
+                pattern: '^(attendanceDate|status|sessionId)$'
+              operator:
+                type: string
+                pattern: '^(eq|like|gt|lt|gte|lte)$'
+              value:
+                type: string
+    GetAllClassroomSessionAttendancesResponse:
+      type: array
+      description: Collection of classroom session attendance records
+      items:
+        $ref: "#/components/schemas/ClassroomSessionAttendanceResponse"
     ClassroomSessionAttendanceResponse:
       type: object
       description: Classroom session attendance resource returned by the API
@@ -1164,6 +1420,103 @@ components:
           format: date-time
           description: When the attendance record was last modified
           example: 2026-07-14T00:00:00Z
+    AccountFilter:
+      type: object
+      description: Filter for querying account profiles
+      additionalProperties: false
+      properties:
+        page:
+          type: integer
+          default: 0
+          minimum: 0
+        size:
+          type: integer
+          default: 10
+          minimum: 1
+          maximum: 50
+        sortBy:
+          type: string
+          pattern: '^(email|firstName|lastName|createdDate|lastModifiedDate)$'
+        sortDirection:
+          type: string
+          enum: [ASC, DESC]
+          default: ASC
+        filters:
+          type: array
+          items:
+            type: object
+            required: [field, operator, value]
+            properties:
+              field:
+                type: string
+                pattern: '^(email|firstName|lastName|cognitoSub)$'
+              operator:
+                type: string
+                pattern: '^(eq|like|gt|lt|gte|lte)$'
+              value:
+                type: string
+    GetAllAccountsResponse:
+      type: array
+      description: Collection of account profiles
+      items:
+        $ref: "#/components/schemas/AccountProfileResponse"
+    CreateClassroomScheduleCommand:
+      type: object
+      description: Command to create a Classroom Schedule
+      additionalProperties: false
+      required:
+        - scheduleRule
+      properties:
+        scheduleRule:
+          type: string
+          minLength: 1
+          description: An iCal Recurrence Rule
+          example: FREQ=MONTHLY;BYMONTHDAY=10,15
+    ClassroomScheduleResponse:
+      type: object
+      description: Classroom schedule resource returned by the API
+      additionalProperties: false
+      required:
+        - id
+        - classroomId
+        - scheduleRule
+        - createdDate
+        - lastModifiedDate
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique classroom schedule identifier
+          example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+        classroomId:
+          type: string
+          format: uuid
+          description: Classroom this schedule belongs to
+          example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+        scheduleRule:
+          type: string
+          description: An iCal Recurrence Rule
+          example: FREQ=MONTHLY;BYMONTHDAY=10,15
+        deletedDate:
+          type: string
+          format: date-time
+          description: When the schedule was soft-deleted (null if active)
+          example: null
+        createdDate:
+          type: string
+          format: date-time
+          description: When the schedule was created
+          example: 2026-07-14T00:00:00Z
+        lastModifiedDate:
+          type: string
+          format: date-time
+          description: When the schedule was last modified
+          example: 2026-07-14T00:00:00Z
+    GetAllClassroomSchedulesResponse:
+      type: array
+      description: Collection of classroom schedules
+      items:
+        $ref: "#/components/schemas/ClassroomScheduleResponse"
     AccountProfileResponse:
       type: object
       description: Account profile for the authenticated user (app-owned user data)

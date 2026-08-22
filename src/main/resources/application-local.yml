@@ -28,6 +28,8 @@ app:
       region: ap-southeast-1
       use-dummy-credentials: true
       cloud-mode: localstack
+  config:
+    load-dummy-accounts-into-database: true
 
 springdoc:
   api-docs:

@@ -2,11 +2,13 @@ package tech.sangdang.lmscoreapi.modules.management.app;
 
 import java.util.List;
 import java.util.UUID;
+import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionAttendanceFilter;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionAttendanceResponse;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionFilter;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionResponse;
-import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionAttendanceCommand;
+import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionAttendancesCommand;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionCommand;
+import tech.sangdang.lmscoreapi.generated.model.UpdateClassroomSessionAttendanceCommand;
 
 public interface ClassroomSessionService {
 
@@ -18,10 +20,22 @@ public interface ClassroomSessionService {
   List<ClassroomSessionResponse> queryClassroomSessions(
       UUID classroomId, ClassroomSessionFilter filter);
 
+  List<ClassroomSessionAttendanceResponse> queryClassroomSessionAttendancesByMember(
+      UUID classroomId, UUID memberId, ClassroomSessionAttendanceFilter filter);
+
   void deleteClassroomSession(UUID classroomId, UUID sessionId);
 
-  ClassroomSessionAttendanceResponse createClassroomSessionAttendance(
-      UUID classroomId, UUID sessionId, CreateClassroomSessionAttendanceCommand command);
+  List<ClassroomSessionAttendanceResponse> createClassroomSessionAttendances(
+      UUID classroomId, UUID sessionId, CreateClassroomSessionAttendancesCommand command);
+
+  List<ClassroomSessionAttendanceResponse> getClassroomSessionAttendances(
+      UUID classroomId, UUID sessionId);
+
+  ClassroomSessionAttendanceResponse updateClassroomSessionAttendance(
+      UUID classroomId,
+      UUID sessionId,
+      UUID attendanceId,
+      UpdateClassroomSessionAttendanceCommand command);
 
   void deleteClassroomSessionAttendance(UUID classroomId, UUID sessionId, UUID attendanceId);
 }

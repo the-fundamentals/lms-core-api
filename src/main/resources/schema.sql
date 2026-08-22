@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS classroom_member (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_modified_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    account_id VARCHAR(255) NOT NULL,
+    account_id UUID NOT NULL,
     classroom_id UUID NOT NULL,
     role VARCHAR(32),
     status VARCHAR(32) NOT NULL,
@@ -42,6 +42,8 @@ CREATE TABLE IF NOT EXISTS classroom_session (
     last_modified_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     session_date TIMESTAMP NOT NULL,
     classroom_id UUID NOT NULL,
+    name VARCHAR(255),
+    description VARCHAR(2000),
 
     FOREIGN KEY (classroom_id) REFERENCES classroom(id)
 );
@@ -58,6 +60,18 @@ CREATE TABLE IF NOT EXISTS classroom_attendance (
     FOREIGN KEY (session_id) REFERENCES classroom_session(id) ON DELETE CASCADE,
     FOREIGN KEY (classroom_member_id) REFERENCES classroom_member(id),
     UNIQUE(session_id, classroom_member_id)
+);
+
+CREATE TABLE classroom_schedule
+(
+    id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    created_date       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_modified_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_date       TIMESTAMP,
+    schedule_rule      VARCHAR(256),
+    classroom_id       UUID,
+
+    FOREIGN KEY (classroom_id) REFERENCES classroom(id)
 );
 
 CREATE TABLE IF NOT EXISTS storage_grants (

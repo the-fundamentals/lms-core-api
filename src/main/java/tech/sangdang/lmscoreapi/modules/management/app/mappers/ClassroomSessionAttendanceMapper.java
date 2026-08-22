@@ -4,6 +4,8 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import org.mapstruct.Mapper;
+import tech.sangdang.lmscoreapi.common.querying.BaseQuery;
+import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionAttendanceFilter;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionAttendanceResponse;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionAttendance;
 
@@ -11,6 +13,8 @@ import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionAttendanc
 public interface ClassroomSessionAttendanceMapper {
 
   ClassroomSessionAttendanceResponse toResponse(ClassroomSessionAttendance attendance);
+
+  BaseQuery toBaseQuery(ClassroomSessionAttendanceFilter apiFilter);
 
   default OffsetDateTime map(LocalDateTime value) {
     return value == null ? null : value.atOffset(ZoneOffset.UTC);
