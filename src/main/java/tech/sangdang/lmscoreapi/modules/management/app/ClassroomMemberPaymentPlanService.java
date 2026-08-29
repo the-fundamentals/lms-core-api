@@ -36,15 +36,14 @@ public interface ClassroomMemberPaymentPlanService {
       UUID classroomId, UUID memberId);
 
   /**
-   * Lists payment plans for every member of the classroom.
+   * Lists each member's current payment plan for the classroom.
    *
    * <ul>
-   *   <li>Empty list means no member has a plan — that is valid.
-   *   <li>Members with no plan are omitted.
-   *   <li>Current plans first, then newest {@code createdDate}.
+   *   <li>Empty list means no member has a current plan — that is valid.
+   *   <li>Replaced plans and members with no current plan are omitted.
    * </ul>
    *
-   * @param classroomId classroom whose members' plans to load
+   * @param classroomId classroom whose members' current plans to load
    */
   List<ClassroomMemberPaymentPlanResponse> getAllClassroomPaymentPlans(UUID classroomId);
 

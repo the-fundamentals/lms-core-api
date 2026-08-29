@@ -278,11 +278,11 @@ paths:
       tags:
         - ClassroomMemberPaymentPlans
       operationId: getAllClassroomPaymentPlans
-      summary: Get all payment plans for a classroom
+      summary: Get current payment plans for a classroom
       description: >
-        Returns every payment plan for members of the classroom, not paginated.
-        Members with no plan are omitted. Current plans are first, then remaining
-        plans by created date descending.
+        Returns each member's current (active) payment plan for the classroom, not
+        paginated. Replaced plans are omitted. Members with no current plan are
+        omitted. Newest created date first.
       parameters:
         - $ref: "#/components/parameters/ClassroomIdPath"
       responses:

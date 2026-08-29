@@ -218,31 +218,23 @@ class ClassroomMemberPaymentPlanControllerIntegrationTest {
   }
 
   @Test
-  @DisplayName("lists all payment plans for a classroom")
+  @DisplayName("lists current payment plans for a classroom")
   void getAllClassroomPaymentPlans_returns200() throws Exception {
     ClassroomMemberPaymentPlan current = currentPaymentPlan();
-    ClassroomMemberPaymentPlan previous =
-        paymentPlan(
-            PREVIOUS_PAYMENT_PLAN_ID,
-            MEMBER_ID,
-            false,
-            Instant.now(),
-            Instant.now().minus(Duration.ofDays(1)));
     ClassroomMemberPaymentPlan unpaidMemberRow = new ClassroomMemberPaymentPlan();
 
     when(classroomRepository.findById(CLASSROOM_ID)).thenReturn(Optional.of(classroom()));
     when(classroomMemberPaymentPlanRepository.findByClassroom(CLASSROOM_ID))
-        .thenReturn(List.of(current, previous, unpaidMemberRow));
+        .thenReturn(List.of(current, unpaidMemberRow));
 
     mockMvc
         .perform(
             get("/admin/classrooms/{classroomId}/payment-plans", CLASSROOM_ID).with(adminJwt()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$").isArray())
-        .andExpect(jsonPath("$.length()").value(2))
+        .andExpect(jsonPath("$.length()").value(1))
         .andExpect(jsonPath("$[0].id").value(PAYMENT_PLAN_ID.toString()))
-        .andExpect(jsonPath("$[0].isCurrent").value(true))
-        .andExpect(jsonPath("$[1].id").value(PREVIOUS_PAYMENT_PLAN_ID.toString()));
+        .andExpect(jsonPath("$[0].isCurrent").value(true));
   }
 
   @Test
