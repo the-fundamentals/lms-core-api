@@ -15,6 +15,8 @@ tags:
     description: Admin-only classroom management (`/admin/classrooms`)
   - name: ClassroomMembers
     description: Admin-only classroom member management (`/admin/classrooms/.../members`)
+  - name: ClassroomMemberPaymentPlans
+    description: Admin-only classroom member payment plans (`/admin/classrooms/.../members/.../payment-plans`)
   - name: ClassroomSchedule
     description: Admin-only classroom schedule management (`/admin/classrooms/.../schedule`)
   - name: ClassroomSessions
@@ -292,6 +294,96 @@ paths:
           description: Classroom member removed
         "404":
           description: Classroom member not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /admin/classrooms/{classroomId}/members/{memberId}/payment-plans:
+    get:
+      tags:
+        - ClassroomMemberPaymentPlans
+      operationId: getClassroomMemberPaymentPlans
+      summary: Get payment plans for a classroom member
+      description: >
+        Returns every payment plan for the member, not paginated. The current plan
+        (if any) is first, then remaining plans by created date descending. An empty
+        list means the member has no paid plan.
+      parameters:
+        - $ref: "#/components/parameters/ClassroomIdPath"
+        - $ref: "#/components/parameters/MemberId"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetAllClassroomMemberPaymentPlansResponse"
+        "404":
+          description: Classroom member not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      tags:
+        - ClassroomMemberPaymentPlans
+      operationId: createClassroomMemberPaymentPlan
+      summary: Create a payment plan for a classroom member
+      description: >
+        Inserts a new current payment plan. Any existing current plan for the member
+        is marked not current in the same transaction. Plans are immutable after create.
+      parameters:
+        - $ref: "#/components/parameters/ClassroomIdPath"
+        - $ref: "#/components/parameters/MemberId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateClassroomMemberPaymentPlanCommand"
+      responses:
+        "201":
+          description: Payment plan created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassroomMemberPaymentPlanResponse"
+        "400":
+          description: Invalid create command
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Classroom member not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /admin/classrooms/{classroomId}/members/{memberId}/payment-plans/{paymentPlanId}:
+    delete:
+      tags:
+        - ClassroomMemberPaymentPlans
+      operationId: deleteClassroomMemberPaymentPlan
+      summary: Delete a classroom member payment plan
+      description: >
+        Hard-deletes a payment plan only if it was created within the last five minutes.
+        Does not restore a previous plan as current.
+      parameters:
+        - $ref: "#/components/parameters/ClassroomIdPath"
+        - $ref: "#/components/parameters/MemberId"
+        - $ref: "#/components/parameters/PaymentPlanId"
+      responses:
+        "204":
+          description: Payment plan deleted
+        "404":
+          description: Payment plan not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Payment plan is outside the deletion window
           content:
             application/json:
               schema:
@@ -838,6 +930,16 @@ components:
         format: uuid
         description: Classroom session UUID
         example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d
+    PaymentPlanId:
+      name: paymentPlanId
+      in: path
+      required: true
+      description: Classroom member payment plan identifier
+      schema:
+        type: string
+        format: uuid
+        description: Classroom member payment plan UUID
+        example: 550e8400-e29b-41d4-a716-446655440000
     AttendanceId:
       name: attendanceId
       in: path
@@ -1017,6 +1119,96 @@ components:
       description: Collection of classroom members
       items:
         $ref: "#/components/schemas/ClassroomMemberResponse"
+    PaymentPlanType:
+      type: string
+      description: How the member is billed
+      enum:
+        - PER_SESSION
+      example: PER_SESSION
+    CreateClassroomMemberPaymentPlanCommand:
+      type: object
+      description: Command to create a current payment plan for a classroom member
+      additionalProperties: false
+      required:
+        - type
+        - amount
+      properties:
+        type:
+          $ref: "#/components/schemas/PaymentPlanType"
+        amount:
+          type: integer
+          format: int64
+          description: Amount in the smallest currency unit
+          minimum: 0
+          example: 150000
+        currency:
+          type: string
+          description: ISO-style currency code. Defaults to VND when omitted.
+          minLength: 1
+          maxLength: 32
+          default: VND
+          example: VND
+    ClassroomMemberPaymentPlanResponse:
+      type: object
+      description: Classroom member payment plan returned by the API
+      additionalProperties: false
+      required:
+        - id
+        - classroomMemberId
+        - type
+        - amount
+        - currency
+        - isCurrent
+        - createdDate
+        - lastModifiedDate
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique payment plan identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        classroomMemberId:
+          type: string
+          format: uuid
+          description: Classroom member this plan belongs to
+          example: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+        type:
+          $ref: "#/components/schemas/PaymentPlanType"
+        amount:
+          type: integer
+          format: int64
+          description: Amount in the smallest currency unit
+          example: 150000
+        currency:
+          type: string
+          description: Currency code
+          minLength: 1
+          maxLength: 32
+          example: VND
+        isCurrent:
+          type: boolean
+          description: Whether this is the member's current plan
+          example: true
+        replacedAt:
+          type: string
+          format: date-time
+          description: When this plan stopped being current. Null while current.
+          example: 2026-07-14T00:05:00Z
+        createdDate:
+          type: string
+          format: date-time
+          description: When the plan was created
+          example: 2026-07-14T00:00:00Z
+        lastModifiedDate:
+          type: string
+          format: date-time
+          description: When the plan was last modified
+          example: 2026-07-14T00:00:00Z
+    GetAllClassroomMemberPaymentPlansResponse:
+      type: array
+      description: Collection of classroom member payment plans
+      items:
+        $ref: "#/components/schemas/ClassroomMemberPaymentPlanResponse"
     GetAllClassroomsQuery:
       type: object
       description: Query to retrieve all classrooms

@@ -166,3 +166,7 @@ jobs:
           else
             npm publish --tag "${DIST_TAG}"
           fi
+
+      - name: Write created tag to summary
+        run: |
+          echo "📁 Uploaded new package to ${DIST_TAG}" >> $GITHUB_STEP_SUMMARY

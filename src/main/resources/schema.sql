@@ -36,6 +36,24 @@ CREATE TABLE IF NOT EXISTS classroom_member (
     UNIQUE(classroom_id, account_id)
 );
 
+CREATE TABLE IF NOT EXISTS classroom_member_payment_plan (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_modified_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    classroom_member_id UUID NOT NULL,
+    type VARCHAR(32) NOT NULL DEFAULT 'PER_SESSION',
+    amount BIGINT NOT NULL,
+    currency VARCHAR(32) NOT NULL DEFAULT 'VND',
+    is_current BOOLEAN NOT NULL,
+    replaced_at TIMESTAMP,
+
+    FOREIGN KEY (classroom_member_id) REFERENCES classroom_member(id)
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS unique_current_payment_plan
+    ON classroom_member_payment_plan (classroom_member_id)
+    WHERE is_current = true;
+
 CREATE TABLE IF NOT EXISTS classroom_session (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
