@@ -8,6 +8,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -30,7 +31,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -44,9 +44,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tech.sangdang.lmscoreapi.common.exception.GlobalExceptionHandler;
-import tech.sangdang.lmscoreapi.common.querying.BaseQuery;
 import tech.sangdang.lmscoreapi.config.SecurityConfig;
-import tech.sangdang.lmscoreapi.generated.model.ClassroomMemberFilter;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomMemberRole;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomMemberCommand;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomMembersCommand;
@@ -355,20 +353,14 @@ class ClassroomMemberControllerIntegrationTest {
   }
 
   @Test
-  @DisplayName("queries classroom members")
+  @DisplayName("lists all classroom members")
   void getAllClassroomMembers_returns200() throws Exception {
     when(classroomRepository.findById(CLASSROOM_ID)).thenReturn(Optional.of(classroom()));
-    when(classroomMemberRepository.query(any(BaseQuery.class)))
-        .thenReturn(Stream.of(classroomMember()));
-
-    ClassroomMemberFilter filter = ClassroomMemberFilter.builder().build();
+    when(classroomMemberRepository.findByClassroomId(CLASSROOM_ID))
+        .thenReturn(List.of(classroomMember()));
 
     mockMvc
-        .perform(
-            post("/admin/classrooms/{classroomId}/members/query", CLASSROOM_ID)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(jsonMapper.writeValueAsString(filter))
-                .with(adminJwt()))
+        .perform(get("/admin/classrooms/{classroomId}/members", CLASSROOM_ID).with(adminJwt()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$").isArray())
         .andExpect(jsonPath("$.length()").value(1))
@@ -377,31 +369,20 @@ class ClassroomMemberControllerIntegrationTest {
         .andExpect(jsonPath("$[0].email").value(MEMBER_EMAIL))
         .andExpect(jsonPath("$[0].name").value(MEMBER_NAME));
 
-    ArgumentCaptor<BaseQuery> queryCaptor = ArgumentCaptor.forClass(BaseQuery.class);
-    verify(classroomMemberRepository).query(queryCaptor.capture());
-    assertThat(queryCaptor.getValue().getFilters())
-        .anyMatch(
-            f ->
-                "classroomId".equals(f.getField()) && CLASSROOM_ID.toString().equals(f.getValue()));
+    verify(classroomMemberRepository).findByClassroomId(CLASSROOM_ID);
   }
 
   @Test
-  @DisplayName("fails to query members when the classroom does not exist")
+  @DisplayName("fails to list members when the classroom does not exist")
   void getAllClassroomMembers_classroomNotFound_returns404() throws Exception {
     when(classroomRepository.findById(CLASSROOM_ID)).thenReturn(Optional.empty());
 
-    ClassroomMemberFilter filter = ClassroomMemberFilter.builder().build();
-
     mockMvc
-        .perform(
-            post("/admin/classrooms/{classroomId}/members/query", CLASSROOM_ID)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(jsonMapper.writeValueAsString(filter))
-                .with(adminJwt()))
+        .perform(get("/admin/classrooms/{classroomId}/members", CLASSROOM_ID).with(adminJwt()))
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.code").value("CLASSROOM_NOT_FOUND"));
 
-    verify(classroomMemberRepository, never()).query(any());
+    verify(classroomMemberRepository, never()).findByClassroomId(any());
   }
 
   private void stubInsertAll() {

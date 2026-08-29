@@ -16,7 +16,7 @@ tags:
   - name: ClassroomMembers
     description: Admin-only classroom member management (`/admin/classrooms/.../members`)
   - name: ClassroomMemberPaymentPlans
-    description: Admin-only classroom member payment plans (`/admin/classrooms/.../members/.../payment-plans`)
+    description: Admin-only classroom member payment plans (`/admin/classrooms/.../payment-plans`)
   - name: ClassroomSchedule
     description: Admin-only classroom schedule management (`/admin/classrooms/.../schedule`)
   - name: ClassroomSessions
@@ -215,6 +215,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
   /admin/classrooms/{classroomId}/members:
+    get:
+      tags:
+        - ClassroomMembers
+      operationId: getAllClassroomMembers
+      summary: Get all classroom members
+      description: >
+        Returns every member of the classroom in one response, not paginated.
+      parameters:
+        - $ref: "#/components/parameters/ClassroomIdPath"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetAllClassroomMembersResponse"
+        "404":
+          description: Classroom not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
     post:
       tags:
         - ClassroomMembers
@@ -251,28 +273,25 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-  /admin/classrooms/{classroomId}/members/query:
-    post:
+  /admin/classrooms/{classroomId}/payment-plans:
+    get:
       tags:
-        - ClassroomMembers
-      operationId: getAllClassroomMembers
-      summary: Get all classroom members
-      description: Query members belonging to a classroom.
+        - ClassroomMemberPaymentPlans
+      operationId: getAllClassroomPaymentPlans
+      summary: Get all payment plans for a classroom
+      description: >
+        Returns every payment plan for members of the classroom, not paginated.
+        Members with no plan are omitted. Current plans are first, then remaining
+        plans by created date descending.
       parameters:
         - $ref: "#/components/parameters/ClassroomIdPath"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ClassroomMemberFilter"
       responses:
         "200":
           description: Success
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/GetAllClassroomMembersResponse"
+                $ref: "#/components/schemas/GetAllClassroomMemberPaymentPlansResponse"
         "404":
           description: Classroom not found
           content:
@@ -1079,41 +1098,6 @@ components:
       description: Collection of classrooms
       items:
         $ref: "#/components/schemas/ClassroomResponse"
-    ClassroomMemberFilter:
-      type: object
-      description: Filter for querying classroom members
-      additionalProperties: false
-      properties:
-        page:
-          type: integer
-          default: 0
-          minimum: 0
-        size:
-          type: integer
-          default: 10
-          minimum: 1
-          maximum: 50
-        sortBy:
-          type: string
-          pattern: '^(accountId|role|status|createdDate)$'
-        sortDirection:
-          type: string
-          enum: [ASC, DESC]
-          default: ASC
-        filters:
-          type: array
-          items:
-            type: object
-            required: [field, operator, value]
-            properties:
-              field:
-                type: string
-                pattern: '^(accountId|role|status)$'
-              operator:
-                type: string
-                pattern: '^(eq|like|gt|lt|gte|lte)$'
-              value:
-                type: string
     GetAllClassroomMembersResponse:
       type: array
       description: Collection of classroom members

@@ -7,7 +7,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import tech.sangdang.lmscoreapi.generated.api.ClassroomMembersApi;
-import tech.sangdang.lmscoreapi.generated.model.ClassroomMemberFilter;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomMembersCommand;
 import tech.sangdang.lmscoreapi.modules.management.app.ClassroomMemberService;
 
@@ -35,9 +34,7 @@ public class ClassroomMemberController implements ClassroomMembersApi {
   }
 
   @Override
-  public ResponseEntity<?> getAllClassroomMembers(
-      @NonNull UUID classroomId, @NonNull ClassroomMemberFilter classroomMemberFilter) {
-    return ResponseEntity.ok(
-        classroomMemberService.queryClassroomMembers(classroomId, classroomMemberFilter));
+  public ResponseEntity<?> getAllClassroomMembers(@NonNull UUID classroomId) {
+    return ResponseEntity.ok(classroomMemberService.getAllClassroomMembers(classroomId));
   }
 }

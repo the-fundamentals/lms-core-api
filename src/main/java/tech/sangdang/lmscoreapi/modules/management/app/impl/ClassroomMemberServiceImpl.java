@@ -14,9 +14,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tech.sangdang.lmscoreapi.common.exception.GenericBadRequestException;
 import tech.sangdang.lmscoreapi.common.exception.ObjectNotFoundException;
-import tech.sangdang.lmscoreapi.common.querying.BaseQuery;
-import tech.sangdang.lmscoreapi.common.querying.QueryFilterConditions;
-import tech.sangdang.lmscoreapi.generated.model.ClassroomMemberFilter;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomMemberResponse;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomMemberCommand;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomMembersCommand;
@@ -158,19 +155,13 @@ public class ClassroomMemberServiceImpl implements ClassroomMemberService {
 
   @Override
   @Transactional(readOnly = true)
-  public List<ClassroomMemberResponse> queryClassroomMembers(
-      UUID classroomId, ClassroomMemberFilter filter) {
+  public List<ClassroomMemberResponse> getAllClassroomMembers(UUID classroomId) {
     classroomRepository
         .findById(classroomId)
         .orElseThrow(() -> ObjectNotFoundException.of(Classroom.class, classroomId));
 
-    BaseQuery query = classroomMemberMapper.toBaseQuery(filter);
-    List<QueryFilterConditions> filters =
-        query.getFilters() == null ? new ArrayList<>() : new ArrayList<>(query.getFilters());
-
-    filters.add(QueryFilterConditions.of("classroomId", "eq", classroomId.toString()));
-    query.setFilters(filters);
-
-    return classroomMemberRepository.query(query).map(classroomMemberMapper::toResponse).toList();
+    return classroomMemberRepository.findByClassroomId(classroomId).stream()
+        .map(classroomMemberMapper::toResponse)
+        .toList();
   }
 }

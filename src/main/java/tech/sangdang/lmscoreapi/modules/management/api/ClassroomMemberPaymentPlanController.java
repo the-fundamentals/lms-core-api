@@ -35,6 +35,12 @@ public class ClassroomMemberPaymentPlanController implements ClassroomMemberPaym
   }
 
   @Override
+  public ResponseEntity<?> getAllClassroomPaymentPlans(@NonNull UUID classroomId) {
+    return ResponseEntity.ok(
+        classroomMemberPaymentPlanService.getAllClassroomPaymentPlans(classroomId));
+  }
+
+  @Override
   public ResponseEntity<?> deleteClassroomMemberPaymentPlan(
       @NonNull UUID classroomId, @NonNull UUID memberId, @NonNull UUID paymentPlanId) {
     classroomMemberPaymentPlanService.deleteClassroomMemberPaymentPlan(

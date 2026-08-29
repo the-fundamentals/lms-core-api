@@ -43,4 +43,24 @@ public interface ClassroomMemberPaymentPlanRepository
       """)
   List<ClassroomMemberPaymentPlan> findByMember(
       @NonNull @Param("classroomMemberId") UUID classroomMemberId);
+
+  /**
+   * Returns every payment plan for members of the classroom.
+   *
+   * <ul>
+   *   <li>LEFT JOIN from members so unpaid members produce a row with no plan columns.
+   *   <li>Current plans first, then remaining plans by {@code created_date} descending.
+   * </ul>
+   *
+   * @param classroomId classroom whose members' plans to load
+   */
+  @Query(
+      """
+      SELECT p.*
+      FROM classroom_member m
+      LEFT JOIN classroom_member_payment_plan p ON p.classroom_member_id = m.id
+      WHERE m.classroom_id = :classroomId
+      ORDER BY p.is_current DESC, p.created_date DESC
+      """)
+  List<ClassroomMemberPaymentPlan> findByClassroom(@NonNull @Param("classroomId") UUID classroomId);
 }

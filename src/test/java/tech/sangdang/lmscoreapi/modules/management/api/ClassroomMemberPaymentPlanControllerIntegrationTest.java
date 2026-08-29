@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static tech.sangdang.lmscoreapi.helpers.SecurityTestSupport.adminJwt;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomFixtures.CLASSROOM_ID;
+import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomFixtures.classroom;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomMemberFixtures.MEMBER_ID;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomMemberFixtures.classroomMember;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomMemberPaymentPlanFixtures.AMOUNT;
@@ -46,6 +47,7 @@ import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomMemberPa
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomMemberPaymentPlan;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomMemberPaymentPlanRepository;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomMemberRepository;
+import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomRepository;
 import tools.jackson.databind.json.JsonMapper;
 
 @WebMvcTest(controllers = ClassroomMemberPaymentPlanController.class)
@@ -61,6 +63,7 @@ class ClassroomMemberPaymentPlanControllerIntegrationTest {
   @Autowired private MockMvc mockMvc;
   @Autowired private JsonMapper jsonMapper;
 
+  @MockitoBean private ClassroomRepository classroomRepository;
   @MockitoBean private ClassroomMemberRepository classroomMemberRepository;
   @MockitoBean private ClassroomMemberPaymentPlanRepository classroomMemberPaymentPlanRepository;
 
@@ -212,6 +215,48 @@ class ClassroomMemberPaymentPlanControllerIntegrationTest {
         .andExpect(jsonPath("$[0].isCurrent").value(true))
         .andExpect(jsonPath("$[1].id").value(PREVIOUS_PAYMENT_PLAN_ID.toString()))
         .andExpect(jsonPath("$[1].isCurrent").value(false));
+  }
+
+  @Test
+  @DisplayName("lists all payment plans for a classroom")
+  void getAllClassroomPaymentPlans_returns200() throws Exception {
+    ClassroomMemberPaymentPlan current = currentPaymentPlan();
+    ClassroomMemberPaymentPlan previous =
+        paymentPlan(
+            PREVIOUS_PAYMENT_PLAN_ID,
+            MEMBER_ID,
+            false,
+            Instant.now(),
+            Instant.now().minus(Duration.ofDays(1)));
+    ClassroomMemberPaymentPlan unpaidMemberRow = new ClassroomMemberPaymentPlan();
+
+    when(classroomRepository.findById(CLASSROOM_ID)).thenReturn(Optional.of(classroom()));
+    when(classroomMemberPaymentPlanRepository.findByClassroom(CLASSROOM_ID))
+        .thenReturn(List.of(current, previous, unpaidMemberRow));
+
+    mockMvc
+        .perform(
+            get("/admin/classrooms/{classroomId}/payment-plans", CLASSROOM_ID).with(adminJwt()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$").isArray())
+        .andExpect(jsonPath("$.length()").value(2))
+        .andExpect(jsonPath("$[0].id").value(PAYMENT_PLAN_ID.toString()))
+        .andExpect(jsonPath("$[0].isCurrent").value(true))
+        .andExpect(jsonPath("$[1].id").value(PREVIOUS_PAYMENT_PLAN_ID.toString()));
+  }
+
+  @Test
+  @DisplayName("fails to list classroom payment plans when the classroom does not exist")
+  void getAllClassroomPaymentPlans_classroomNotFound_returns404() throws Exception {
+    when(classroomRepository.findById(CLASSROOM_ID)).thenReturn(Optional.empty());
+
+    mockMvc
+        .perform(
+            get("/admin/classrooms/{classroomId}/payment-plans", CLASSROOM_ID).with(adminJwt()))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value("CLASSROOM_NOT_FOUND"));
+
+    verify(classroomMemberPaymentPlanRepository, never()).findByClassroom(any());
   }
 
   @Test

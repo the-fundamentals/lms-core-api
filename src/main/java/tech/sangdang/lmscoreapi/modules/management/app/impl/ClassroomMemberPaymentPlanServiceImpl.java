@@ -3,6 +3,7 @@ package tech.sangdang.lmscoreapi.modules.management.app.impl;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -13,11 +14,13 @@ import tech.sangdang.lmscoreapi.generated.model.ClassroomMemberPaymentPlanRespon
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomMemberPaymentPlanCommand;
 import tech.sangdang.lmscoreapi.modules.management.app.ClassroomMemberPaymentPlanService;
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomMemberPaymentPlanMapper;
+import tech.sangdang.lmscoreapi.modules.management.dom.Classroom;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomMember;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomMemberPaymentPlan;
 import tech.sangdang.lmscoreapi.modules.management.dom.PaymentPlanType;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomMemberPaymentPlanRepository;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomMemberRepository;
+import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +29,7 @@ public class ClassroomMemberPaymentPlanServiceImpl implements ClassroomMemberPay
   private static final Duration DELETE_WINDOW = Duration.ofMinutes(5);
   private static final String DEFAULT_CURRENCY = "VND";
 
+  private final ClassroomRepository classroomRepository;
   private final ClassroomMemberRepository classroomMemberRepository;
   private final ClassroomMemberPaymentPlanRepository classroomMemberPaymentPlanRepository;
   private final ClassroomMemberPaymentPlanMapper classroomMemberPaymentPlanMapper;
@@ -71,6 +75,20 @@ public class ClassroomMemberPaymentPlanServiceImpl implements ClassroomMemberPay
 
     // load plans for the member (current first)
     return classroomMemberPaymentPlanRepository.findByMember(memberId).stream()
+        .map(classroomMemberPaymentPlanMapper::toResponse)
+        .toList();
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public List<ClassroomMemberPaymentPlanResponse> getAllClassroomPaymentPlans(UUID classroomId) {
+    classroomRepository
+        .findById(classroomId)
+        .orElseThrow(() -> ObjectNotFoundException.of(Classroom.class, classroomId));
+
+    return classroomMemberPaymentPlanRepository.findByClassroom(classroomId).stream()
+        // LEFT JOIN yields a row with a null id when the member has no plan
+        .filter(plan -> Objects.nonNull(plan.getId()))
         .map(classroomMemberPaymentPlanMapper::toResponse)
         .toList();
   }

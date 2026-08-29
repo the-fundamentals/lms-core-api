@@ -14,6 +14,18 @@ public interface ClassroomMemberRepository
     extends BaseCommandRepository<ClassroomMember, UUID>,
         BaseQueryRepository<ClassroomMember, UUID> {
 
+  /**
+   * Returns every member of the classroom.
+   *
+   * @param classroomId classroom whose members to load
+   */
+  @Query(
+      """
+      SELECT * FROM classroom_member
+      WHERE classroom_id = :classroomId
+      """)
+  List<ClassroomMember> findByClassroomId(@NonNull @Param("classroomId") UUID classroomId);
+
   @Query(
       """
       SELECT * FROM classroom_member
