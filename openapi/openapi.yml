@@ -21,6 +21,8 @@ tags:
     description: Admin-only classroom schedule management (`/admin/classrooms/.../schedule`)
   - name: ClassroomSessions
     description: Admin-only classroom session and attendance management (`/admin/classrooms/.../sessions` and member attendance history)
+  - name: ClassroomFinances
+    description: Admin-only classroom financial management (`/admin/classrooms/.../revenue` and related finance routes)
   - name: Storage
     description: Private endpoints to upload files to the system
   - name: _Test
@@ -292,6 +294,45 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/GetAllClassroomMemberPaymentPlansResponse"
+        "404":
+          description: Classroom not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /admin/classrooms/{classroomId}/revenue/query:
+    post:
+      tags:
+        - ClassroomFinances
+      operationId: getClassroomRevenue
+      summary: Get classroom revenue for a time range
+      description: >
+        Returns one revenue total for the classroom. Sums each ATTENDED student's
+        current payment-plan amount for sessions whose sessionDate is in `[from, to)`
+        (`from` inclusive, `to` exclusive). Teachers, ABSENT, UNSET, and members
+        without a current plan contribute nothing. Uses the member's current plan
+        only — not the plan that was current at session time. Currency is always VND.
+      parameters:
+        - $ref: "#/components/parameters/ClassroomIdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GetClassroomRevenueQuery"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassroomRevenueResponse"
+        "400":
+          description: Invalid range (`from` is not before `to`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "404":
           description: Classroom not found
           content:
@@ -1193,6 +1234,48 @@ components:
       description: Collection of classroom member payment plans
       items:
         $ref: "#/components/schemas/ClassroomMemberPaymentPlanResponse"
+    GetClassroomRevenueQuery:
+      type: object
+      description: >
+        Time range for classroom revenue. Filtered on sessionDate; `from` is inclusive
+        and `to` is exclusive.
+      additionalProperties: false
+      required:
+        - from
+        - to
+      properties:
+        from:
+          type: string
+          format: date-time
+          description: Start of the range (inclusive) on sessionDate
+          example: 2026-08-01T00:00:00Z
+        to:
+          type: string
+          format: date-time
+          description: End of the range (exclusive) on sessionDate
+          example: 2026-09-01T00:00:00Z
+    ClassroomRevenueResponse:
+      type: object
+      description: Classroom revenue total for a time range
+      additionalProperties: false
+      required:
+        - revenue
+        - currency
+      properties:
+        revenue:
+          type: integer
+          format: int64
+          description: >
+            Sum of current student payment-plan amounts for ATTENDED sessions in the
+            range, in the smallest currency unit. Zero when nothing matches.
+          minimum: 0
+          example: 1000000
+        currency:
+          type: string
+          description: Currency code. Always VND for this endpoint.
+          minLength: 1
+          maxLength: 32
+          example: VND
     GetAllClassroomsQuery:
       type: object
       description: Query to retrieve all classrooms
