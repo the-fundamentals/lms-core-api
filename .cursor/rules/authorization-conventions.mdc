@@ -1,0 +1,35 @@
+---
+description: Role authorization is path-prefix based (/admin/, /private/, /user/, etc.) across the whole app
+alwaysApply: false
+---
+# Path-based authorization
+
+API authorization is **path-prefix by role** (or by auth requirement). Restricted endpoints live under that prefix.
+
+## Pattern
+
+| Audience | Path prefix | Cognito / Spring rule |
+|----------|-------------|------------------------|
+| Admin | `/admin/**` | Cognito group `ADMIN` → `hasRole("ADMIN")` |
+| Any logged-in user | `/private/**` | `.authenticated()` (any role) |
+| User (role-only) | `/user/**` | Cognito group `USER` (when those endpoints exist) |
+
+## Rules
+
+- Admin-only APIs: `/admin/...` — never put admin-only routes outside `/admin/`
+- Shared authenticated APIs (all roles): `/private/...` — e.g. account profile
+- Future role-only APIs: same idea (`/user/...`, etc.)
+- Shared/public routes stay outside these prefixes and get an explicit Security rule
+- Controllers, OpenAPI paths, and `SecurityFilterChain` path matchers must stay aligned
+
+```text
+✅ /admin/classrooms
+✅ /admin/classrooms/{id}/members
+✅ /private/profile
+✅ /user/profile (when USER-only endpoints exist)
+
+❌ /classrooms with @PreAuthorize("hasRole('ADMIN')") only
+❌ /api/admin/... unless the app’s public API root is intentionally /api
+```
+
+When adding a restricted endpoint, put it under the correct prefix and update the security filter chain for that prefix — do not rely on method-level security alone as the primary authorization model.

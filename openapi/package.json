@@ -29,16 +29,21 @@
     "build": "tsc -p tsconfig.build.json"
   },
   "devDependencies": {
+    "@tanstack/react-query": "^5.0.0",
     "@types/bun": "latest"
   },
   "peerDependencies": {
+    "@tanstack/react-query": "^5.0.0",
     "typescript": "^7.0.2"
+  },
+  "peerDependenciesMeta": {
+    "@tanstack/react-query": {
+      "optional": true
+    }
   },
   "dependencies": {
     "@hey-api/openapi-ts": "next",
-    "@tanstack/react-query": "^5.101.4",
     "oxfmt": "^0.60.0",
-    "oxlint": "^1.75.0",
     "yaml": "^2.9.0"
   }
 }

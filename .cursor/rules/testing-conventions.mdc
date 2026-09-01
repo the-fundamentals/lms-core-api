@@ -1,0 +1,68 @@
+---
+globs: **/src/test/**/*.java
+alwaysApply: false
+---
+# Clean, readable controller integration tests
+
+When writing or updating `@WebMvcTest` / web-slice tests, prioritize clarity and match existing test structure in the module.
+
+## Prefer DTOs over raw JSON strings
+
+Serialize generated/command models with `JsonMapper` — do not hand-write JSON bodies.
+
+```text
+❌ .content("{\"isPublic\":true}")
+✅ .content(jsonMapper.writeValueAsString(UploadToStorageCommand.builder().isPublic(true).build()))
+```
+
+## Parameterize shared scenarios
+
+Use `@ParameterizedTest(name = "{0}")` with `@CsvSource` or `@MethodSource` when cases share the same flow and differ only by inputs/expectations (missing resource across GET/PUT, public vs private key prefix, bad-key across endpoints).
+
+Keep distinct business flows as separate `@Test` methods when parameterization would obscure the scenario.
+
+## Match sibling test structure
+
+Copy the nearest controller integration test in the same area:
+
+- `@WebMvcTest(controllers = …)` + `@Import({ GlobalExceptionHandler, *ServiceImpl, SecurityConfig, … })`
+- Real service; `@MockitoBean` only repos/ports
+- `@DisplayName` on class and methods; method names `action_scenario_expectedHttp`
+- Fixtures in `modules/<module>/support/*Fixtures.java`
+- Auth helpers (`jwt()`, `adminJwt()`) as peers do
+
+## Also follow
+
+`test-service-behavior-only` — test service rules, not framework validation.
+
+# Test service behavior, not framework code
+
+Web-slice / controller integration tests must exercise **application/service rules**, not Spring MVC, Bean Validation, Jackson, or other library behavior.
+
+## Do test
+
+- Happy paths through controller → real service → mocked repos/caches
+- Domain/business outcomes: not found, conflict, reactivate, soft-delete, denormalized fields, role updates
+- Error codes/messages produced by our `BusinessException` hierarchy
+
+## Do not test
+
+- Request body validation (`@NotNull`, `@Size`, blank fields, missing required JSON)
+- Path/query binding (invalid UUID, type mismatch)
+- Filter/pagination constraint validation (`size` min/max, sort patterns)
+- Malformed JSON / media type handling
+- Anything whose failure mode is entirely Spring or Jakarta Validation
+
+```text
+❌ createClassroom_missingName_returns400
+❌ getClassroomById_invalidUuid_returns400
+❌ getAllClassrooms_invalidSize_returns400
+❌ createClassroomMember_invalidBody_returns400
+
+✅ creates a classroom
+✅ fails to get a classroom that does not exist
+✅ rejects creating a member that is already active
+✅ reactivates a previously removed classroom member
+```
+
+If a case only fails because the framework rejected the request before the service ran, omit it.

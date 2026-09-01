@@ -65,6 +65,7 @@ val mapstructVersion: String by project
 val springdocVersion: String by project
 val openapiJacksonNullableVersion: String by project
 val awsSdkVersion: String by project
+val iCal4jVersion: String by project
 
 dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-webmvc")
@@ -75,6 +76,7 @@ dependencies {
 	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:$springdocVersion")
 	implementation("org.openapitools:jackson-databind-nullable:$openapiJacksonNullableVersion")
 	implementation("software.amazon.awssdk:s3:$awsSdkVersion")
+	implementation("org.mnode.ical4j:ical4j:$iCal4jVersion")
 	compileOnly("org.projectlombok:lombok")
 	compileOnly("org.mapstruct:mapstruct:$mapstructVersion")
 	annotationProcessor("org.projectlombok:lombok")
