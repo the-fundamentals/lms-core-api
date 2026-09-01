@@ -80,7 +80,7 @@ CREATE TABLE IF NOT EXISTS classroom_attendance (
     UNIQUE(session_id, classroom_member_id)
 );
 
-CREATE TABLE classroom_schedule
+CREATE TABLE IF NOT EXISTS classroom_schedule
 (
     id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     created_date       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

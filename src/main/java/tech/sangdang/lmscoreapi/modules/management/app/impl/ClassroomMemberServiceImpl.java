@@ -143,8 +143,7 @@ public class ClassroomMemberServiceImpl implements ClassroomMemberService {
             .findById(memberId)
             .orElseThrow(() -> ObjectNotFoundException.of(ClassroomMember.class, memberId));
 
-    if (!classroomId.equals(member.getClassroomId())
-        || member.getStatus() == ClassroomMemberStatus.REMOVED) {
+    if (!classroomId.equals(member.getClassroomId()) || !member.isActive()) {
       throw ObjectNotFoundException.of(ClassroomMember.class, memberId);
     }
 

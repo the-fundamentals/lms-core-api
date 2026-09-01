@@ -58,7 +58,7 @@ public class ClassroomMemberPaymentPlanServiceImpl implements ClassroomMemberPay
             .setClassroomMemberId(memberId)
             .setType(PaymentPlanType.valueOf(command.getType().getValue()))
             .setAmount(command.getAmount())
-            .setCurrency(command.getCurrency().isBlank() ? DEFAULT_CURRENCY : command.getCurrency())
+            .setCurrency(resolveCurrency(command.getCurrency()))
             .setIsCurrent(true)
             .setReplacedAt(null);
 
@@ -119,6 +119,10 @@ public class ClassroomMemberPaymentPlanServiceImpl implements ClassroomMemberPay
 
     // delete only when still inside the creation window
     classroomMemberPaymentPlanRepository.deleteById(paymentPlanId);
+  }
+
+  private static String resolveCurrency(String currency) {
+    return currency == null || currency.isBlank() ? DEFAULT_CURRENCY : currency;
   }
 
   private ClassroomMember requireMemberInClassroom(UUID classroomId, UUID memberId) {

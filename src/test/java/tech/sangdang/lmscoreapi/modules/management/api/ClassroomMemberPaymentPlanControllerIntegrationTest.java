@@ -113,6 +113,46 @@ class ClassroomMemberPaymentPlanControllerIntegrationTest {
   }
 
   @Test
+  @DisplayName("defaults omitted currency to VND when creating a payment plan")
+  void createClassroomMemberPaymentPlan_omittedCurrency_defaultsToVnd() throws Exception {
+    when(classroomMemberRepository.findById(MEMBER_ID)).thenReturn(Optional.of(classroomMember()));
+    when(classroomMemberPaymentPlanRepository.findCurrent(MEMBER_ID)).thenReturn(Optional.empty());
+    when(classroomMemberPaymentPlanRepository.insert(any(ClassroomMemberPaymentPlan.class)))
+        .thenAnswer(
+            invocation -> {
+              ClassroomMemberPaymentPlan incoming = invocation.getArgument(0);
+              return paymentPlan(
+                  PAYMENT_PLAN_ID,
+                  incoming.getClassroomMemberId(),
+                  incoming.getIsCurrent(),
+                  incoming.getReplacedAt(),
+                  Instant.now());
+            });
+
+    mockMvc
+        .perform(
+            post(
+                    "/admin/classrooms/{classroomId}/members/{memberId}/payment-plans",
+                    CLASSROOM_ID,
+                    MEMBER_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    jsonMapper.writeValueAsString(
+                        CreateClassroomMemberPaymentPlanCommand.builder()
+                            .type(PaymentPlanType.PER_SESSION)
+                            .amount(AMOUNT)
+                            .build()))
+                .with(adminJwt()))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.currency").value(CURRENCY));
+
+    ArgumentCaptor<ClassroomMemberPaymentPlan> captor =
+        ArgumentCaptor.forClass(ClassroomMemberPaymentPlan.class);
+    verify(classroomMemberPaymentPlanRepository).insert(captor.capture());
+    assertThat(captor.getValue().getCurrency()).isEqualTo(CURRENCY);
+  }
+
+  @Test
   @DisplayName("replaces the member's current payment plan when creating a new one")
   void createClassroomMemberPaymentPlan_replacesCurrent_returns201() throws Exception {
     ClassroomMemberPaymentPlan existing =

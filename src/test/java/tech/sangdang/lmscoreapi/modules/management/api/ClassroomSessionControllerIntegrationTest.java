@@ -603,6 +603,7 @@ class ClassroomSessionControllerIntegrationTest {
   @CsvSource({
     "fails to create attendance when the session does not exist, MISSING_SESSION, ACTIVE, false, 404, CLASSROOM_SESSION_NOT_FOUND",
     "fails to create attendance when the member does not exist, FOUND, MISSING, false, 404, CLASSROOM_MEMBER_NOT_FOUND",
+    "fails to create attendance when the member was removed, FOUND, REMOVED, false, 404, CLASSROOM_MEMBER_NOT_FOUND",
     "rejects creating attendance that already exists, FOUND, ACTIVE, true, 409, CLASSROOM_SESSION_ATTENDANCE_ALREADY_EXISTS"
   })
   void createClassroomSessionAttendances_fails(
@@ -627,6 +628,9 @@ class ClassroomSessionControllerIntegrationTest {
               switch (memberState) {
                 case "MISSING" -> List.of();
                 case "ACTIVE" -> List.of(classroomMember());
+                case "REMOVED" -> List.of(
+                    classroomMember(
+                        MEMBER_ID, CLASSROOM_ID, ACCOUNT_ID, ClassroomMemberStatus.REMOVED));
                 default -> throw new IllegalArgumentException("Unsupported state: " + memberState);
               });
     }

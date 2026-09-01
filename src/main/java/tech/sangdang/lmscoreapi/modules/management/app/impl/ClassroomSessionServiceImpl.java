@@ -149,13 +149,13 @@ public class ClassroomSessionServiceImpl implements ClassroomSessionService {
       memberIds.add(memberId);
     }
 
-    // check member ids exist in the classroom
+    // check member ids exist in the classroom and are still active
     Map<UUID, ClassroomMember> membersById =
         classroomMemberRepository.findAllById(memberIds).stream()
             .collect(Collectors.toMap(ClassroomMember::getId, Function.identity()));
     for (UUID memberId : memberIds) {
       ClassroomMember member = membersById.get(memberId);
-      if (member == null || !classroomId.equals(member.getClassroomId())) {
+      if (member == null || !classroomId.equals(member.getClassroomId()) || !member.isActive()) {
         throw ObjectNotFoundException.of(ClassroomMember.class, memberId);
       }
     }
