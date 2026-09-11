@@ -124,3 +124,7 @@ tasks.withType<Test> {
 tasks.compileJava {
     dependsOn(tasks.openApiGenerate)
 }
+
+tasks.named("spotlessJava") {
+	dependsOn("openApiGenerate")
+}
