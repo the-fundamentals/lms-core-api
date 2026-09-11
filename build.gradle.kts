@@ -125,6 +125,6 @@ tasks.compileJava {
     dependsOn(tasks.openApiGenerate)
 }
 
-tasks.named("spotlessJava") {
-	dependsOn("openApiGenerate")
+tasks.named("openApiGenerate") {
+    dependsOn(tasks.named("spotlessJava"))
 }
