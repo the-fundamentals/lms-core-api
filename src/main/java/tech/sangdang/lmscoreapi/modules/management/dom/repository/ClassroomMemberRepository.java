@@ -1,6 +1,7 @@
 package tech.sangdang.lmscoreapi.modules.management.dom.repository;
 
-import java.util.Optional;
+import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 import org.jspecify.annotations.NonNull;
 import org.springframework.data.jdbc.repository.query.Query;
@@ -13,12 +14,24 @@ public interface ClassroomMemberRepository
     extends BaseCommandRepository<ClassroomMember, UUID>,
         BaseQueryRepository<ClassroomMember, UUID> {
 
+  /**
+   * Returns every member of the classroom.
+   *
+   * @param classroomId classroom whose members to load
+   */
   @Query(
       """
       SELECT * FROM classroom_member
-      WHERE classroom_id = :classroomId AND account_id = :accountId
+      WHERE classroom_id = :classroomId
       """)
-  Optional<ClassroomMember> findByClassroomIdAndAccountId(
+  List<ClassroomMember> findByClassroomId(@NonNull @Param("classroomId") UUID classroomId);
+
+  @Query(
+      """
+      SELECT * FROM classroom_member
+      WHERE classroom_id = :classroomId AND account_id IN (:accountIds)
+      """)
+  List<ClassroomMember> findByClassroomIdAndAccountIdIn(
       @NonNull @Param("classroomId") UUID classroomId,
-      @NonNull @Param("accountId") String accountId);
+      @NonNull @Param("accountIds") Collection<String> accountIds);
 }

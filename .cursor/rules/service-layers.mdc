@@ -1,0 +1,25 @@
+---
+description: Contracted vs internal services — JDBC-only stays on the impl; internal only when mixing I/O with DB
+globs: "**/app/**/*.java"
+alwaysApply: false
+---
+
+# Service layers
+
+## Contracted (`app/` + `app/impl/`)
+
+The interface is the contract. Controllers inject that interface or a port — never
+`@InternalService`. Name after the use case (`ProfileImageService` /
+`ProfileImageServiceImpl`).
+
+**JDBC-only:** put `@Transactional` (or `readOnly`) on the contracted impl and call
+repositories there. Multiple repository calls in one method are one transaction.
+Do not add an internal class.
+
+## Internal (`app/internal/`, `@InternalService`)
+
+Use **only** when the use case mixes outbound I/O (S3, HTTP, queues) with JDBC.
+I/O stays on the contracted impl; JDBC stays on this bean so the transaction does
+not wrap the I/O. Name after the record it owns (`ClassroomRecordService`), not
+the caller — the name must still make sense with every other class deleted. One
+internal type may serve more than one contracted service.

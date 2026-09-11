@@ -4,7 +4,7 @@ export default defineConfig({
     input: 'openapi.yml',
     output: {
         path: 'src',
-        postProcess: ['oxfmt', 'oxlint'],
+        postProcess: ['oxfmt'],
         entryFile: true,
         clean: true,
         module: {

@@ -1,0 +1,25 @@
+---
+description: Outbound I/O goes through a domain port; the adapter lives in infra
+globs: "**/{dom/ports/**,infra/**,app/**}/*.java"
+alwaysApply: false
+---
+
+# Ports and adapters
+
+Every outbound system (S3, Cognito/JWT decode, HTTP to another service, queues)
+is a **port** in `dom/ports/` and an **adapter** in `infra/` that implements it.
+
+- Name the port after the capability (`S3Port`, `TokenUtilityPort`). The adapter
+  is `{Port}Impl` (`S3PortImpl`).
+- Contracted services depend on the port, not the AWS/HTTP SDK.
+- The adapter owns SDK clients, credentials, and vendor types. Those types do
+  not leak into `app/` or `dom/` except through the port's own signatures.
+- JDBC repositories are not ports; they stay in `dom/repository/`.
+
+```text
+✅ StorageServiceImpl → S3Port
+✅ S3PortImpl in infra/ talks to S3Client
+
+❌ StorageServiceImpl uses S3Client directly
+❌ Port interface living in infra/ or app/
+```

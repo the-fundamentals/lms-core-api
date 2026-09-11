@@ -1,0 +1,51 @@
+---
+description: DTO naming and OpenAPI schema conventions for lms-core-api
+globs: openapi/**/*.yml,src/**/*.java
+alwaysApply: false
+---
+
+# DTO Naming (Command / Query / Response)
+
+Every DTO performs exactly one role:
+
+1. **Command** — mutation / write input (`CreateClassroomCommand`, `UpdateClassroomCommand`)
+2. **Query** — read input (`GetClassroomByIdQuery`, `GetAllClassroomsQuery`)
+3. **Response** — API output (`ClassroomResponse`)
+
+Do not use `Request`, `Dto`, `Input`, or bare domain names as API payload types.
+
+```text
+✅ CreateClassroomCommand
+✅ GetClassroomByIdQuery
+✅ ClassroomResponse
+
+❌ CreateClassroomRequest
+❌ Classroom (as an API response schema)
+❌ GetClassroomByIdDto
+```
+
+# OpenAPI: schemas only, fully specified
+
+Request body and response body types must **never** be defined inline under `paths`. Always `$ref` into `components/schemas`.
+
+Every Command, Query, and Response schema must include enough detail for OpenAPI Generator (controllers + models):
+
+- `type`, `required`, `description`
+- property `description`, `format`, and constraints (`minLength`, `maxLength`, `minimum`, `maximum`, `pattern`, etc.)
+- `example` values where useful
+- `additionalProperties: false` on object schemas
+
+Domain entities (e.g. `Classroom`) stay in application/domain code. OpenAPI exposes only Command, Query, and Response schemas.
+
+# OpenAPI version
+
+Never change `info.version` in `openapi/openapi.yml`. Do not bump, rewrite, or "helpfully" update that field.
+
+```yaml
+# ❌ BAD — any edit to this field
+info:
+  version: 0.2.8
+
+# ✅ GOOD — leave whatever value is already there
+```
+

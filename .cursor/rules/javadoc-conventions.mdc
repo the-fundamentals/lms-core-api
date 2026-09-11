@@ -1,0 +1,41 @@
+---
+description: Glanceable JavaDoc on service contracts; short repository method names with JavaDoc
+globs: "**/{*Service.java,*Repository.java}"
+alwaysApply: false
+---
+
+# Service and repository JavaDoc
+
+Write for a glance, not a spec dump. Put this on **contracted service interfaces**
+(`app/*Service.java`) and **custom repository methods**. Do not paste it onto impls.
+
+## Contracted service methods
+
+1. **One sentence** — what the method does.
+2. **Bullets only if unintuitive** — side effects, empty meaning success, time windows,
+   defaults, “does not undo X”. Skip restating the method name or the happy path.
+3. **`@param` / `@return`** — one short clause each. No second explanation of the gist.
+
+```java
+/**
+ * Creates a current payment plan for the member.
+ *
+ * <ul>
+ *   <li>Disables any previous current plan; this plan is current for following sessions.
+ * </ul>
+ *
+ * @param classroomId classroom the member belongs to
+ * @param memberId member receiving the plan
+ * @param command type and amount; currency optional (defaults to VND)
+ */
+```
+
+## Repository methods
+
+Prefer a short name (`findCurrent`, `findByMember`). Put filter, sort, and “optional /
+empty” in JavaDoc — not in the method name.
+
+```java
+/** Returns the member's current payment plan, if they have one. */
+Optional<ClassroomMemberPaymentPlan> findCurrent(UUID classroomMemberId);
+```

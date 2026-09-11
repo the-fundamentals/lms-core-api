@@ -1,0 +1,27 @@
+---
+description: @Transactional proxy rules and keeping outbound I/O outside DB transactions
+globs: "**/app/**/*.java"
+alwaysApply: false
+---
+
+# Transaction boundaries
+
+Spring `@Transactional` only applies across a **different bean**. When to add an
+internal service: see `service-layers.mdc`.
+
+- Do not call `this.someTransactionalMethod()` — self-invocation skips the proxy.
+- Do not put `@Transactional` on a private method.
+- Do not run outbound I/O (S3, HTTP, queues) inside a `@Transactional` method or
+  between two statements of the same transaction.
+- Best-effort I/O (cleanup) catches and logs its own exceptions; it must not roll
+  back the caller.
+- `Propagation.REQUIRES_NEW` only when that write must survive a parent rollback;
+  document why on the method.
+
+Mixed I/O + DB (contracted impl not `@Transactional`; JDBC on internal):
+
+```java
+String publicUrl = storageService.moveToPublicBucket(key); // I/O first
+profileRecordService.updateImageUrl(profileId, publicUrl); // other bean, @Transactional
+storageService.cleanupLandingZone(key); // best-effort I/O
+```

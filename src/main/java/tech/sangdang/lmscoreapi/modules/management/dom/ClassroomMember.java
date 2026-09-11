@@ -34,4 +34,8 @@ public class ClassroomMember {
 
   /** Denormalized field — sourced from account/identity service (via account profile cache). */
   private String name;
+
+  public boolean isActive() {
+    return status == ClassroomMemberStatus.ACTIVE;
+  }
 }

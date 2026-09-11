@@ -1,9 +1,9 @@
 plugins {
-	java
-	id("org.springframework.boot") version "4.1.0"
-	id("io.spring.dependency-management") version "1.1.7"
-	id("com.diffplug.spotless") version "8.8.0"
-	id("org.openapi.generator") version "7.23.0"
+    java
+    id("org.springframework.boot") version "4.1.1"
+    id("io.spring.dependency-management") version "1.1.7"
+    id("com.diffplug.spotless") version "8.10.2"
+    id("org.openapi.generator") version "7.25.0"
 }
 
 group = "tech.sangdang"
@@ -11,97 +11,120 @@ version = "0.0.1-SNAPSHOT"
 description = "lms-core-api"
 
 java {
-	toolchain {
-		languageVersion = JavaLanguageVersion.of(25)
-	}
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
 }
 
 spotless {
-	java {
-		removeUnusedImports()
-		googleJavaFormat("1.35.0")
-	}
+    java {
+        removeUnusedImports()
+        googleJavaFormat("1.35.0")
+    }
 }
 
 openApiGenerate {
-	inputSpec.set("$projectDir/openapi/openapi.yml")
-	validateSpec.set(true)
-	generatorName.set("spring")
-	outputDir.set("$projectDir/build/generated/openapi")
-	packageName.set("tech.sangdang.lmscoreapi.generated")
-	apiPackage.set("tech.sangdang.lmscoreapi.generated.api")
-	modelPackage.set("tech.sangdang.lmscoreapi.generated.model")
-	configOptions.set(mapOf(
-		"performBeanValidation" to "true",
-		"useSpringBuiltInValidation" to "true",
-		"documentationProvider" to "springdoc",
-		"generateBuilders" to "true",
-		"generateGenericResponseEntity" to "true",
-		"interfaceOnly" to "true",
-		"useTags" to "true",
-		"library" to "spring-boot",
-		"useSpringBoot4" to "true",
-		"useJackson3" to "true",
-		"useJspecify" to "true",
-		"basePackage" to "tech.sangdang.lmscoreapi.generated",
-		"apiPackage" to "tech.sangdang.lmscoreapi.generated.api",
-		"modelPackage" to "tech.sangdang.lmscoreapi.generated.model"
-	))
+    inputSpec.set("$projectDir/openapi/openapi.yml")
+    validateSpec.set(true)
+    generatorName.set("spring")
+    outputDir.set("$projectDir/build/generated/openapi")
+    packageName.set("tech.sangdang.lmscoreapi.generated")
+    apiPackage.set("tech.sangdang.lmscoreapi.generated.api")
+    modelPackage.set("tech.sangdang.lmscoreapi.generated.model")
+    configOptions.set(
+        mapOf(
+            "performBeanValidation" to "true",
+            "useSpringBuiltInValidation" to "true",
+            "documentationProvider" to "springdoc",
+            "generateBuilders" to "true",
+            "generateGenericResponseEntity" to "true",
+            "interfaceOnly" to "true",
+            "useTags" to "true",
+            "library" to "spring-boot",
+            "useSpringBoot4" to "true",
+            "useJackson3" to "true",
+            "useJspecify" to "true",
+            "basePackage" to "tech.sangdang.lmscoreapi.generated",
+            "apiPackage" to "tech.sangdang.lmscoreapi.generated.api",
+            "modelPackage" to "tech.sangdang.lmscoreapi.generated.model"
+        )
+    )
 }
 
 sourceSets {
-	main {
-		java {
-			srcDirs("build/generated/openapi/src/main/java")
-		}
-	}
+    main {
+        java {
+            srcDirs("build/generated/openapi/src/main/java")
+        }
+    }
 }
 
 repositories {
-	mavenCentral()
+    mavenCentral()
 }
 
 val mapstructVersion: String by project
 val springdocVersion: String by project
 val openapiJacksonNullableVersion: String by project
 val awsSdkVersion: String by project
+val iCal4jVersion: String by project
 
 dependencies {
-	implementation("org.springframework.boot:spring-boot-starter-webmvc")
-	implementation("org.springframework.boot:spring-boot-starter-data-jdbc")
-	implementation("org.springframework.boot:spring-boot-starter-validation")
-	implementation("org.springframework.boot:spring-boot-starter-security")
-	implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
-	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:$springdocVersion")
-	implementation("org.openapitools:jackson-databind-nullable:$openapiJacksonNullableVersion")
-	implementation("software.amazon.awssdk:s3:$awsSdkVersion")
-	compileOnly("org.projectlombok:lombok")
-	compileOnly("org.mapstruct:mapstruct:$mapstructVersion")
-	annotationProcessor("org.projectlombok:lombok")
-	annotationProcessor("org.projectlombok:lombok-mapstruct-binding:0.2.0")
-	annotationProcessor("org.mapstruct:mapstruct-processor:$mapstructVersion")
-	developmentOnly("org.springframework.boot:spring-boot-devtools")
-	testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
-	testImplementation("org.springframework.security:spring-security-test")
-	runtimeOnly("org.postgresql:postgresql")
-	testCompileOnly("org.projectlombok:lombok")
-	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-	testAnnotationProcessor("org.projectlombok:lombok")
-	testAnnotationProcessor("org.projectlombok:lombok-mapstruct-binding:0.2.0")
-	testAnnotationProcessor("org.mapstruct:mapstruct-processor:$mapstructVersion")
+    // Spring Boot starters
+    implementation("org.springframework.boot:spring-boot-starter-webmvc")
+    implementation("org.springframework.boot:spring-boot-starter-data-jdbc")
+    implementation("org.springframework.boot:spring-boot-starter-validation")
+    implementation("org.springframework.boot:spring-boot-starter-security")
+    implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
+
+	// API docs / OpenAPI
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:$springdocVersion")
+    implementation("org.openapitools:jackson-databind-nullable:$openapiJacksonNullableVersion")
+
+	// AWS
+    implementation("software.amazon.awssdk:s3:$awsSdkVersion")
+
+	// Misc libs
+    implementation("org.mnode.ical4j:ical4j:$iCal4jVersion")
+
+	// Lombok / MapStruct (compile-time)
+    compileOnly("org.projectlombok:lombok")
+    compileOnly("org.mapstruct:mapstruct:$mapstructVersion")
+    annotationProcessor("org.projectlombok:lombok")
+    annotationProcessor("org.projectlombok:lombok-mapstruct-binding:0.2.0")
+    annotationProcessor("org.mapstruct:mapstruct-processor:$mapstructVersion")
+
+	// Dev tools
+    developmentOnly("org.springframework.boot:spring-boot-devtools")
+
+	// Database (runtime)
+    runtimeOnly("org.postgresql:postgresql")
+
+	// Test
+    testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
+    testImplementation("org.springframework.security:spring-security-test")
+    testCompileOnly("org.projectlombok:lombok")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testAnnotationProcessor("org.projectlombok:lombok")
+    testAnnotationProcessor("org.projectlombok:lombok-mapstruct-binding:0.2.0")
+    testAnnotationProcessor("org.mapstruct:mapstruct-processor:$mapstructVersion")
 }
 
 // Copy the openapi.yml file from `root` to `resources`
 tasks.named<ProcessResources>("processResources") {
-	from(rootProject.file("openapi/openapi.yml")) {
-		into("openapi")
-	}
+    from(rootProject.file("openapi/openapi.yml")) {
+        into("openapi")
+    }
 }
 
 tasks.withType<Test> {
-	useJUnitPlatform()
+    useJUnitPlatform()
 }
 
 tasks.compileJava {
-	dependsOn(tasks.openApiGenerate)
+    dependsOn(tasks.openApiGenerate)
+}
+
+tasks.named("openApiGenerate") {
+    dependsOn(tasks.named("spotlessJava"))
 }

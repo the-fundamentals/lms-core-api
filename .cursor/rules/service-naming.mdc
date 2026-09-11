@@ -1,0 +1,20 @@
+---
+description: Banned service-layer class suffixes; Impl only on contracted implementations
+globs: "**/app/**/*.java"
+alwaysApply: false
+---
+
+# Service naming
+
+Do not use these names/suffixes in the service layer:
+
+- `Orchestrator`
+- `Helper` / `Util` / `Utils`
+- `Manager`
+- `Stub` (fake/placeholder in tests, not production)
+- `Executor` (collides with `java.util.concurrent`)
+
+`Impl` is allowed only on contracted implementations of a contracted interface
+(`ProfileImageServiceImpl`).
+
+Name the class after what it does or the data it owns, not after its caller.

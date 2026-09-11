@@ -26,4 +26,6 @@ public class ClassroomSession {
   private @LastModifiedDate LocalDateTime lastModifiedDate;
   private LocalDateTime sessionDate;
   private UUID classroomId;
+  private String name;
+  private String description;
 }
