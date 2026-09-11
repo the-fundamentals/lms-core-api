@@ -48,7 +48,7 @@ public interface ClassroomMemberPaymentPlanRepository
    * Returns each member's current payment plan for the classroom.
    *
    * <ul>
-   *   <li>LEFT JOIN from members so unpaid members produce a row with no plan columns.
+   *   <li>Inner join so members with no current plan are omitted (not a null-id row).
    *   <li>Only {@code is_current = true} plans. Newest {@code created_date} first.
    * </ul>
    *
@@ -57,10 +57,10 @@ public interface ClassroomMemberPaymentPlanRepository
   @Query(
       """
       SELECT p.*
-      FROM classroom_member m
-      LEFT JOIN classroom_member_payment_plan p
-        ON p.classroom_member_id = m.id AND p.is_current = true
-      WHERE m.classroom_id = :classroomId
+      FROM classroom_member_payment_plan p
+      INNER JOIN classroom_member m
+        ON m.id = p.classroom_member_id
+      WHERE m.classroom_id = :classroomId AND p.is_current = true
       ORDER BY p.created_date DESC
       """)
   List<ClassroomMemberPaymentPlan> findByClassroom(@NonNull @Param("classroomId") UUID classroomId);

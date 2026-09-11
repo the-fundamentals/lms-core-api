@@ -3,7 +3,6 @@ package tech.sangdang.lmscoreapi.modules.management.app.impl;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -87,8 +86,8 @@ public class ClassroomMemberPaymentPlanServiceImpl implements ClassroomMemberPay
         .orElseThrow(() -> ObjectNotFoundException.of(Classroom.class, classroomId));
 
     return classroomMemberPaymentPlanRepository.findByClassroom(classroomId).stream()
-        // LEFT JOIN yields a row with a null id when the member has no plan
-        .filter(plan -> Objects.nonNull(plan.getId()))
+        // JDBC may still map an unmatched join as a null list element or a null-id entity
+        .filter(plan -> plan != null && plan.getId() != null)
         .map(classroomMemberPaymentPlanMapper::toResponse)
         .toList();
   }

@@ -24,6 +24,7 @@ import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomMembe
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -258,14 +259,14 @@ class ClassroomMemberPaymentPlanControllerIntegrationTest {
   }
 
   @Test
-  @DisplayName("lists current payment plans for a classroom")
+  @DisplayName("lists current payment plans and omits members with no plan")
   void getAllClassroomPaymentPlans_returns200() throws Exception {
     ClassroomMemberPaymentPlan current = currentPaymentPlan();
     ClassroomMemberPaymentPlan unpaidMemberRow = new ClassroomMemberPaymentPlan();
 
     when(classroomRepository.findById(CLASSROOM_ID)).thenReturn(Optional.of(classroom()));
     when(classroomMemberPaymentPlanRepository.findByClassroom(CLASSROOM_ID))
-        .thenReturn(List.of(current, unpaidMemberRow));
+        .thenReturn(Arrays.asList(current, unpaidMemberRow, null));
 
     mockMvc
         .perform(
