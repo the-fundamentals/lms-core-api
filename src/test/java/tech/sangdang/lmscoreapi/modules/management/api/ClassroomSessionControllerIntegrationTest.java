@@ -628,9 +628,10 @@ class ClassroomSessionControllerIntegrationTest {
               switch (memberState) {
                 case "MISSING" -> List.of();
                 case "ACTIVE" -> List.of(classroomMember());
-                case "REMOVED" -> List.of(
-                    classroomMember(
-                        MEMBER_ID, CLASSROOM_ID, ACCOUNT_ID, ClassroomMemberStatus.REMOVED));
+                case "REMOVED" ->
+                    List.of(
+                        classroomMember(
+                            MEMBER_ID, CLASSROOM_ID, ACCOUNT_ID, ClassroomMemberStatus.REMOVED));
                 default -> throw new IllegalArgumentException("Unsupported state: " + memberState);
               });
     }
