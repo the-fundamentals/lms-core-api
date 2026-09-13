@@ -93,6 +93,8 @@ CREATE TABLE IF NOT EXISTS classroom_schedule
     last_modified_date TIMESTAMP        DEFAULT CURRENT_TIMESTAMP,
     deleted_date       TIMESTAMP,
     schedule_rule      VARCHAR(256),
+    start_time         TIME NOT NULL,
+    end_time           TIME NOT NULL,
     classroom_id       UUID,
 
     FOREIGN KEY (classroom_id) REFERENCES classroom (id)

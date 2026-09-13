@@ -6,6 +6,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tech.sangdang.lmscoreapi.common.Utilities;
 import tech.sangdang.lmscoreapi.common.exception.ObjectNotFoundException;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomScheduleResponse;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomScheduleCommand;
@@ -35,7 +36,9 @@ public class ClassroomScheduleServiceImpl implements ClassroomScheduleService {
     ClassroomSchedule schedule =
         new ClassroomSchedule()
             .setClassroomId(classroomId)
-            .setScheduleRule(command.getScheduleRule());
+            .setScheduleRule(command.getScheduleRule())
+            .setStartTime(Utilities.parseTimeOrError(command.getStartTime()))
+            .setEndTime(Utilities.parseTimeOrError(command.getEndTime()));
     return classroomScheduleMapper.toResponse(classroomScheduleRepository.insert(schedule));
   }
 

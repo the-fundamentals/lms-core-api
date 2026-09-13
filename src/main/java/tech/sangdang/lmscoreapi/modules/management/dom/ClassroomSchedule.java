@@ -1,6 +1,7 @@
 package tech.sangdang.lmscoreapi.modules.management.dom;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.temporal.Temporal;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
@@ -14,7 +15,6 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.relational.core.mapping.Table;
-import tech.sangdang.lmscoreapi.common.exception.GenericBadRequestException;
 import tech.sangdang.lmscoreapi.common.utility.RRuleValidation;
 import tech.sangdang.lmscoreapi.modules.management.dom.exception.InvalidRecurrenceRuleException;
 
@@ -32,6 +32,8 @@ public class ClassroomSchedule {
   private @LastModifiedDate LocalDateTime lastModifiedDate;
   private LocalDateTime deletedDate;
   private String scheduleRule;
+  private LocalTime startTime;
+  private LocalTime endTime;
   private UUID classroomId;
 
   public ClassroomSchedule setScheduleRule(String scheduleRule) {
@@ -43,7 +45,7 @@ public class ClassroomSchedule {
 
     // only allow weekly recursion
     Frequency frequency = rrule.getRecur().getFrequency();
-    if(frequency == null || !frequency.equals(Frequency.WEEKLY)) {
+    if (frequency == null || !frequency.equals(Frequency.WEEKLY)) {
       throw new InvalidRecurrenceRuleException("Recurrence Rules can only be weekly.");
     }
 

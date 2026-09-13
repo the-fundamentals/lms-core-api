@@ -1717,12 +1717,24 @@ components:
       additionalProperties: false
       required:
         - scheduleRule
+        - startTime
+        - endTime
       properties:
         scheduleRule:
           type: string
           minLength: 1
           description: An iCal Recurrence Rule
-          example: FREQ=MONTHLY;BYMONTHDAY=10,15
+          example: FREQ=WEEKLY;BYDAY=MO
+        startTime:
+          type: string
+          format: time
+          description: Daily start time of the scheduled session
+          example: "09:00:00"
+        endTime:
+          type: string
+          format: time
+          description: Daily end time of the scheduled session
+          example: "10:30:00"
     ClassroomScheduleResponse:
       type: object
       description: Classroom schedule resource returned by the API
@@ -1731,6 +1743,8 @@ components:
         - id
         - classroomId
         - scheduleRule
+        - startTime
+        - endTime
         - createdDate
         - lastModifiedDate
       properties:
@@ -1747,7 +1761,17 @@ components:
         scheduleRule:
           type: string
           description: An iCal Recurrence Rule
-          example: FREQ=MONTHLY;BYMONTHDAY=10,15
+          example: FREQ=WEEKLY;BYDAY=MO
+        startTime:
+          type: string
+          format: time
+          description: Daily start time of the scheduled session
+          example: "09:00:00"
+        endTime:
+          type: string
+          format: time
+          description: Daily end time of the scheduled session
+          example: "10:30:00"
         deletedDate:
           type: string
           format: date-time
