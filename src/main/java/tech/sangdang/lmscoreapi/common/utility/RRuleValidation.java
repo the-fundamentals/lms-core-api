@@ -8,17 +8,17 @@ import org.jspecify.annotations.Nullable;
 
 @UtilityClass
 public class RRuleValidation {
-  public static boolean validateRecurrenceRule(@Nullable String rule) {
+  public static RRule<Temporal> validateRecurrenceRule(@Nullable String rule) {
     if (rule == null) {
-      return false;
+      return null;
     }
 
     try {
       RRule<Temporal> rrule = new RRule<>(rule);
       rrule.validate();
-      return true;
+      return rrule;
     } catch (IllegalArgumentException | ValidationException e) {
-      return false;
+      return null;
     }
   }
 }
