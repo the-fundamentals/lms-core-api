@@ -37,6 +37,7 @@ public class ClassroomScheduleServiceImpl implements ClassroomScheduleService {
         new ClassroomSchedule()
             .setClassroomId(classroomId)
             .assignScheduleRule(command.getScheduleRule())
+            .setRecurrenceStartDate(command.getRecurrenceStartDate())
             .setStartTime(Utilities.parseTimeOrError(command.getStartTime()))
             .setEndTime(Utilities.parseTimeOrError(command.getEndTime()));
     return classroomScheduleMapper.toResponse(classroomScheduleRepository.insert(schedule));

@@ -1,5 +1,6 @@
 package tech.sangdang.lmscoreapi.modules.management.dom;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.temporal.Temporal;
@@ -32,6 +33,8 @@ public class ClassroomSchedule {
   private @LastModifiedDate LocalDateTime lastModifiedDate;
   private LocalDateTime deletedDate;
   private String scheduleRule;
+  // First-class column (not stuffed into RRULE); not applied to ical4j DTSTART yet
+  private LocalDate recurrenceStartDate;
   private LocalTime startTime;
   private LocalTime endTime;
   private UUID classroomId;

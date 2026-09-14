@@ -1929,6 +1929,7 @@ components:
       additionalProperties: false
       required:
         - scheduleRule
+        - recurrenceStartDate
         - startTime
         - endTime
       properties:
@@ -1937,6 +1938,11 @@ components:
           minLength: 1
           description: An iCal Recurrence Rule
           example: FREQ=WEEKLY;BYDAY=MO
+        recurrenceStartDate:
+          type: string
+          format: date
+          description: Calendar date when the weekly recurrence begins
+          example: "2026-07-20"
         startTime:
           type: string
           format: time
@@ -1955,6 +1961,7 @@ components:
         - id
         - classroomId
         - scheduleRule
+        - recurrenceStartDate
         - startTime
         - endTime
         - createdDate
@@ -1974,6 +1981,11 @@ components:
           type: string
           description: An iCal Recurrence Rule
           example: FREQ=WEEKLY;BYDAY=MO
+        recurrenceStartDate:
+          type: string
+          format: date
+          description: Calendar date when the weekly recurrence begins
+          example: "2026-07-20"
         startTime:
           type: string
           format: time

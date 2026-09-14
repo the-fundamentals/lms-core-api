@@ -16,6 +16,8 @@ import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomFixtu
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomScheduleFixtures.END_TIME;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomScheduleFixtures.END_TIME_VALUE;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomScheduleFixtures.INVALID_SCHEDULE_RULE;
+import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomScheduleFixtures.RECURRENCE_START_DATE;
+import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomScheduleFixtures.RECURRENCE_START_DATE_VALUE;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomScheduleFixtures.SCHEDULE_ID;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomScheduleFixtures.SCHEDULE_RULE;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomScheduleFixtures.START_TIME;
@@ -76,6 +78,7 @@ class ClassroomScheduleControllerIntegrationTest {
               ClassroomSchedule incoming = invocation.getArgument(0);
               return classroomSchedule(
                       SCHEDULE_ID, incoming.getClassroomId(), incoming.getScheduleRule())
+                  .setRecurrenceStartDate(incoming.getRecurrenceStartDate())
                   .setStartTime(incoming.getStartTime())
                   .setEndTime(incoming.getEndTime());
             });
@@ -92,6 +95,7 @@ class ClassroomScheduleControllerIntegrationTest {
         .andExpect(jsonPath("$.id").value(SCHEDULE_ID.toString()))
         .andExpect(jsonPath("$.classroomId").value(CLASSROOM_ID.toString()))
         .andExpect(jsonPath("$.scheduleRule").value(SCHEDULE_RULE))
+        .andExpect(jsonPath("$.recurrenceStartDate").value(RECURRENCE_START_DATE_VALUE))
         .andExpect(jsonPath("$.startTime").value(START_TIME_VALUE))
         .andExpect(jsonPath("$.endTime").value(END_TIME_VALUE))
         .andExpect(jsonPath("$.deletedDate").doesNotExist())
@@ -102,6 +106,7 @@ class ClassroomScheduleControllerIntegrationTest {
     verify(classroomScheduleRepository).insert(captor.capture());
     assertThat(captor.getValue().getClassroomId()).isEqualTo(CLASSROOM_ID);
     assertThat(captor.getValue().getScheduleRule()).isEqualTo(SCHEDULE_RULE);
+    assertThat(captor.getValue().getRecurrenceStartDate()).isEqualTo(RECURRENCE_START_DATE);
     assertThat(captor.getValue().getStartTime()).isEqualTo(START_TIME);
     assertThat(captor.getValue().getEndTime()).isEqualTo(END_TIME);
   }
@@ -140,6 +145,7 @@ class ClassroomScheduleControllerIntegrationTest {
         .andExpect(jsonPath("$[0].id").value(SCHEDULE_ID.toString()))
         .andExpect(jsonPath("$[0].classroomId").value(CLASSROOM_ID.toString()))
         .andExpect(jsonPath("$[0].scheduleRule").value(SCHEDULE_RULE))
+        .andExpect(jsonPath("$[0].recurrenceStartDate").value(RECURRENCE_START_DATE_VALUE))
         .andExpect(jsonPath("$[0].startTime").value(START_TIME_VALUE))
         .andExpect(jsonPath("$[0].endTime").value(END_TIME_VALUE));
 
@@ -229,6 +235,7 @@ class ClassroomScheduleControllerIntegrationTest {
   private static CreateClassroomScheduleCommand createScheduleCommand(String scheduleRule) {
     return CreateClassroomScheduleCommand.builder()
         .scheduleRule(scheduleRule)
+        .recurrenceStartDate(RECURRENCE_START_DATE)
         .startTime(START_TIME_VALUE)
         .endTime(END_TIME_VALUE)
         .build();
