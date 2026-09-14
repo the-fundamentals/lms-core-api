@@ -100,7 +100,7 @@ CREATE TABLE IF NOT EXISTS classroom_schedule
     FOREIGN KEY (classroom_id) REFERENCES classroom (id)
 );
 
-CREATE TABLE IF NOT EXISTS classroom_schedule_exception
+CREATE TABLE IF NOT EXISTS classroom_schedule_adhoc
 (
     id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     created_date       TIMESTAMP        DEFAULT CURRENT_TIMESTAMP,
@@ -109,7 +109,19 @@ CREATE TABLE IF NOT EXISTS classroom_schedule_exception
     date               DATE NOT NULL,
     start_time         TIME NOT NULL,
     end_time           TIME NOT NULL,
-    type               VARCHAR(50),
+
+    FOREIGN KEY (classroom_id) REFERENCES classroom (id)
+);
+
+CREATE TABLE IF NOT EXISTS classroom_schedule_cancelled
+(
+    id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    created_date       TIMESTAMP        DEFAULT CURRENT_TIMESTAMP,
+    last_modified_date TIMESTAMP        DEFAULT CURRENT_TIMESTAMP,
+    classroom_id       UUID NOT NULL,
+    date               DATE NOT NULL,
+    start_time         TIME NOT NULL,
+    end_time           TIME NOT NULL,
 
     FOREIGN KEY (classroom_id) REFERENCES classroom (id)
 );

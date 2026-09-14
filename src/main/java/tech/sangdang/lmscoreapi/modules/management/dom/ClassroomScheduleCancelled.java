@@ -19,9 +19,9 @@ import org.springframework.data.relational.core.mapping.Table;
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(ClassroomScheduleException.TABLE_NAME)
-public class ClassroomScheduleException {
-  public static final String TABLE_NAME = "classroom_schedule_exception";
+@Table(ClassroomScheduleCancelled.TABLE_NAME)
+public class ClassroomScheduleCancelled {
+  public static final String TABLE_NAME = "classroom_schedule_cancelled";
 
   private @Id UUID id;
   private @CreatedDate LocalDateTime createdDate;
@@ -30,5 +30,4 @@ public class ClassroomScheduleException {
   private LocalDate date;
   private LocalTime startTime;
   private LocalTime endTime;
-  private ClassroomScheduleExceptionType type;
 }
