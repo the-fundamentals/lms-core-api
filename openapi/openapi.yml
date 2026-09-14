@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: LMS Core API
-  version: 0.2.8
+  version: 0.2.9
   description: Core API for the Learning Management System. Management endpoints under `/admin/**` require the ADMIN role. Authenticated self-service endpoints live under `/private/**`.
   contact:
     name: Sang Dang
@@ -929,8 +929,8 @@ paths:
       operationId: getAllClassroomScheduleAdhocs
       summary: Get all ad-hoc classroom schedule occurrences
       description: >
-        Returns ad-hoc (one-off) schedule occurrences for a classroom. Optional `startDate` and
-        `endDate` filter the occurrence `date` inclusively. Omit both to return every occurrence.
+        Returns ad-hoc (one-off) schedule occurrences for a classroom. Optional `startDate` and `endDate` filter the occurrence `date` inclusively. Omit both to return every occurrence.
+
       parameters:
         - $ref: "#/components/parameters/ClassroomIdPath"
         - $ref: "#/components/parameters/OccurrenceStartDate"
@@ -1013,8 +1013,8 @@ paths:
       operationId: getAllClassroomScheduleCancelleds
       summary: Get all cancelled classroom schedule occurrences
       description: >
-        Returns cancelled schedule occurrences for a classroom. Optional `startDate` and
-        `endDate` filter the occurrence `date` inclusively. Omit both to return every occurrence.
+        Returns cancelled schedule occurrences for a classroom. Optional `startDate` and `endDate` filter the occurrence `date` inclusively. Omit both to return every occurrence.
+
       parameters:
         - $ref: "#/components/parameters/ClassroomIdPath"
         - $ref: "#/components/parameters/OccurrenceStartDate"
