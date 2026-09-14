@@ -6,9 +6,8 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import tech.sangdang.lmscoreapi.common.exception.GenericBadRequestException;
+import tech.sangdang.lmscoreapi.common.Utilities;
 import tech.sangdang.lmscoreapi.common.exception.ObjectNotFoundException;
-import tech.sangdang.lmscoreapi.common.utility.RRuleValidation;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomScheduleResponse;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomScheduleCommand;
 import tech.sangdang.lmscoreapi.modules.management.app.ClassroomScheduleService;
@@ -34,14 +33,12 @@ public class ClassroomScheduleServiceImpl implements ClassroomScheduleService {
         .findById(classroomId)
         .orElseThrow(() -> ObjectNotFoundException.of(Classroom.class, classroomId));
 
-    if (!RRuleValidation.validateRecurrenceRule(command.getScheduleRule())) {
-      throw new GenericBadRequestException("INVALID_RRULE", "Invalid Recurrence Rule");
-    }
-
     ClassroomSchedule schedule =
         new ClassroomSchedule()
             .setClassroomId(classroomId)
-            .setScheduleRule(command.getScheduleRule());
+            .assignScheduleRule(command.getScheduleRule())
+            .setStartTime(Utilities.parseTimeOrError(command.getStartTime()))
+            .setEndTime(Utilities.parseTimeOrError(command.getEndTime()));
     return classroomScheduleMapper.toResponse(classroomScheduleRepository.insert(schedule));
   }
 

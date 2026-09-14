@@ -13,9 +13,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static tech.sangdang.lmscoreapi.helpers.SecurityTestSupport.adminJwt;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomFixtures.CLASSROOM_ID;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomFixtures.classroom;
+import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomScheduleFixtures.END_TIME;
+import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomScheduleFixtures.END_TIME_VALUE;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomScheduleFixtures.INVALID_SCHEDULE_RULE;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomScheduleFixtures.SCHEDULE_ID;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomScheduleFixtures.SCHEDULE_RULE;
+import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomScheduleFixtures.START_TIME;
+import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomScheduleFixtures.START_TIME_VALUE;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomScheduleFixtures.classroomSchedule;
 
 import java.util.List;
@@ -71,11 +75,12 @@ class ClassroomScheduleControllerIntegrationTest {
             invocation -> {
               ClassroomSchedule incoming = invocation.getArgument(0);
               return classroomSchedule(
-                  SCHEDULE_ID, incoming.getClassroomId(), incoming.getScheduleRule());
+                      SCHEDULE_ID, incoming.getClassroomId(), incoming.getScheduleRule())
+                  .setStartTime(incoming.getStartTime())
+                  .setEndTime(incoming.getEndTime());
             });
 
-    CreateClassroomScheduleCommand command =
-        CreateClassroomScheduleCommand.builder().scheduleRule(SCHEDULE_RULE).build();
+    CreateClassroomScheduleCommand command = createScheduleCommand(SCHEDULE_RULE);
 
     mockMvc
         .perform(
@@ -87,6 +92,8 @@ class ClassroomScheduleControllerIntegrationTest {
         .andExpect(jsonPath("$.id").value(SCHEDULE_ID.toString()))
         .andExpect(jsonPath("$.classroomId").value(CLASSROOM_ID.toString()))
         .andExpect(jsonPath("$.scheduleRule").value(SCHEDULE_RULE))
+        .andExpect(jsonPath("$.startTime").value(START_TIME_VALUE))
+        .andExpect(jsonPath("$.endTime").value(END_TIME_VALUE))
         .andExpect(jsonPath("$.deletedDate").doesNotExist())
         .andExpect(jsonPath("$.createdDate").exists())
         .andExpect(jsonPath("$.lastModifiedDate").exists());
@@ -95,6 +102,8 @@ class ClassroomScheduleControllerIntegrationTest {
     verify(classroomScheduleRepository).insert(captor.capture());
     assertThat(captor.getValue().getClassroomId()).isEqualTo(CLASSROOM_ID);
     assertThat(captor.getValue().getScheduleRule()).isEqualTo(SCHEDULE_RULE);
+    assertThat(captor.getValue().getStartTime()).isEqualTo(START_TIME);
+    assertThat(captor.getValue().getEndTime()).isEqualTo(END_TIME);
   }
 
   @Test
@@ -102,8 +111,7 @@ class ClassroomScheduleControllerIntegrationTest {
   void createClassroomSchedule_invalidRrule_returns400() throws Exception {
     when(classroomRepository.findById(CLASSROOM_ID)).thenReturn(Optional.of(classroom()));
 
-    CreateClassroomScheduleCommand command =
-        CreateClassroomScheduleCommand.builder().scheduleRule(INVALID_SCHEDULE_RULE).build();
+    CreateClassroomScheduleCommand command = createScheduleCommand(INVALID_SCHEDULE_RULE);
 
     mockMvc
         .perform(
@@ -131,7 +139,9 @@ class ClassroomScheduleControllerIntegrationTest {
         .andExpect(jsonPath("$.length()").value(1))
         .andExpect(jsonPath("$[0].id").value(SCHEDULE_ID.toString()))
         .andExpect(jsonPath("$[0].classroomId").value(CLASSROOM_ID.toString()))
-        .andExpect(jsonPath("$[0].scheduleRule").value(SCHEDULE_RULE));
+        .andExpect(jsonPath("$[0].scheduleRule").value(SCHEDULE_RULE))
+        .andExpect(jsonPath("$[0].startTime").value(START_TIME_VALUE))
+        .andExpect(jsonPath("$[0].endTime").value(END_TIME_VALUE));
 
     verify(classroomScheduleRepository).findByClassroomIdAndDeletedDateIsNull(CLASSROOM_ID);
   }
@@ -171,11 +181,7 @@ class ClassroomScheduleControllerIntegrationTest {
           case "POST" ->
               post("/admin/classrooms/{classroomId}/schedule", CLASSROOM_ID)
                   .contentType(MediaType.APPLICATION_JSON)
-                  .content(
-                      jsonMapper.writeValueAsString(
-                          CreateClassroomScheduleCommand.builder()
-                              .scheduleRule(SCHEDULE_RULE)
-                              .build()));
+                  .content(jsonMapper.writeValueAsString(createScheduleCommand(SCHEDULE_RULE)));
           case "GET" -> get("/admin/classrooms/{classroomId}/schedule", CLASSROOM_ID);
           default -> throw new IllegalArgumentException("Unsupported method: " + httpMethod);
         };
@@ -218,5 +224,13 @@ class ClassroomScheduleControllerIntegrationTest {
         .andExpect(jsonPath("$.status").value(404));
 
     verify(classroomScheduleRepository, never()).update(any());
+  }
+
+  private static CreateClassroomScheduleCommand createScheduleCommand(String scheduleRule) {
+    return CreateClassroomScheduleCommand.builder()
+        .scheduleRule(scheduleRule)
+        .startTime(START_TIME_VALUE)
+        .endTime(END_TIME_VALUE)
+        .build();
   }
 }

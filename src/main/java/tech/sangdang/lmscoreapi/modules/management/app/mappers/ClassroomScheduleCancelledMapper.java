@@ -6,13 +6,13 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import org.mapstruct.Mapper;
-import tech.sangdang.lmscoreapi.generated.model.ClassroomScheduleResponse;
-import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSchedule;
+import tech.sangdang.lmscoreapi.generated.model.ClassroomScheduleCancelledResponse;
+import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomScheduleCancelled;
 
 @Mapper(componentModel = "spring")
-public interface ClassroomScheduleMapper {
+public interface ClassroomScheduleCancelledMapper {
 
-  ClassroomScheduleResponse toResponse(ClassroomSchedule schedule);
+  ClassroomScheduleCancelledResponse toResponse(ClassroomScheduleCancelled cancelled);
 
   default OffsetDateTime map(LocalDateTime value) {
     return value == null ? null : value.atOffset(ZoneOffset.UTC);
