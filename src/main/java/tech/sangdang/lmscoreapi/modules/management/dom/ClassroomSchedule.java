@@ -36,7 +36,7 @@ public class ClassroomSchedule {
   private LocalTime endTime;
   private UUID classroomId;
 
-  public ClassroomSchedule setScheduleRule(String scheduleRule) {
+  public ClassroomSchedule assignScheduleRule(String scheduleRule) {
     RRule<Temporal> rrule = RRuleValidation.validateRecurrenceRule(scheduleRule);
 
     if (rrule == null) {
