@@ -86,8 +86,9 @@ dependencies {
 
 	// Misc libs
     implementation("org.mnode.ical4j:ical4j:$iCal4jVersion")
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
 
-	// Lombok / MapStruct (compile-time)
+    // Lombok / MapStruct (compile-time)
     compileOnly("org.projectlombok:lombok")
     compileOnly("org.mapstruct:mapstruct:$mapstructVersion")
     annotationProcessor("org.projectlombok:lombok")
