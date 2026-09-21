@@ -55,6 +55,8 @@ import tech.sangdang.lmscoreapi.config.SecurityConfig;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionAttendanceFilter;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionAttendanceStatus;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionFilter;
+import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionStatus;
+import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionType;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionAttendanceCommand;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionAttendancesCommand;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionCommand;
@@ -104,7 +106,9 @@ class ClassroomSessionControllerIntegrationTest {
               return classroomSession(
                       SESSION_ID, incoming.getClassroomId(), incoming.getSessionDate())
                   .setName(incoming.getName())
-                  .setDescription(incoming.getDescription());
+                  .setDescription(incoming.getDescription())
+                  .setStatus(incoming.getStatus())
+                  .setType(incoming.getType());
             });
 
     CreateClassroomSessionCommand command =
@@ -112,6 +116,8 @@ class ClassroomSessionControllerIntegrationTest {
             .sessionDate(SESSION_DATE.atOffset(ZoneOffset.UTC))
             .name(SESSION_NAME)
             .description(SESSION_DESCRIPTION)
+            .status(ClassroomSessionStatus.OPEN)
+            .type(ClassroomSessionType.SCHEDULE)
             .build();
 
     mockMvc
@@ -126,6 +132,8 @@ class ClassroomSessionControllerIntegrationTest {
         .andExpect(jsonPath("$.sessionDate").exists())
         .andExpect(jsonPath("$.name").value(SESSION_NAME))
         .andExpect(jsonPath("$.description").value(SESSION_DESCRIPTION))
+        .andExpect(jsonPath("$.status").value("OPEN"))
+        .andExpect(jsonPath("$.type").value("SCHEDULE"))
         .andExpect(jsonPath("$.createdDate").exists())
         .andExpect(jsonPath("$.lastModifiedDate").exists());
 
@@ -135,6 +143,10 @@ class ClassroomSessionControllerIntegrationTest {
     assertThat(captor.getValue().getSessionDate()).isEqualTo(SESSION_DATE);
     assertThat(captor.getValue().getName()).isEqualTo(SESSION_NAME);
     assertThat(captor.getValue().getDescription()).isEqualTo(SESSION_DESCRIPTION);
+    assertThat(captor.getValue().getStatus())
+        .isEqualTo(tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionStatus.OPEN);
+    assertThat(captor.getValue().getType())
+        .isEqualTo(tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionType.SCHEDULE);
   }
 
   @Test
@@ -148,12 +160,16 @@ class ClassroomSessionControllerIntegrationTest {
               return classroomSession(
                       SESSION_ID, incoming.getClassroomId(), incoming.getSessionDate())
                   .setName(incoming.getName())
-                  .setDescription(incoming.getDescription());
+                  .setDescription(incoming.getDescription())
+                  .setStatus(incoming.getStatus())
+                  .setType(incoming.getType());
             });
 
     CreateClassroomSessionCommand command =
         CreateClassroomSessionCommand.builder()
             .sessionDate(SESSION_DATE.atOffset(ZoneOffset.UTC))
+            .status(ClassroomSessionStatus.OPEN)
+            .type(ClassroomSessionType.SCHEDULE)
             .build();
 
     mockMvc
@@ -165,12 +181,18 @@ class ClassroomSessionControllerIntegrationTest {
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.id").value(SESSION_ID.toString()))
         .andExpect(jsonPath("$.name").doesNotExist())
-        .andExpect(jsonPath("$.description").doesNotExist());
+        .andExpect(jsonPath("$.description").doesNotExist())
+        .andExpect(jsonPath("$.status").value("OPEN"))
+        .andExpect(jsonPath("$.type").value("SCHEDULE"));
 
     ArgumentCaptor<ClassroomSession> captor = ArgumentCaptor.forClass(ClassroomSession.class);
     verify(classroomSessionRepository).insert(captor.capture());
     assertThat(captor.getValue().getName()).isNull();
     assertThat(captor.getValue().getDescription()).isNull();
+    assertThat(captor.getValue().getStatus())
+        .isEqualTo(tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionStatus.OPEN);
+    assertThat(captor.getValue().getType())
+        .isEqualTo(tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionType.SCHEDULE);
   }
 
   @Test
@@ -181,6 +203,8 @@ class ClassroomSessionControllerIntegrationTest {
     CreateClassroomSessionCommand command =
         CreateClassroomSessionCommand.builder()
             .sessionDate(SESSION_DATE.atOffset(ZoneOffset.UTC))
+            .status(ClassroomSessionStatus.OPEN)
+            .type(ClassroomSessionType.SCHEDULE)
             .build();
 
     mockMvc
@@ -210,7 +234,9 @@ class ClassroomSessionControllerIntegrationTest {
         .andExpect(jsonPath("$.classroomId").value(CLASSROOM_ID.toString()))
         .andExpect(jsonPath("$.sessionDate").exists())
         .andExpect(jsonPath("$.name").value(SESSION_NAME))
-        .andExpect(jsonPath("$.description").value(SESSION_DESCRIPTION));
+        .andExpect(jsonPath("$.description").value(SESSION_DESCRIPTION))
+        .andExpect(jsonPath("$.status").value("OPEN"))
+        .andExpect(jsonPath("$.type").value("SCHEDULE"));
   }
 
   @ParameterizedTest(name = "{0}")
@@ -270,7 +296,9 @@ class ClassroomSessionControllerIntegrationTest {
         .andExpect(jsonPath("$[0].id").value(SESSION_ID.toString()))
         .andExpect(jsonPath("$[0].classroomId").value(CLASSROOM_ID.toString()))
         .andExpect(jsonPath("$[0].name").value(SESSION_NAME))
-        .andExpect(jsonPath("$[0].description").value(SESSION_DESCRIPTION));
+        .andExpect(jsonPath("$[0].description").value(SESSION_DESCRIPTION))
+        .andExpect(jsonPath("$[0].status").value("OPEN"))
+        .andExpect(jsonPath("$[0].type").value("SCHEDULE"));
 
     ArgumentCaptor<BaseQuery> queryCaptor = ArgumentCaptor.forClass(BaseQuery.class);
     verify(classroomSessionRepository).query(queryCaptor.capture());

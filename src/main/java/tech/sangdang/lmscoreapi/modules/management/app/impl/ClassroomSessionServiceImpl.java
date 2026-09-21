@@ -33,6 +33,8 @@ import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomMember;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSession;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionAttendance;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionAttendanceStatus;
+import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionStatus;
+import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionType;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomMemberRepository;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomRepository;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomSessionAttendanceRepository;
@@ -63,7 +65,9 @@ public class ClassroomSessionServiceImpl implements ClassroomSessionService {
             .setClassroomId(classroomId)
             .setSessionDate(command.getSessionDate().toLocalDateTime())
             .setName(command.getName())
-            .setDescription(command.getDescription());
+            .setDescription(command.getDescription())
+            .setStatus(ClassroomSessionStatus.valueOf(command.getStatus().getValue()))
+            .setType(ClassroomSessionType.valueOf(command.getType().getValue()));
     return classroomSessionMapper.toResponse(classroomSessionRepository.insert(session));
   }
 

@@ -10,6 +10,8 @@ import java.util.UUID;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSession;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionAttendance;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionAttendanceStatus;
+import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionStatus;
+import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionType;
 
 public final class ClassroomSessionFixtures {
 
@@ -37,6 +39,8 @@ public final class ClassroomSessionFixtures {
         .setSessionDate(sessionDate)
         .setName(SESSION_NAME)
         .setDescription(SESSION_DESCRIPTION)
+        .setStatus(ClassroomSessionStatus.OPEN)
+        .setType(ClassroomSessionType.SCHEDULE)
         .setCreatedDate(CREATED_AT)
         .setLastModifiedDate(MODIFIED_AT);
   }

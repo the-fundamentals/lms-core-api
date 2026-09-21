@@ -28,4 +28,6 @@ public class ClassroomSession {
   private UUID classroomId;
   private String name;
   private String description;
+  private ClassroomSessionStatus status;
+  private ClassroomSessionType type;
 }

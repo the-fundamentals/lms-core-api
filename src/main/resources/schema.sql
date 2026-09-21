@@ -67,7 +67,8 @@ CREATE TABLE IF NOT EXISTS classroom_session
     classroom_id       UUID      NOT NULL,
     name               VARCHAR(255),
     description        VARCHAR(2000),
-
+    status             VARCHAR(64)      DEFAULT 'OPEN',
+    type               VARCHAR(64)      DEFAULT 'SCHEDULE',
     FOREIGN KEY (classroom_id) REFERENCES classroom (id)
 );
 
@@ -86,43 +87,17 @@ CREATE TABLE IF NOT EXISTS classroom_attendance
     UNIQUE (session_id, classroom_member_id)
 );
 
-CREATE TABLE IF NOT EXISTS classroom_schedule
+CREATE TABLE IF NOT EXISTS classroom_schedule_recurrence
 (
-    id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    created_date       TIMESTAMP        DEFAULT CURRENT_TIMESTAMP,
-    last_modified_date TIMESTAMP        DEFAULT CURRENT_TIMESTAMP,
-    deleted_date       TIMESTAMP,
+    id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    created_date          TIMESTAMP        DEFAULT CURRENT_TIMESTAMP,
+    last_modified_date    TIMESTAMP        DEFAULT CURRENT_TIMESTAMP,
+    deleted_date          TIMESTAMP,
     schedule_rule         VARCHAR(256),
     recurrence_start_date DATE NOT NULL,
     start_time            TIME NOT NULL,
     end_time              TIME NOT NULL,
-    classroom_id       UUID,
-
-    FOREIGN KEY (classroom_id) REFERENCES classroom (id)
-);
-
-CREATE TABLE IF NOT EXISTS classroom_schedule_adhoc
-(
-    id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    created_date       TIMESTAMP        DEFAULT CURRENT_TIMESTAMP,
-    last_modified_date TIMESTAMP        DEFAULT CURRENT_TIMESTAMP,
-    classroom_id       UUID NOT NULL,
-    date               DATE NOT NULL,
-    start_time         TIME NOT NULL,
-    end_time           TIME NOT NULL,
-
-    FOREIGN KEY (classroom_id) REFERENCES classroom (id)
-);
-
-CREATE TABLE IF NOT EXISTS classroom_schedule_cancelled
-(
-    id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    created_date       TIMESTAMP        DEFAULT CURRENT_TIMESTAMP,
-    last_modified_date TIMESTAMP        DEFAULT CURRENT_TIMESTAMP,
-    classroom_id       UUID NOT NULL,
-    date               DATE NOT NULL,
-    start_time         TIME NOT NULL,
-    end_time           TIME NOT NULL,
+    classroom_id          UUID,
 
     FOREIGN KEY (classroom_id) REFERENCES classroom (id)
 );
