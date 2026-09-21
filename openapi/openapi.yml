@@ -567,24 +567,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-    delete:
-      tags:
-        - ClassroomSessions
-      operationId: deleteClassroomSession
-      summary: Delete a classroom session
-      description: Hard-deletes a classroom session and its attendances.
-      parameters:
-        - $ref: "#/components/parameters/ClassroomIdPath"
-        - $ref: "#/components/parameters/SessionId"
-      responses:
-        "204":
-          description: Classroom session deleted
-        "404":
-          description: Classroom session not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
   /admin/classrooms/{classroomId}/sessions/{sessionId}/attendances:
     get:
       tags:

@@ -23,8 +23,6 @@ public interface ClassroomSessionService {
   List<ClassroomSessionAttendanceResponse> queryClassroomSessionAttendancesByMember(
       UUID classroomId, UUID memberId, ClassroomSessionAttendanceFilter filter);
 
-  void deleteClassroomSession(UUID classroomId, UUID sessionId);
-
   List<ClassroomSessionAttendanceResponse> createClassroomSessionAttendances(
       UUID classroomId, UUID sessionId, CreateClassroomSessionAttendancesCommand command);
 

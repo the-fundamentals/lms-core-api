@@ -124,16 +124,6 @@ public class ClassroomSessionServiceImpl implements ClassroomSessionService {
 
   @Override
   @Transactional
-  public void deleteClassroomSession(UUID classroomId, UUID sessionId) {
-    // TODO: replace hard delete with soft-delete (status/tombstone) when session lifecycle is
-    // finalized; cascade currently removes attendances via FK ON DELETE CASCADE.
-    // check session exists in classroom
-    ClassroomSession session = requireSessionInClassroom(classroomId, sessionId);
-    classroomSessionRepository.deleteById(session.getId());
-  }
-
-  @Override
-  @Transactional
   public List<ClassroomSessionAttendanceResponse> createClassroomSessionAttendances(
       UUID classroomId, UUID sessionId, CreateClassroomSessionAttendancesCommand command) {
     // check session exists in classroom

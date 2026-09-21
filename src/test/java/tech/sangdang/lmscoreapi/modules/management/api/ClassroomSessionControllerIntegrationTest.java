@@ -48,7 +48,6 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import tech.sangdang.lmscoreapi.common.exception.GlobalExceptionHandler;
 import tech.sangdang.lmscoreapi.common.querying.BaseQuery;
 import tech.sangdang.lmscoreapi.config.SecurityConfig;
@@ -241,13 +240,11 @@ class ClassroomSessionControllerIntegrationTest {
 
   @ParameterizedTest(name = "{0}")
   @CsvSource({
-    "fails to get a session that does not exist, GET, MISSING",
-    "fails to get a session that belongs to another classroom, GET, WRONG_CLASSROOM",
-    "fails to delete a session that does not exist, DELETE, MISSING",
-    "fails to delete a session that belongs to another classroom, DELETE, WRONG_CLASSROOM"
+    "fails to get a session that does not exist, MISSING",
+    "fails to get a session that belongs to another classroom, WRONG_CLASSROOM"
   })
-  void sessionLookup_failsWhenUnavailable(
-      String displayName, String httpMethod, String sessionState) throws Exception {
+  void sessionLookup_failsWhenUnavailable(String displayName, String sessionState)
+      throws Exception {
     when(classroomSessionRepository.findById(SESSION_ID))
         .thenReturn(
             switch (sessionState) {
@@ -257,22 +254,12 @@ class ClassroomSessionControllerIntegrationTest {
               default -> throw new IllegalArgumentException("Unsupported state: " + sessionState);
             });
 
-    MockHttpServletRequestBuilder request =
-        switch (httpMethod) {
-          case "GET" ->
-              get("/admin/classrooms/{classroomId}/sessions/{sessionId}", CLASSROOM_ID, SESSION_ID);
-          case "DELETE" ->
-              delete(
-                  "/admin/classrooms/{classroomId}/sessions/{sessionId}", CLASSROOM_ID, SESSION_ID);
-          default -> throw new IllegalArgumentException("Unsupported method: " + httpMethod);
-        };
-
     mockMvc
-        .perform(request.with(adminJwt()))
+        .perform(
+            get("/admin/classrooms/{classroomId}/sessions/{sessionId}", CLASSROOM_ID, SESSION_ID)
+                .with(adminJwt()))
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.code").value("CLASSROOM_SESSION_NOT_FOUND"));
-
-    verify(classroomSessionRepository, never()).deleteById(any());
   }
 
   @Test
@@ -503,21 +490,6 @@ class ClassroomSessionControllerIntegrationTest {
         .andExpect(jsonPath("$.code").value("CLASSROOM_SESSION_NOT_FOUND"));
 
     verify(classroomSessionAttendanceRepository, never()).findBySessionId(any());
-  }
-
-  @Test
-  @DisplayName("deletes a classroom session")
-  void deleteClassroomSession_valid_returns204() throws Exception {
-    when(classroomSessionRepository.findById(SESSION_ID))
-        .thenReturn(Optional.of(classroomSession()));
-
-    mockMvc
-        .perform(
-            delete("/admin/classrooms/{classroomId}/sessions/{sessionId}", CLASSROOM_ID, SESSION_ID)
-                .with(adminJwt()))
-        .andExpect(status().isNoContent());
-
-    verify(classroomSessionRepository).deleteById(SESSION_ID);
   }
 
   @Test
