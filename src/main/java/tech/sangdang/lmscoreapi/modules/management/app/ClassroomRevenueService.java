@@ -15,7 +15,7 @@ public interface ClassroomRevenueService {
    * </ul>
    *
    * @param classroomId classroom to total
-   * @param query inclusive from, exclusive to on sessionDate
+   * @param query inclusive from, exclusive to on sessionDate (date of each bound)
    */
   ClassroomRevenueResponse getClassroomRevenue(UUID classroomId, GetClassroomRevenueQuery query);
 }

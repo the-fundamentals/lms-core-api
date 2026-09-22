@@ -14,6 +14,7 @@ public interface ClassroomManagementService {
    *
    * <ul>
    *   <li>Confirms {@code bannerKey} in public storage when present.
+   *   <li>Status is always ACTIVE; not taken from the command.
    * </ul>
    *
    * @param command name; optional banner key

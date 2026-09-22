@@ -1,8 +1,10 @@
 package tech.sangdang.lmscoreapi.modules.management.dom.repository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -22,4 +24,27 @@ public interface ClassroomScheduleRecurrenceRepository
       """)
   List<ClassroomScheduleRecurrence> findByClassroomIdAndDeletedDateIsNull(
       @NonNull @Param("classroomId") UUID classroomId);
+
+  //  @Query(
+  //      """
+  //              SELECT * FROM classroom_schedule_recurrence
+  //              WHERE classroom_id IN :classroomIds AND deleted_date IS NULL
+  //                  AND recurrence_start_date <= :currentDate AND (recur_until IS NULL OR
+  // recur_until >= :currentDate)
+  //              """)
+  //  List<ClassroomScheduleRecurrence> findActiveByClassroomIdsAsOfDate(
+  //      @NonNull @Param("classroomIds") List<UUID> classroomIds,
+  //      @NonNull @Param("currentDate") LocalDate currentDate);
+
+  @Query(
+          """
+                  SELECT * FROM classroom_schedule_recurrence
+                  WHERE classroom_id IN :classroomIds AND deleted_date IS NULL
+                      AND recurrence_start_date <= :endDate
+                      AND (recur_until IS NULL OR recur_until >= :startDate)
+                  """)
+  List<ClassroomScheduleRecurrence> findActiveByClassroomIdsAsOfDate(
+      @NonNull @Param("classroomIds") List<UUID> classroomIds,
+      @NonNull @Param("startDate") LocalDate startDate,
+      @NonNull @Param("endDate") LocalDate endDate);
 }

@@ -3,6 +3,7 @@ package tech.sangdang.lmscoreapi.modules.management.support;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import tech.sangdang.lmscoreapi.modules.management.dom.Classroom;
+import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomStatus;
 
 public final class ClassroomFixtures {
 
@@ -25,6 +26,7 @@ public final class ClassroomFixtures {
         .setName(name)
         .setBannerKey(BANNER_KEY)
         .setNumberOfMembers(0)
+        .setStatus(ClassroomStatus.ACTIVE)
         .setCreatedDate(CREATED_AT)
         .setLastModifiedDate(MODIFIED_AT);
   }

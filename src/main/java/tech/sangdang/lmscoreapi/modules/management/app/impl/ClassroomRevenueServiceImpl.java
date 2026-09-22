@@ -1,6 +1,6 @@
 package tech.sangdang.lmscoreapi.modules.management.app.impl;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -31,8 +31,8 @@ public class ClassroomRevenueServiceImpl implements ClassroomRevenueService {
         .findById(classroomId)
         .orElseThrow(() -> ObjectNotFoundException.of(Classroom.class, classroomId));
 
-    LocalDateTime from = query.getFrom().toLocalDateTime();
-    LocalDateTime to = query.getTo().toLocalDateTime();
+    LocalDate from = query.getFrom().toLocalDate();
+    LocalDate to = query.getTo().toLocalDate();
     if (!from.isBefore(to)) {
       throw GenericBadRequestException.of("INVALID_REVENUE_RANGE", "from must be before to");
     }

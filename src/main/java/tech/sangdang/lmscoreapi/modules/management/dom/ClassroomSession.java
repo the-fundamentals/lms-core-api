@@ -1,6 +1,8 @@
 package tech.sangdang.lmscoreapi.modules.management.dom;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -24,10 +26,31 @@ public class ClassroomSession {
   private @Id UUID id;
   private @CreatedDate LocalDateTime createdDate;
   private @LastModifiedDate LocalDateTime lastModifiedDate;
-  private LocalDateTime sessionDate;
+  private LocalDate sessionDate;
+  private LocalTime startTime;
+  private LocalTime endTime;
   private UUID classroomId;
   private String name;
   private String description;
   private ClassroomSessionStatus status;
   private ClassroomSessionType type;
+  private UUID generatedBy;
+
+  public static ClassroomSession fromScheduleRecurrence(
+      LocalDate sessionDate,
+      LocalTime startTime,
+      LocalTime endTime,
+      UUID classroomId,
+      String name,
+      String description,
+      UUID classroomScheduleRecurrenceId) {
+    return new ClassroomSession()
+        .setSessionDate(sessionDate)
+        .setStartTime(startTime)
+        .setEndTime(endTime)
+        .setClassroomId(classroomId)
+        .setName(name)
+        .setDescription(description)
+        .setGeneratedBy(classroomScheduleRecurrenceId);
+  }
 }

@@ -1,5 +1,6 @@
 package tech.sangdang.lmscoreapi.modules.management.app;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionAttendanceFilter;
@@ -16,7 +17,7 @@ public interface ClassroomSessionService {
    * Creates a session in the classroom.
    *
    * @param classroomId classroom the session belongs to
-   * @param command date, required status/type, optional name/description
+   * @param command date, start/end times, required status/type, optional name/description
    * @return created session
    */
   ClassroomSessionResponse createClassroomSession(
@@ -109,4 +110,6 @@ public interface ClassroomSessionService {
    * @param attendanceId row to delete
    */
   void deleteClassroomSessionAttendance(UUID classroomId, UUID sessionId, UUID attendanceId);
+
+  void generateSessionsFromRecurrence(LocalDate startDate, LocalDate endDate);
 }

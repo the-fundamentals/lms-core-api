@@ -27,4 +27,9 @@ public class Classroom {
   private String name;
   private String bannerKey;
   private Integer numberOfMembers;
+  private ClassroomStatus status;
+
+  public boolean isActive() {
+    return this.status == ClassroomStatus.ACTIVE;
+  }
 }

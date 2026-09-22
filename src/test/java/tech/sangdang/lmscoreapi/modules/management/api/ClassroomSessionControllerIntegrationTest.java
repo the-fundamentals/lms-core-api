@@ -21,11 +21,16 @@ import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomMembe
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomMemberFixtures.SECOND_MEMBER_ID;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomMemberFixtures.classroomMember;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomSessionFixtures.ATTENDANCE_ID;
+import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomSessionFixtures.END_TIME;
+import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomSessionFixtures.END_TIME_VALUE;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomSessionFixtures.SECOND_ATTENDANCE_ID;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomSessionFixtures.SESSION_DATE;
+import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomSessionFixtures.SESSION_DATE_VALUE;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomSessionFixtures.SESSION_DESCRIPTION;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomSessionFixtures.SESSION_ID;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomSessionFixtures.SESSION_NAME;
+import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomSessionFixtures.START_TIME;
+import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomSessionFixtures.START_TIME_VALUE;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomSessionFixtures.classroomSession;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomSessionFixtures.classroomSessionAttendance;
 
@@ -68,6 +73,7 @@ import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSession;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionAttendance;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomMemberRepository;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomRepository;
+import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomScheduleRecurrenceRepository;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomSessionAttendanceRepository;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomSessionRepository;
 import tools.jackson.databind.json.JsonMapper;
@@ -93,6 +99,7 @@ class ClassroomSessionControllerIntegrationTest {
   @MockitoBean private ClassroomSessionRepository classroomSessionRepository;
   @MockitoBean private ClassroomMemberRepository classroomMemberRepository;
   @MockitoBean private ClassroomSessionAttendanceRepository classroomSessionAttendanceRepository;
+  @MockitoBean private ClassroomScheduleRecurrenceRepository classroomScheduleRecurrenceRepository;
 
   @Test
   @DisplayName("creates a classroom session")
@@ -104,6 +111,8 @@ class ClassroomSessionControllerIntegrationTest {
               ClassroomSession incoming = invocation.getArgument(0);
               return classroomSession(
                       SESSION_ID, incoming.getClassroomId(), incoming.getSessionDate())
+                  .setStartTime(incoming.getStartTime())
+                  .setEndTime(incoming.getEndTime())
                   .setName(incoming.getName())
                   .setDescription(incoming.getDescription())
                   .setStatus(incoming.getStatus())
@@ -112,7 +121,9 @@ class ClassroomSessionControllerIntegrationTest {
 
     CreateClassroomSessionCommand command =
         CreateClassroomSessionCommand.builder()
-            .sessionDate(SESSION_DATE.atOffset(ZoneOffset.UTC))
+            .sessionDate(SESSION_DATE)
+            .startTime(START_TIME_VALUE)
+            .endTime(END_TIME_VALUE)
             .name(SESSION_NAME)
             .description(SESSION_DESCRIPTION)
             .status(ClassroomSessionStatus.OPEN)
@@ -128,7 +139,9 @@ class ClassroomSessionControllerIntegrationTest {
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.id").value(SESSION_ID.toString()))
         .andExpect(jsonPath("$.classroomId").value(CLASSROOM_ID.toString()))
-        .andExpect(jsonPath("$.sessionDate").exists())
+        .andExpect(jsonPath("$.sessionDate").value(SESSION_DATE_VALUE))
+        .andExpect(jsonPath("$.startTime").value(START_TIME_VALUE))
+        .andExpect(jsonPath("$.endTime").value(END_TIME_VALUE))
         .andExpect(jsonPath("$.name").value(SESSION_NAME))
         .andExpect(jsonPath("$.description").value(SESSION_DESCRIPTION))
         .andExpect(jsonPath("$.status").value("OPEN"))
@@ -140,6 +153,8 @@ class ClassroomSessionControllerIntegrationTest {
     verify(classroomSessionRepository).insert(captor.capture());
     assertThat(captor.getValue().getClassroomId()).isEqualTo(CLASSROOM_ID);
     assertThat(captor.getValue().getSessionDate()).isEqualTo(SESSION_DATE);
+    assertThat(captor.getValue().getStartTime()).isEqualTo(START_TIME);
+    assertThat(captor.getValue().getEndTime()).isEqualTo(END_TIME);
     assertThat(captor.getValue().getName()).isEqualTo(SESSION_NAME);
     assertThat(captor.getValue().getDescription()).isEqualTo(SESSION_DESCRIPTION);
     assertThat(captor.getValue().getStatus())
@@ -158,6 +173,8 @@ class ClassroomSessionControllerIntegrationTest {
               ClassroomSession incoming = invocation.getArgument(0);
               return classroomSession(
                       SESSION_ID, incoming.getClassroomId(), incoming.getSessionDate())
+                  .setStartTime(incoming.getStartTime())
+                  .setEndTime(incoming.getEndTime())
                   .setName(incoming.getName())
                   .setDescription(incoming.getDescription())
                   .setStatus(incoming.getStatus())
@@ -166,7 +183,9 @@ class ClassroomSessionControllerIntegrationTest {
 
     CreateClassroomSessionCommand command =
         CreateClassroomSessionCommand.builder()
-            .sessionDate(SESSION_DATE.atOffset(ZoneOffset.UTC))
+            .sessionDate(SESSION_DATE)
+            .startTime(START_TIME_VALUE)
+            .endTime(END_TIME_VALUE)
             .status(ClassroomSessionStatus.OPEN)
             .type(ClassroomSessionType.SCHEDULE)
             .build();
@@ -179,6 +198,8 @@ class ClassroomSessionControllerIntegrationTest {
                 .with(adminJwt()))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.id").value(SESSION_ID.toString()))
+        .andExpect(jsonPath("$.startTime").value(START_TIME_VALUE))
+        .andExpect(jsonPath("$.endTime").value(END_TIME_VALUE))
         .andExpect(jsonPath("$.name").doesNotExist())
         .andExpect(jsonPath("$.description").doesNotExist())
         .andExpect(jsonPath("$.status").value("OPEN"))
@@ -188,6 +209,8 @@ class ClassroomSessionControllerIntegrationTest {
     verify(classroomSessionRepository).insert(captor.capture());
     assertThat(captor.getValue().getName()).isNull();
     assertThat(captor.getValue().getDescription()).isNull();
+    assertThat(captor.getValue().getStartTime()).isEqualTo(START_TIME);
+    assertThat(captor.getValue().getEndTime()).isEqualTo(END_TIME);
     assertThat(captor.getValue().getStatus())
         .isEqualTo(tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionStatus.OPEN);
     assertThat(captor.getValue().getType())
@@ -201,7 +224,9 @@ class ClassroomSessionControllerIntegrationTest {
 
     CreateClassroomSessionCommand command =
         CreateClassroomSessionCommand.builder()
-            .sessionDate(SESSION_DATE.atOffset(ZoneOffset.UTC))
+            .sessionDate(SESSION_DATE)
+            .startTime(START_TIME_VALUE)
+            .endTime(END_TIME_VALUE)
             .status(ClassroomSessionStatus.OPEN)
             .type(ClassroomSessionType.SCHEDULE)
             .build();
@@ -231,7 +256,9 @@ class ClassroomSessionControllerIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value(SESSION_ID.toString()))
         .andExpect(jsonPath("$.classroomId").value(CLASSROOM_ID.toString()))
-        .andExpect(jsonPath("$.sessionDate").exists())
+        .andExpect(jsonPath("$.sessionDate").value(SESSION_DATE_VALUE))
+        .andExpect(jsonPath("$.startTime").value(START_TIME_VALUE))
+        .andExpect(jsonPath("$.endTime").value(END_TIME_VALUE))
         .andExpect(jsonPath("$.name").value(SESSION_NAME))
         .andExpect(jsonPath("$.description").value(SESSION_DESCRIPTION))
         .andExpect(jsonPath("$.status").value("OPEN"))

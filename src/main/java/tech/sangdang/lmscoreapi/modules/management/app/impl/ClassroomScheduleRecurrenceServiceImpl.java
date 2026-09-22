@@ -1,5 +1,6 @@
 package tech.sangdang.lmscoreapi.modules.management.app.impl;
 
+import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -14,6 +15,7 @@ import tech.sangdang.lmscoreapi.modules.management.app.ClassroomScheduleRecurren
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomScheduleRecurrenceMapper;
 import tech.sangdang.lmscoreapi.modules.management.dom.Classroom;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomScheduleRecurrence;
+import tech.sangdang.lmscoreapi.modules.management.dom.RecurrenceFrequency;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomRepository;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomScheduleRecurrenceRepository;
 
@@ -36,8 +38,10 @@ public class ClassroomScheduleRecurrenceServiceImpl implements ClassroomSchedule
     ClassroomScheduleRecurrence recurrence =
         new ClassroomScheduleRecurrence()
             .setClassroomId(classroomId)
-            .assignScheduleRule(command.getScheduleRule())
+            .setFrequency(RecurrenceFrequency.valueOf(command.getFrequency().getValue()))
+            .setByDay(DayOfWeek.valueOf(command.getByDay().getValue()))
             .setRecurrenceStartDate(command.getRecurrenceStartDate())
+            .setRecurUntil(command.getRecurUntil())
             .setStartTime(Utilities.parseTimeOrError(command.getStartTime()))
             .setEndTime(Utilities.parseTimeOrError(command.getEndTime()));
     return classroomScheduleRecurrenceMapper.toResponse(

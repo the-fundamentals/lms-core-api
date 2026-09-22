@@ -18,7 +18,7 @@ tags:
   - name: ClassroomMemberPaymentPlans
     description: Admin-only classroom member payment plans (`/admin/classrooms/.../payment-plans`)
   - name: ClassroomScheduleRecurrence
-    description: Admin-only classroom schedule recurrence (weekly RRULE) management (`/admin/classrooms/.../schedule`)
+    description: Admin-only classroom schedule recurrence management (`/admin/classrooms/.../schedule`)
   - name: ClassroomScheduleAdhoc
     description: >
       Deprecated. No longer used; implementation removed. Admin-only ad-hoc classroom
@@ -840,7 +840,7 @@ paths:
         - ClassroomScheduleRecurrence
       operationId: getAllClassroomScheduleRecurrences
       summary: Get all classroom schedule recurrences
-      description: Returns all non-deleted weekly RRULE recurrences for a classroom (not ad-hoc or cancelled occurrences).
+      description: Returns all non-deleted recurrences for a classroom.
       parameters:
         - $ref: "#/components/parameters/ClassroomIdPath"
       responses:
@@ -861,7 +861,7 @@ paths:
         - ClassroomScheduleRecurrence
       operationId: createClassroomScheduleRecurrence
       summary: Create a classroom schedule recurrence
-      description: Creates a weekly RRULE recurrence for a classroom and returns it.
+      description: Creates a schedule recurrence for a classroom and returns it.
       parameters:
         - $ref: "#/components/parameters/ClassroomIdPath"
       requestBody:
@@ -1308,6 +1308,7 @@ components:
         - id
         - name
         - numberOfMembers
+        - status
         - createdDate
         - lastModifiedDate
       properties:
@@ -1334,6 +1335,8 @@ components:
           minimum: 0
           description: Number of active members in the classroom
           example: 12
+        status:
+          $ref: "#/components/schemas/ClassroomStatus"
         createdDate:
           type: string
           format: date-time
@@ -1349,6 +1352,13 @@ components:
       description: Collection of classrooms
       items:
         $ref: "#/components/schemas/ClassroomResponse"
+    ClassroomStatus:
+      type: string
+      description: Lifecycle status of a classroom
+      enum:
+        - ACTIVE
+        - ARCHIVED
+      example: ACTIVE
     GetAllClassroomMembersResponse:
       type: array
       description: Collection of classroom members
@@ -1671,14 +1681,26 @@ components:
       additionalProperties: false
       required:
         - sessionDate
+        - startTime
+        - endTime
         - status
         - type
       properties:
         sessionDate:
           type: string
-          format: date-time
-          description: When the classroom session takes place
-          example: 2026-07-19T09:00:00Z
+          format: date
+          description: Calendar date of the classroom session
+          example: "2026-07-19"
+        startTime:
+          type: string
+          format: time
+          description: Session start time
+          example: "09:00:00"
+        endTime:
+          type: string
+          format: time
+          description: Session end time
+          example: "10:30:00"
         name:
           type: string
           description: Optional display name of the classroom session
@@ -1711,7 +1733,7 @@ components:
           maximum: 50
         sortBy:
           type: string
-          pattern: '^(sessionDate|name|createdDate|status|type)$'
+          pattern: '^(sessionDate|startTime|endTime|name|createdDate|status|type)$'
         sortDirection:
           type: string
           enum: [ASC, DESC]
@@ -1724,7 +1746,7 @@ components:
             properties:
               field:
                 type: string
-                pattern: '^(sessionDate|name|status|type)$'
+                pattern: '^(sessionDate|startTime|endTime|name|status|type)$'
               operator:
                 type: string
                 pattern: '^(eq|like|gt|lt|gte|lte)$'
@@ -1738,6 +1760,8 @@ components:
         - id
         - classroomId
         - sessionDate
+        - startTime
+        - endTime
         - status
         - type
         - createdDate
@@ -1755,9 +1779,19 @@ components:
           example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
         sessionDate:
           type: string
-          format: date-time
-          description: When the classroom session takes place
-          example: 2026-07-19T09:00:00Z
+          format: date
+          description: Calendar date of the classroom session
+          example: "2026-07-19"
+        startTime:
+          type: string
+          format: time
+          description: Session start time
+          example: "09:00:00"
+        endTime:
+          type: string
+          format: time
+          description: Session end time
+          example: "10:30:00"
         name:
           type: string
           description: Optional display name of the classroom session
@@ -1957,24 +1991,29 @@ components:
         $ref: "#/components/schemas/AccountProfileResponse"
     CreateClassroomScheduleRecurrenceCommand:
       type: object
-      description: Command to create a classroom schedule recurrence (weekly RRULE)
+      description: Command to create a classroom schedule recurrence
       additionalProperties: false
       required:
-        - scheduleRule
+        - frequency
+        - byDay
         - recurrenceStartDate
         - startTime
         - endTime
       properties:
-        scheduleRule:
-          type: string
-          minLength: 1
-          description: An iCal Recurrence Rule
-          example: FREQ=WEEKLY;BYDAY=MO
+        frequency:
+          $ref: "#/components/schemas/RecurrenceFrequency"
+        byDay:
+          $ref: "#/components/schemas/RecurrenceByDay"
         recurrenceStartDate:
           type: string
           format: date
-          description: Calendar date when the weekly recurrence begins
+          description: Calendar date when the recurrence begins
           example: "2026-07-20"
+        recurUntil:
+          type: string
+          format: date
+          description: Inclusive last calendar date of the recurrence; omit for no end
+          example: "2026-12-31"
         startTime:
           type: string
           format: time
@@ -1985,14 +2024,33 @@ components:
           format: time
           description: Daily end time of the scheduled session
           example: "10:30:00"
+    RecurrenceFrequency:
+      type: string
+      description: How often the recurrence repeats
+      enum:
+        - WEEKLY
+      example: WEEKLY
+    RecurrenceByDay:
+      type: string
+      description: Weekday the recurrence falls on
+      enum:
+        - MONDAY
+        - TUESDAY
+        - WEDNESDAY
+        - THURSDAY
+        - FRIDAY
+        - SATURDAY
+        - SUNDAY
+      example: MONDAY
     ClassroomScheduleRecurrenceResponse:
       type: object
-      description: Classroom schedule recurrence (weekly RRULE) resource returned by the API
+      description: Classroom schedule recurrence resource returned by the API
       additionalProperties: false
       required:
         - id
         - classroomId
-        - scheduleRule
+        - frequency
+        - byDay
         - recurrenceStartDate
         - startTime
         - endTime
@@ -2009,15 +2067,20 @@ components:
           format: uuid
           description: Classroom this schedule belongs to
           example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
-        scheduleRule:
-          type: string
-          description: An iCal Recurrence Rule
-          example: FREQ=WEEKLY;BYDAY=MO
+        frequency:
+          $ref: "#/components/schemas/RecurrenceFrequency"
+        byDay:
+          $ref: "#/components/schemas/RecurrenceByDay"
         recurrenceStartDate:
           type: string
           format: date
-          description: Calendar date when the weekly recurrence begins
+          description: Calendar date when the recurrence begins
           example: "2026-07-20"
+        recurUntil:
+          type: string
+          format: date
+          description: Inclusive last calendar date of the recurrence; null if none
+          example: "2026-12-31"
         startTime:
           type: string
           format: time

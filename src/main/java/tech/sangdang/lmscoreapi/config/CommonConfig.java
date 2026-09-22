@@ -1,4 +1,12 @@
 package tech.sangdang.lmscoreapi.config;
 
-public class CommonConfig {
-}
+import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.annotation.EnableScheduling;
+
+@Configuration
+@ConfigurationPropertiesScan
+@EnableAsync
+@EnableScheduling
+public class CommonConfig {}

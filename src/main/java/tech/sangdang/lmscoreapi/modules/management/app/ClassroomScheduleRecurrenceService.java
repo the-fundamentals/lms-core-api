@@ -8,14 +8,14 @@ import tech.sangdang.lmscoreapi.generated.model.CreateClassroomScheduleRecurrenc
 public interface ClassroomScheduleRecurrenceService {
 
   /**
-   * Creates a weekly RRULE recurrence for the classroom.
+   * Creates a recurrence for the classroom.
    *
    * <ul>
-   *   <li>Non-weekly or invalid RRULE is 400; does not expand occurrences.
+   *   <li>Does not expand occurrences; {@code recurUntil} is optional.
    * </ul>
    *
    * @param classroomId classroom the recurrence belongs to
-   * @param command RRULE, start date, and daily times
+   * @param command frequency, weekday, start date, and daily times
    * @return created recurrence
    */
   ClassroomScheduleRecurrenceResponse createClassroomScheduleRecurrence(
