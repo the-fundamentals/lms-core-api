@@ -10,6 +10,6 @@ import tech.sangdang.lmscoreapi.modules.management.app.ClassroomSessionService;
 public class ClassroomSessionGenerationJob {
   private final ClassroomSessionService classroomSessionService;
 
-  @Scheduled
-  public void generateClassroomSessionsFromScheduleRecurrence() {}
+//  @Scheduled()
+//  public void generateClassroomSessionsFromScheduleRecurrence() {}
 }

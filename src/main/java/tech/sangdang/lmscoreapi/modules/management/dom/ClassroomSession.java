@@ -51,6 +51,8 @@ public class ClassroomSession {
         .setClassroomId(classroomId)
         .setName(name)
         .setDescription(description)
+        .setStatus(ClassroomSessionStatus.OPEN)
+        .setType(ClassroomSessionType.SCHEDULE)
         .setGeneratedBy(classroomScheduleRecurrenceId);
   }
 }

@@ -239,6 +239,7 @@ public class ClassroomSessionServiceImpl implements ClassroomSessionService {
   }
 
   @Override
+  @Transactional
   public void generateSessionsFromRecurrence(LocalDate startDate, LocalDate endDate) {
     List<Classroom> classrooms =
         classroomRepository.findByStatusIn(List.of(ClassroomStatus.ACTIVE)).stream()
@@ -248,7 +249,7 @@ public class ClassroomSessionServiceImpl implements ClassroomSessionService {
 
     List<ClassroomScheduleRecurrence> recurrences =
         classroomScheduleRecurrenceRepository.findActiveByClassroomIdsAsOfDate(
-            classroomIds, startDate, endDate);
+            classroomIds.toArray(UUID[]::new), startDate, endDate);
 
     List<ClassroomSession> sessionsToCreate = new ArrayList<>();
     recurrences.forEach(
@@ -266,6 +267,8 @@ public class ClassroomSessionServiceImpl implements ClassroomSessionService {
                           "This was automatically generated from a classroom schedule",
                           recurrence.getId())));
         });
+
+    classroomSessionRepository.insertAllIgnoringDuplicates(sessionsToCreate);
   }
 
   private List<LocalDate> expandRecurrenceRule(
@@ -280,10 +283,16 @@ public class ClassroomSessionServiceImpl implements ClassroomSessionService {
             ? recurrence.getRecurUntil()
             : endDate;
 
+    return switch (recurrence.getFrequency()) {
+      case WEEKLY -> expandWeekly(recurrence, effectiveStart, effectiveEnd);
+    };
+  }
+
+  private List<LocalDate> expandWeekly(
+      ClassroomScheduleRecurrence recurrence, LocalDate effectiveStart, LocalDate effectiveEnd) {
     List<LocalDate> dates = new ArrayList<>();
     LocalDate cursor = effectiveStart;
 
-    // move cursor to nearest day of week
     while (cursor.getDayOfWeek() != recurrence.getByDay()) {
       cursor = cursor.plusDays(1);
     }

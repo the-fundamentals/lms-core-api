@@ -12,11 +12,13 @@ import org.springframework.stereotype.Repository;
 import tech.sangdang.lmscoreapi.common.persistence.BaseCommandRepository;
 import tech.sangdang.lmscoreapi.common.persistence.BaseQueryRepository;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSession;
+import tech.sangdang.lmscoreapi.modules.management.dom.repository.fragments.ClassroomSessionRepositoryFragment;
 
 @Repository
 public interface ClassroomSessionRepository
     extends BaseCommandRepository<ClassroomSession, UUID>,
-        BaseQueryRepository<ClassroomSession, UUID> {
+        BaseQueryRepository<ClassroomSession, UUID>,
+        ClassroomSessionRepositoryFragment {
 
   /**
    * Sums current student payment-plan amounts for ATTENDED rows on sessions in {@code [from, to)}.

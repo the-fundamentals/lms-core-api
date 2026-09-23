@@ -111,5 +111,16 @@ public interface ClassroomSessionService {
    */
   void deleteClassroomSessionAttendance(UUID classroomId, UUID sessionId, UUID attendanceId);
 
+  /**
+   * Inserts generated sessions for active classrooms whose recurrences overlap the window.
+   *
+   * <ul>
+   *   <li>{@code startDate} and {@code endDate} are inclusive.
+   *   <li>Existing generated rows for the same classroom, recurrence, and date are skipped.
+   * </ul>
+   *
+   * @param startDate inclusive window start
+   * @param endDate inclusive window end
+   */
   void generateSessionsFromRecurrence(LocalDate startDate, LocalDate endDate);
 }

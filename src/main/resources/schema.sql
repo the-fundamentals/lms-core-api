@@ -84,7 +84,7 @@ CREATE TABLE IF NOT EXISTS classroom_session
     session_date       DATE NOT NULL,
     start_time         TIME NOT NULL,
     end_time           TIME NOT NULL,
-    classroom_id       UUID      NOT NULL,
+    classroom_id       UUID NOT NULL,
     name               VARCHAR(255),
     description        VARCHAR(2000),
     status             VARCHAR(64)      DEFAULT 'OPEN',
@@ -93,6 +93,10 @@ CREATE TABLE IF NOT EXISTS classroom_session
     FOREIGN KEY (classroom_id) REFERENCES classroom (id),
     FOREIGN KEY (generated_by) REFERENCES classroom_schedule_recurrence (id)
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS unique_generated_session_idx
+ON classroom_session (classroom_id, generated_by, session_date)
+WHERE generated_by IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS classroom_attendance
 (
