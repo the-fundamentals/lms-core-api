@@ -2,7 +2,6 @@ package tech.sangdang.lmscoreapi.common.querying;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import lombok.Data;
 import org.springframework.data.domain.Sort;
 
@@ -74,7 +73,7 @@ public class BaseQuery {
     }
 
     public Builder addFilter(String field, String operator, Enum<?> value) {
-      if(baseQuery.getFilters() == null) {
+      if (baseQuery.getFilters() == null) {
         baseQuery.setFilters(new ArrayList<>());
       }
 

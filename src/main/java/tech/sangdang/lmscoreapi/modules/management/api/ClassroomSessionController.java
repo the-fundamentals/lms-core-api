@@ -18,8 +18,8 @@ public class ClassroomSessionController implements ClassroomSessionsApi {
 
   @Override
   public ResponseEntity<?> createClassroomSession(
-          @NonNull UUID classroomId,
-          @NonNull CreateClassroomSessionAdhocCommand createClassroomSessionCommand) {
+      @NonNull UUID classroomId,
+      @NonNull CreateClassroomSessionAdhocCommand createClassroomSessionCommand) {
     return ResponseEntity.status(HttpStatus.CREATED)
         .body(
             classroomSessionService.createClassroomSessionAdhoc(

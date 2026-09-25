@@ -1,11 +1,8 @@
 package tech.sangdang.lmscoreapi.modules.management.dom.repository;
 
 import java.time.LocalDate;
-import java.time.LocalTime;
-import java.util.List;
 import java.util.UUID;
 import org.jspecify.annotations.NonNull;
-import org.springframework.data.jdbc.repository.query.Modifying;
 import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;

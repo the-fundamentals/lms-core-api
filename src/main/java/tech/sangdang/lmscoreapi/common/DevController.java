@@ -8,7 +8,8 @@ import java.lang.annotation.Target;
 import org.springframework.context.annotation.Profile;
 import org.springframework.web.bind.annotation.RestController;
 
-// Same profile gate as @TestController; separate annotation because OpenAPI tag `_Dev` generates DevApi
+// Same profile gate as @TestController; separate annotation because OpenAPI tag `_Dev` generates
+// DevApi
 @Target(value = {ElementType.TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented

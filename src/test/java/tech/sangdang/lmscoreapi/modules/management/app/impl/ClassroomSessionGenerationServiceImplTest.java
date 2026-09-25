@@ -81,7 +81,8 @@ class ClassroomSessionGenerationServiceImplTest {
     service.generateSessionsFromRecurrence(RUN_DATE);
 
     List<ClassroomSession> inserted = capturedInserts();
-    assertThat(inserted).extracting(ClassroomSession::getSessionDate)
+    assertThat(inserted)
+        .extracting(ClassroomSession::getSessionDate)
         .containsExactly(
             LocalDate.of(2026, 11, 2),
             LocalDate.of(2026, 11, 9),
@@ -197,8 +198,7 @@ class ClassroomSessionGenerationServiceImplTest {
   void generateSessionsForClassroom_missingClassroom_throwsNotFound() {
     stubClassroomQuery();
 
-    assertThatThrownBy(
-            () -> service.generateSessionsForClassroom(CLASSROOM_ID, NOV_1, NOV_30))
+    assertThatThrownBy(() -> service.generateSessionsForClassroom(CLASSROOM_ID, NOV_1, NOV_30))
         .isInstanceOf(ObjectNotFoundException.class)
         .hasMessageContaining(CLASSROOM_ID.toString());
 

@@ -36,8 +36,7 @@ class RecurrenceRuleUtilsTest {
     ClassroomScheduleRecurrence recurrence =
         classroomScheduleRecurrence().setRecurrenceStartDate(LocalDate.of(2026, 11, 5));
 
-    List<LocalDate> dates =
-        RecurrenceRuleUtils.expandRecurrenceRule(recurrence, NOV_1, NOV_30);
+    List<LocalDate> dates = RecurrenceRuleUtils.expandRecurrenceRule(recurrence, NOV_1, NOV_30);
 
     assertThat(dates)
         .containsExactly(
@@ -65,8 +64,7 @@ class RecurrenceRuleUtilsTest {
     ClassroomScheduleRecurrence recurrence =
         classroomScheduleRecurrence().setRecurrenceStartDate(LocalDate.of(2026, 11, 11));
 
-    List<LocalDate> dates =
-        RecurrenceRuleUtils.expandRecurrenceRule(recurrence, NOV_1, NOV_30);
+    List<LocalDate> dates = RecurrenceRuleUtils.expandRecurrenceRule(recurrence, NOV_1, NOV_30);
 
     assertThat(dates)
         .containsExactly(
@@ -79,8 +77,7 @@ class RecurrenceRuleUtilsTest {
     ClassroomScheduleRecurrence recurrence =
         classroomScheduleRecurrence().setRecurUntil(LocalDate.of(2026, 11, 16));
 
-    List<LocalDate> dates =
-        RecurrenceRuleUtils.expandRecurrenceRule(recurrence, NOV_1, NOV_30);
+    List<LocalDate> dates = RecurrenceRuleUtils.expandRecurrenceRule(recurrence, NOV_1, NOV_30);
 
     assertThat(dates)
         .containsExactly(

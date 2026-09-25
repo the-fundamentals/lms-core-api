@@ -61,10 +61,9 @@ import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionAttendanceFilter
 import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionAttendanceStatus;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionFilter;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionFilterFiltersInner;
-import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionStatus;
+import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionAdhocCommand;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionAttendanceCommand;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionAttendancesCommand;
-import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionCommand;
 import tech.sangdang.lmscoreapi.generated.model.UpdateClassroomSessionAttendanceCommand;
 import tech.sangdang.lmscoreapi.modules.management.app.ClassroomSessionGenerationService;
 import tech.sangdang.lmscoreapi.modules.management.app.impl.ClassroomSessionServiceImpl;
@@ -120,8 +119,8 @@ class ClassroomSessionControllerIntegrationTest {
                   .setType(incoming.getType());
             });
 
-    CreateClassroomSessionCommand command =
-        CreateClassroomSessionCommand.builder()
+    CreateClassroomSessionAdhocCommand command =
+        CreateClassroomSessionAdhocCommand.builder()
             .sessionDate(SESSION_DATE)
             .startTime(START_TIME_VALUE)
             .endTime(END_TIME_VALUE)
@@ -282,7 +281,8 @@ class ClassroomSessionControllerIntegrationTest {
     ArgumentCaptor<ClassroomSession> captor = ArgumentCaptor.forClass(ClassroomSession.class);
     verify(classroomSessionRepository).update(captor.capture());
     assertThat(captor.getValue().getStatus())
-        .isEqualTo(tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionStatus.COMPLETED);
+        .isEqualTo(
+            tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionStatus.COMPLETED);
   }
 
   @ParameterizedTest(name = "fails to complete a {0} session")
@@ -349,7 +349,8 @@ class ClassroomSessionControllerIntegrationTest {
     ArgumentCaptor<ClassroomSession> captor = ArgumentCaptor.forClass(ClassroomSession.class);
     verify(classroomSessionRepository).update(captor.capture());
     assertThat(captor.getValue().getStatus())
-        .isEqualTo(tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionStatus.CANCELLED);
+        .isEqualTo(
+            tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionStatus.CANCELLED);
   }
 
   @ParameterizedTest(name = "fails to cancel a {0} session")
@@ -1068,7 +1069,9 @@ class ClassroomSessionControllerIntegrationTest {
                         CLASSROOM_ID,
                         SESSION_ID)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(jsonMapper.writeValueAsString(attendancesCommand(attendanceItem(MEMBER_ID))))
+                    .content(
+                        jsonMapper.writeValueAsString(
+                            attendancesCommand(attendanceItem(MEMBER_ID))))
                     .with(adminJwt()))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.code").value("CLASSROOM_SESSION_NOT_OPEN"));
