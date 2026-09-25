@@ -12,7 +12,7 @@ import static tech.sangdang.lmscoreapi.helpers.SecurityTestSupport.adminJwt;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomFixtures.CLASSROOM_ID;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomFixtures.classroom;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Optional;
@@ -48,8 +48,8 @@ class ClassroomFinancesControllerIntegrationTest {
       OffsetDateTime.of(2026, 8, 1, 0, 0, 0, 0, ZoneOffset.UTC);
   private static final OffsetDateTime TO =
       OffsetDateTime.of(2026, 9, 1, 0, 0, 0, 0, ZoneOffset.UTC);
-  private static final LocalDateTime FROM_LOCAL = FROM.toLocalDateTime();
-  private static final LocalDateTime TO_LOCAL = TO.toLocalDateTime();
+  private static final LocalDate FROM_LOCAL = FROM.toLocalDate();
+  private static final LocalDate TO_LOCAL = TO.toLocalDate();
   private static final long REVENUE = 1_000_000L;
 
   @Autowired private MockMvc mockMvc;
@@ -110,7 +110,7 @@ class ClassroomFinancesControllerIntegrationTest {
         .andExpect(jsonPath("$.code").value("CLASSROOM_NOT_FOUND"));
 
     verify(classroomSessionRepository, never())
-        .sumRevenue(any(UUID.class), any(LocalDateTime.class), any(LocalDateTime.class));
+        .sumRevenue(any(UUID.class), any(LocalDate.class), any(LocalDate.class));
   }
 
   @ParameterizedTest(name = "{0}")
@@ -135,7 +135,7 @@ class ClassroomFinancesControllerIntegrationTest {
         .andExpect(jsonPath("$.code").value("INVALID_REVENUE_RANGE"));
 
     verify(classroomSessionRepository, never())
-        .sumRevenue(any(UUID.class), any(LocalDateTime.class), any(LocalDateTime.class));
+        .sumRevenue(any(UUID.class), any(LocalDate.class), any(LocalDate.class));
   }
 
   private static GetClassroomRevenueQuery query(OffsetDateTime from, OffsetDateTime to) {

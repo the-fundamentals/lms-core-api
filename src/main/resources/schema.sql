@@ -19,7 +19,8 @@ CREATE TABLE IF NOT EXISTS classroom
     banner_key         VARCHAR(255),
     number_of_members  INTEGER      NOT NULL DEFAULT 0,
     created_date       TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
-    last_modified_date TIMESTAMP             DEFAULT CURRENT_TIMESTAMP
+    last_modified_date TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
+    status             VARCHAR(64)           DEFAULT 'ACTIVE'
 );
 
 CREATE TABLE IF NOT EXISTS classroom_member
@@ -58,18 +59,44 @@ CREATE UNIQUE INDEX IF NOT EXISTS unique_current_payment_plan
     ON classroom_member_payment_plan (classroom_member_id)
     WHERE is_current = true;
 
+CREATE TABLE IF NOT EXISTS classroom_schedule_recurrence
+(
+    id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    created_date          TIMESTAMP        DEFAULT CURRENT_TIMESTAMP,
+    last_modified_date    TIMESTAMP        DEFAULT CURRENT_TIMESTAMP,
+    deleted_date          TIMESTAMP,
+    frequency             VARCHAR(64) NOT NULL,
+    by_day                VARCHAR(64) NOT NULL,
+    recurrence_start_date DATE        NOT NULL,
+    recur_until           DATE,
+    start_time            TIME        NOT NULL,
+    end_time              TIME        NOT NULL,
+    classroom_id          UUID,
+
+    FOREIGN KEY (classroom_id) REFERENCES classroom (id)
+);
+
 CREATE TABLE IF NOT EXISTS classroom_session
 (
     id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     created_date       TIMESTAMP        DEFAULT CURRENT_TIMESTAMP,
     last_modified_date TIMESTAMP        DEFAULT CURRENT_TIMESTAMP,
-    session_date       TIMESTAMP NOT NULL,
-    classroom_id       UUID      NOT NULL,
+    session_date       DATE NOT NULL,
+    start_time         TIME NOT NULL,
+    end_time           TIME NOT NULL,
+    classroom_id       UUID NOT NULL,
     name               VARCHAR(255),
     description        VARCHAR(2000),
-
-    FOREIGN KEY (classroom_id) REFERENCES classroom (id)
+    status             VARCHAR(64)      DEFAULT 'OPEN',
+    type               VARCHAR(64)      DEFAULT 'SCHEDULE',
+    generated_by       UUID,
+    FOREIGN KEY (classroom_id) REFERENCES classroom (id),
+    FOREIGN KEY (generated_by) REFERENCES classroom_schedule_recurrence (id)
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS unique_generated_session_idx
+ON classroom_session (classroom_id, generated_by, session_date)
+WHERE generated_by IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS classroom_attendance
 (
@@ -84,47 +111,6 @@ CREATE TABLE IF NOT EXISTS classroom_attendance
     FOREIGN KEY (session_id) REFERENCES classroom_session (id) ON DELETE CASCADE,
     FOREIGN KEY (classroom_member_id) REFERENCES classroom_member (id),
     UNIQUE (session_id, classroom_member_id)
-);
-
-CREATE TABLE IF NOT EXISTS classroom_schedule
-(
-    id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    created_date       TIMESTAMP        DEFAULT CURRENT_TIMESTAMP,
-    last_modified_date TIMESTAMP        DEFAULT CURRENT_TIMESTAMP,
-    deleted_date       TIMESTAMP,
-    schedule_rule         VARCHAR(256),
-    recurrence_start_date DATE NOT NULL,
-    start_time            TIME NOT NULL,
-    end_time              TIME NOT NULL,
-    classroom_id       UUID,
-
-    FOREIGN KEY (classroom_id) REFERENCES classroom (id)
-);
-
-CREATE TABLE IF NOT EXISTS classroom_schedule_adhoc
-(
-    id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    created_date       TIMESTAMP        DEFAULT CURRENT_TIMESTAMP,
-    last_modified_date TIMESTAMP        DEFAULT CURRENT_TIMESTAMP,
-    classroom_id       UUID NOT NULL,
-    date               DATE NOT NULL,
-    start_time         TIME NOT NULL,
-    end_time           TIME NOT NULL,
-
-    FOREIGN KEY (classroom_id) REFERENCES classroom (id)
-);
-
-CREATE TABLE IF NOT EXISTS classroom_schedule_cancelled
-(
-    id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    created_date       TIMESTAMP        DEFAULT CURRENT_TIMESTAMP,
-    last_modified_date TIMESTAMP        DEFAULT CURRENT_TIMESTAMP,
-    classroom_id       UUID NOT NULL,
-    date               DATE NOT NULL,
-    start_time         TIME NOT NULL,
-    end_time           TIME NOT NULL,
-
-    FOREIGN KEY (classroom_id) REFERENCES classroom (id)
 );
 
 CREATE TABLE IF NOT EXISTS storage_grants

@@ -9,6 +9,7 @@ import tech.sangdang.lmscoreapi.common.exception.ObjectNotFoundException;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomCommand;
 import tech.sangdang.lmscoreapi.generated.model.UpdateClassroomCommand;
 import tech.sangdang.lmscoreapi.modules.management.dom.Classroom;
+import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomStatus;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomRepository;
 
 @RequiredArgsConstructor
@@ -22,7 +23,8 @@ public class ClassroomRecordService {
         new Classroom()
             .setName(command.getName())
             .setBannerKey(command.getBannerKey())
-            .setNumberOfMembers(0);
+            .setNumberOfMembers(0)
+            .setStatus(ClassroomStatus.ACTIVE);
     return classroomRepository.insert(classroom);
   }
 

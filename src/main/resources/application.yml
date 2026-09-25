@@ -21,6 +21,9 @@ app:
     app-client-id: ${COGNITO_APP_CLIENT_ID:6g6fmxhyvx097ih07p6p5w6y3l}
     base-domain: ${COGNITO_BASE_DOMAIN:http://localhost.localstack.cloud:4566}
     client-full-domain: ${COGNITO_CLIENT_FULL_DOMAIN:${app.cognito.base-domain}/_aws/cognito-idp}
+  modules:
+    management:
+      session-generation-cron: "0 0 0 7 * *"
 
 springdoc:
   api-docs:

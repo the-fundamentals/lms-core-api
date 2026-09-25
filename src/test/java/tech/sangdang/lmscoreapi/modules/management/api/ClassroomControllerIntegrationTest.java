@@ -43,6 +43,7 @@ import tech.sangdang.lmscoreapi.modules.management.app.impl.ClassroomManagementS
 import tech.sangdang.lmscoreapi.modules.management.app.internal.ClassroomRecordService;
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomMapperImpl;
 import tech.sangdang.lmscoreapi.modules.management.dom.Classroom;
+import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomStatus;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomRepository;
 import tech.sangdang.lmscoreapi.modules.utility.app.StorageService;
 import tech.sangdang.lmscoreapi.modules.utility.app.dto.ConfirmUploadPublicCommand;
@@ -74,7 +75,8 @@ class ClassroomControllerIntegrationTest {
               Classroom incoming = invocation.getArgument(0);
               return classroom(CLASSROOM_ID, incoming.getName())
                   .setBannerKey(incoming.getBannerKey())
-                  .setNumberOfMembers(incoming.getNumberOfMembers());
+                  .setNumberOfMembers(incoming.getNumberOfMembers())
+                  .setStatus(incoming.getStatus());
             });
 
     CreateClassroomCommand command =
@@ -91,6 +93,7 @@ class ClassroomControllerIntegrationTest {
         .andExpect(jsonPath("$.name").value(CLASSROOM_NAME))
         .andExpect(jsonPath("$.bannerKey").value(BANNER_KEY))
         .andExpect(jsonPath("$.numberOfMembers").value(0))
+        .andExpect(jsonPath("$.status").value("ACTIVE"))
         .andExpect(jsonPath("$.createdDate").exists())
         .andExpect(jsonPath("$.lastModifiedDate").exists());
 
@@ -103,6 +106,7 @@ class ClassroomControllerIntegrationTest {
     assertThat(captor.getValue().getName()).isEqualTo(CLASSROOM_NAME);
     assertThat(captor.getValue().getBannerKey()).isEqualTo(BANNER_KEY);
     assertThat(captor.getValue().getNumberOfMembers()).isZero();
+    assertThat(captor.getValue().getStatus()).isEqualTo(ClassroomStatus.ACTIVE);
   }
 
   @Test
@@ -117,6 +121,7 @@ class ClassroomControllerIntegrationTest {
         .andExpect(jsonPath("$.name").value(CLASSROOM_NAME))
         .andExpect(jsonPath("$.bannerKey").value(BANNER_KEY))
         .andExpect(jsonPath("$.numberOfMembers").value(0))
+        .andExpect(jsonPath("$.status").value("ACTIVE"))
         .andExpect(jsonPath("$.createdDate").exists())
         .andExpect(jsonPath("$.lastModifiedDate").exists());
   }
@@ -140,7 +145,8 @@ class ClassroomControllerIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value(CLASSROOM_ID.toString()))
         .andExpect(jsonPath("$.name").value("Algebra II"))
-        .andExpect(jsonPath("$.bannerKey").value(NEW_BANNER_KEY));
+        .andExpect(jsonPath("$.bannerKey").value(NEW_BANNER_KEY))
+        .andExpect(jsonPath("$.status").value("ACTIVE"));
 
     ArgumentCaptor<Classroom> captor = ArgumentCaptor.forClass(Classroom.class);
     InOrder order = inOrder(classroomRepository, storageService);
@@ -200,7 +206,8 @@ class ClassroomControllerIntegrationTest {
         .andExpect(jsonPath("$[0].id").value(CLASSROOM_ID.toString()))
         .andExpect(jsonPath("$[0].name").value(CLASSROOM_NAME))
         .andExpect(jsonPath("$[0].bannerKey").value(BANNER_KEY))
-        .andExpect(jsonPath("$[0].numberOfMembers").value(0));
+        .andExpect(jsonPath("$[0].numberOfMembers").value(0))
+        .andExpect(jsonPath("$[0].status").value("ACTIVE"));
 
     verify(classroomRepository).query(any(BaseQuery.class));
   }

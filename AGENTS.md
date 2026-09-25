@@ -144,7 +144,7 @@ unverified). Super-linter is commented out.
   the task requires it.
 - Do not add tests that only assert Spring/Jakarta validation failures.
 - Do not commit `.env`, credentials, or expand TruffleHog-detectable secrets.
-- `@TestController` types stay profile-limited (`local`, `test`).
+- `@TestController` / `@DevController` types stay profile-limited (`local`, `test`).
 
 ## Extensibility Hooks
 

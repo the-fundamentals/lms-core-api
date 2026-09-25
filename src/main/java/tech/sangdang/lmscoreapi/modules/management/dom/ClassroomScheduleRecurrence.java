@@ -1,5 +1,6 @@
 package tech.sangdang.lmscoreapi.modules.management.dom;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -19,15 +20,20 @@ import org.springframework.data.relational.core.mapping.Table;
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(ClassroomScheduleCancelled.TABLE_NAME)
-public class ClassroomScheduleCancelled {
-  public static final String TABLE_NAME = "classroom_schedule_cancelled";
+@Table(ClassroomScheduleRecurrence.TABLE_NAME)
+public class ClassroomScheduleRecurrence {
+  public static final String TABLE_NAME = "classroom_schedule_recurrence";
 
   private @Id UUID id;
   private @CreatedDate LocalDateTime createdDate;
   private @LastModifiedDate LocalDateTime lastModifiedDate;
+  private LocalDateTime deletedDate;
   private UUID classroomId;
-  private LocalDate date;
+  private RecurrenceFrequency frequency;
+  // JDBC enum name (MONDAY), not iCal BYDAY (MO)
+  private DayOfWeek byDay;
+  private LocalDate recurrenceStartDate;
+  private LocalDate recurUntil;
   private LocalTime startTime;
   private LocalTime endTime;
 }

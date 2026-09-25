@@ -6,10 +6,10 @@ alwaysApply: false
 
 # Service naming
 
-Do not use these names/suffixes in the service layer:
+Do not use these names/suffixes in `app/` or `app/impl/`:
 
 - `Orchestrator`
-- `Helper` / `Util` / `Utils`
+- `Helper` / `Util` / `Utils` — allowed in `app/internal/` only
 - `Manager`
 - `Stub` (fake/placeholder in tests, not production)
 - `Executor` (collides with `java.util.concurrent`)

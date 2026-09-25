@@ -13,6 +13,9 @@ app:
       cloud-mode: localstack
   config:
     load-dummy-accounts-into-database: true
+  modules:
+    management:
+      session-generation-cron: "-"
 
 spring:
   application:

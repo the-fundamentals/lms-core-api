@@ -1,6 +1,6 @@
 package tech.sangdang.lmscoreapi.modules.management.dom.repository;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.UUID;
 import org.jspecify.annotations.NonNull;
 import org.springframework.data.jdbc.repository.query.Query;
@@ -9,11 +9,13 @@ import org.springframework.stereotype.Repository;
 import tech.sangdang.lmscoreapi.common.persistence.BaseCommandRepository;
 import tech.sangdang.lmscoreapi.common.persistence.BaseQueryRepository;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSession;
+import tech.sangdang.lmscoreapi.modules.management.dom.repository.fragments.ClassroomSessionRepositoryFragment;
 
 @Repository
 public interface ClassroomSessionRepository
     extends BaseCommandRepository<ClassroomSession, UUID>,
-        BaseQueryRepository<ClassroomSession, UUID> {
+        BaseQueryRepository<ClassroomSession, UUID>,
+        ClassroomSessionRepositoryFragment {
 
   /**
    * Sums current student payment-plan amounts for ATTENDED rows on sessions in {@code [from, to)}.
@@ -42,6 +44,6 @@ public interface ClassroomSessionRepository
       """)
   long sumRevenue(
       @NonNull @Param("classroomId") UUID classroomId,
-      @NonNull @Param("from") LocalDateTime from,
-      @NonNull @Param("to") LocalDateTime to);
+      @NonNull @Param("from") LocalDate from,
+      @NonNull @Param("to") LocalDate to);
 }

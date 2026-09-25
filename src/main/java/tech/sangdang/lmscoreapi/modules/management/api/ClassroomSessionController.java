@@ -7,11 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import tech.sangdang.lmscoreapi.generated.api.ClassroomSessionsApi;
-import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionAttendanceFilter;
-import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionFilter;
-import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionAttendancesCommand;
-import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionCommand;
-import tech.sangdang.lmscoreapi.generated.model.UpdateClassroomSessionAttendanceCommand;
+import tech.sangdang.lmscoreapi.generated.model.*;
 import tech.sangdang.lmscoreapi.modules.management.app.ClassroomSessionService;
 
 @RestController
@@ -23,10 +19,10 @@ public class ClassroomSessionController implements ClassroomSessionsApi {
   @Override
   public ResponseEntity<?> createClassroomSession(
       @NonNull UUID classroomId,
-      @NonNull CreateClassroomSessionCommand createClassroomSessionCommand) {
+      @NonNull CreateClassroomSessionAdhocCommand createClassroomSessionCommand) {
     return ResponseEntity.status(HttpStatus.CREATED)
         .body(
-            classroomSessionService.createClassroomSession(
+            classroomSessionService.createClassroomSessionAdhoc(
                 classroomId, createClassroomSessionCommand));
   }
 
@@ -55,10 +51,17 @@ public class ClassroomSessionController implements ClassroomSessionsApi {
   }
 
   @Override
-  public ResponseEntity<?> deleteClassroomSession(
+  public ResponseEntity<?> completeClassroomSession(
       @NonNull UUID classroomId, @NonNull UUID sessionId) {
-    classroomSessionService.deleteClassroomSession(classroomId, sessionId);
-    return ResponseEntity.noContent().build();
+    return ResponseEntity.ok(
+        classroomSessionService.completeClassroomSession(classroomId, sessionId));
+  }
+
+  @Override
+  public ResponseEntity<?> cancelClassroomSession(
+      @NonNull UUID classroomId, @NonNull UUID sessionId) {
+    return ResponseEntity.ok(
+        classroomSessionService.cancelClassroomSession(classroomId, sessionId));
   }
 
   @Override

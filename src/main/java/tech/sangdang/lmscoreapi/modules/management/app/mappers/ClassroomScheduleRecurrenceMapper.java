@@ -1,18 +1,20 @@
 package tech.sangdang.lmscoreapi.modules.management.app.mappers;
 
+import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import org.mapstruct.Mapper;
-import tech.sangdang.lmscoreapi.generated.model.ClassroomScheduleResponse;
-import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSchedule;
+import tech.sangdang.lmscoreapi.generated.model.ClassroomScheduleRecurrenceResponse;
+import tech.sangdang.lmscoreapi.generated.model.RecurrenceByDay;
+import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomScheduleRecurrence;
 
 @Mapper(componentModel = "spring")
-public interface ClassroomScheduleMapper {
+public interface ClassroomScheduleRecurrenceMapper {
 
-  ClassroomScheduleResponse toResponse(ClassroomSchedule schedule);
+  ClassroomScheduleRecurrenceResponse toResponse(ClassroomScheduleRecurrence recurrence);
 
   default OffsetDateTime map(LocalDateTime value) {
     return value == null ? null : value.atOffset(ZoneOffset.UTC);
@@ -21,5 +23,9 @@ public interface ClassroomScheduleMapper {
   // OpenAPI generator emits format:time as String, not LocalTime
   default String map(LocalTime value) {
     return value == null ? null : value.format(DateTimeFormatter.ISO_LOCAL_TIME);
+  }
+
+  default RecurrenceByDay map(DayOfWeek value) {
+    return value == null ? null : RecurrenceByDay.fromValue(value.name());
   }
 }
