@@ -97,7 +97,7 @@ public class ClassroomSession {
   }
 
   /**
-   * Whether the session can be mutated (attendance changes or completing).
+   * Whether the session can be mutated (attendance, complete, or cancel).
    *
    * <ul>
    *   <li>True only when status is OPEN.
@@ -130,5 +130,19 @@ public class ClassroomSession {
   public void complete() {
     requireCanBeUpdated();
     this.status = ClassroomSessionStatus.COMPLETED;
+  }
+
+  /**
+   * Sets status to CANCELLED.
+   *
+   * <ul>
+   *   <li>Only from OPEN.
+   * </ul>
+   *
+   * @throws ClassroomSessionCannotBeUpdatedException when status is not OPEN
+   */
+  public void cancel() {
+    requireCanBeUpdated();
+    this.status = ClassroomSessionStatus.CANCELLED;
   }
 }

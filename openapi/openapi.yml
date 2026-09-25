@@ -602,6 +602,37 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /admin/classrooms/{classroomId}/sessions/{sessionId}/cancel:
+    post:
+      tags:
+        - ClassroomSessions
+      operationId: cancelClassroomSession
+      summary: Cancel a classroom session
+      description: >
+        Moves the session status from OPEN to CANCELLED. COMPLETED and CANCELLED sessions are
+        rejected.
+      parameters:
+        - $ref: "#/components/parameters/ClassroomIdPath"
+        - $ref: "#/components/parameters/SessionId"
+      responses:
+        "200":
+          description: Classroom session cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassroomSessionResponse"
+        "400":
+          description: Session is not OPEN
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Classroom session not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /admin/classrooms/{classroomId}/sessions/{sessionId}/attendances:
     get:
       tags:

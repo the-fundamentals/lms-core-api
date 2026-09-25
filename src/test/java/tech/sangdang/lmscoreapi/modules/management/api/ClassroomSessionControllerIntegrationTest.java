@@ -323,6 +323,73 @@ class ClassroomSessionControllerIntegrationTest {
     verify(classroomSessionRepository, never()).update(any());
   }
 
+  @Test
+  @DisplayName("cancels an open classroom session")
+  void cancelClassroomSession_open_returns200() throws Exception {
+    when(classroomSessionRepository.findById(SESSION_ID))
+        .thenReturn(Optional.of(classroomSession()));
+    when(classroomSessionRepository.update(any(ClassroomSession.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    mockMvc
+        .perform(
+            post(
+                    "/admin/classrooms/{classroomId}/sessions/{sessionId}/cancel",
+                    CLASSROOM_ID,
+                    SESSION_ID)
+                .with(adminJwt()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value(SESSION_ID.toString()))
+        .andExpect(jsonPath("$.status").value("CANCELLED"));
+
+    ArgumentCaptor<ClassroomSession> captor = ArgumentCaptor.forClass(ClassroomSession.class);
+    verify(classroomSessionRepository).update(captor.capture());
+    assertThat(captor.getValue().getStatus())
+        .isEqualTo(tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionStatus.CANCELLED);
+  }
+
+  @ParameterizedTest(name = "fails to cancel a {0} session")
+  @CsvSource({"COMPLETED", "CANCELLED"})
+  void cancelClassroomSession_notOpen_returns400(String statusName) throws Exception {
+    when(classroomSessionRepository.findById(SESSION_ID))
+        .thenReturn(
+            Optional.of(
+                classroomSession()
+                    .setStatus(
+                        tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionStatus
+                            .valueOf(statusName))));
+
+    mockMvc
+        .perform(
+            post(
+                    "/admin/classrooms/{classroomId}/sessions/{sessionId}/cancel",
+                    CLASSROOM_ID,
+                    SESSION_ID)
+                .with(adminJwt()))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("CLASSROOM_SESSION_NOT_OPEN"));
+
+    verify(classroomSessionRepository, never()).update(any());
+  }
+
+  @Test
+  @DisplayName("fails to cancel a session that does not exist")
+  void cancelClassroomSession_missing_returns404() throws Exception {
+    when(classroomSessionRepository.findById(SESSION_ID)).thenReturn(Optional.empty());
+
+    mockMvc
+        .perform(
+            post(
+                    "/admin/classrooms/{classroomId}/sessions/{sessionId}/cancel",
+                    CLASSROOM_ID,
+                    SESSION_ID)
+                .with(adminJwt()))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value("CLASSROOM_SESSION_NOT_FOUND"));
+
+    verify(classroomSessionRepository, never()).update(any());
+  }
+
   @ParameterizedTest(name = "{0}")
   @CsvSource({
     "fails to get a session that does not exist, MISSING",

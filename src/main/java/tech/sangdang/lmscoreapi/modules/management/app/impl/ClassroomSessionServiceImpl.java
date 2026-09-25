@@ -72,6 +72,14 @@ public class ClassroomSessionServiceImpl implements ClassroomSessionService {
   }
 
   @Override
+  @Transactional
+  public ClassroomSessionResponse cancelClassroomSession(UUID classroomId, UUID sessionId) {
+    ClassroomSession session = requireSessionInClassroom(classroomId, sessionId);
+    session.cancel();
+    return classroomSessionMapper.toResponse(classroomSessionRepository.update(session));
+  }
+
+  @Override
   @Transactional(readOnly = true)
   public List<ClassroomSessionResponse> queryClassroomSessions(
       UUID classroomId, ClassroomSessionFilter filter) {

@@ -57,6 +57,19 @@ public interface ClassroomSessionService {
   ClassroomSessionResponse completeClassroomSession(UUID classroomId, UUID sessionId);
 
   /**
+   * Marks an OPEN session CANCELLED.
+   *
+   * <ul>
+   *   <li>COMPLETED and CANCELLED are 400.
+   * </ul>
+   *
+   * @param classroomId classroom the session belongs to
+   * @param sessionId session to cancel
+   * @return updated session
+   */
+  ClassroomSessionResponse cancelClassroomSession(UUID classroomId, UUID sessionId);
+
+  /**
    * Queries attendance history for a classroom member.
    *
    * <ul>
