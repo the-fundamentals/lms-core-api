@@ -179,8 +179,8 @@ class ClassroomSessionControllerIntegrationTest {
                   .setType(incoming.getType());
             });
 
-    CreateClassroomSessionCommand command =
-        CreateClassroomSessionCommand.builder()
+    CreateClassroomSessionAdhocCommand command =
+        CreateClassroomSessionAdhocCommand.builder()
             .sessionDate(SESSION_DATE)
             .startTime(START_TIME_VALUE)
             .endTime(END_TIME_VALUE)
@@ -218,8 +218,8 @@ class ClassroomSessionControllerIntegrationTest {
   void createClassroomSession_classroomNotFound_returns404() throws Exception {
     when(classroomRepository.findById(CLASSROOM_ID)).thenReturn(Optional.empty());
 
-    CreateClassroomSessionCommand command =
-        CreateClassroomSessionCommand.builder()
+    CreateClassroomSessionAdhocCommand command =
+        CreateClassroomSessionAdhocCommand.builder()
             .sessionDate(SESSION_DATE)
             .startTime(START_TIME_VALUE)
             .endTime(END_TIME_VALUE)
