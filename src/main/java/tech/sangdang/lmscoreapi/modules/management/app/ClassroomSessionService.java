@@ -2,13 +2,7 @@ package tech.sangdang.lmscoreapi.modules.management.app;
 
 import java.util.List;
 import java.util.UUID;
-import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionAttendanceFilter;
-import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionAttendanceResponse;
-import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionFilter;
-import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionResponse;
-import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionAttendancesCommand;
-import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionCommand;
-import tech.sangdang.lmscoreapi.generated.model.UpdateClassroomSessionAttendanceCommand;
+import tech.sangdang.lmscoreapi.generated.model.*;
 
 public interface ClassroomSessionService {
 
@@ -23,8 +17,8 @@ public interface ClassroomSessionService {
    * @param command date, start/end times, optional name/description
    * @return created session
    */
-  ClassroomSessionResponse createClassroomSession(
-      UUID classroomId, CreateClassroomSessionCommand command);
+  ClassroomSessionResponse createClassroomSessionAdhoc(
+      UUID classroomId, CreateClassroomSessionAdhocCommand command);
 
   /**
    * Returns a session by id within the classroom.
@@ -50,6 +44,19 @@ public interface ClassroomSessionService {
       UUID classroomId, ClassroomSessionFilter filter);
 
   /**
+   * Marks an OPEN session COMPLETED.
+   *
+   * <ul>
+   *   <li>COMPLETED and CANCELLED are 400.
+   * </ul>
+   *
+   * @param classroomId classroom the session belongs to
+   * @param sessionId session to complete
+   * @return updated session
+   */
+  ClassroomSessionResponse completeClassroomSession(UUID classroomId, UUID sessionId);
+
+  /**
    * Queries attendance history for a classroom member.
    *
    * <ul>
@@ -65,11 +72,22 @@ public interface ClassroomSessionService {
       UUID classroomId, UUID memberId, ClassroomSessionAttendanceFilter filter);
 
   /**
+   * Lists all attendance rows for a session.
+   *
+   * @param classroomId classroom the session belongs to
+   * @param sessionId session whose attendance to load
+   * @return attendance rows
+   */
+  List<ClassroomSessionAttendanceResponse> getClassroomSessionAttendances(
+      UUID classroomId, UUID sessionId);
+
+  /**
    * Creates attendance rows for a session.
    *
    * <ul>
    *   <li>Duplicate member ids in the request are 400; existing rows are 409.
    *   <li>Only ACTIVE members; omitted {@code attendanceDate} defaults to now.
+   *   <li>Session must be OPEN; COMPLETED and CANCELLED are 400.
    * </ul>
    *
    * @param classroomId classroom the session belongs to
@@ -81,17 +99,11 @@ public interface ClassroomSessionService {
       UUID classroomId, UUID sessionId, CreateClassroomSessionAttendancesCommand command);
 
   /**
-   * Lists all attendance rows for a session.
-   *
-   * @param classroomId classroom the session belongs to
-   * @param sessionId session whose attendance to load
-   * @return attendance rows
-   */
-  List<ClassroomSessionAttendanceResponse> getClassroomSessionAttendances(
-      UUID classroomId, UUID sessionId);
-
-  /**
    * Updates an attendance row's status only.
+   *
+   * <ul>
+   *   <li>Session must be OPEN; COMPLETED and CANCELLED are 400.
+   * </ul>
    *
    * @param classroomId classroom the session belongs to
    * @param sessionId session the row belongs to
@@ -107,6 +119,10 @@ public interface ClassroomSessionService {
 
   /**
    * Hard-deletes an attendance row.
+   *
+   * <ul>
+   *   <li>Session must be OPEN; COMPLETED and CANCELLED are 400.
+   * </ul>
    *
    * @param classroomId classroom the session belongs to
    * @param sessionId session the row belongs to

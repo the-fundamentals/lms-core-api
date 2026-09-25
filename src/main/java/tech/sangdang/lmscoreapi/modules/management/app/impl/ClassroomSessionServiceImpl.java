@@ -39,8 +39,8 @@ public class ClassroomSessionServiceImpl implements ClassroomSessionService {
 
   @Override
   @Transactional
-  public ClassroomSessionResponse createClassroomSession(
-      UUID classroomId, CreateClassroomSessionCommand command) {
+  public ClassroomSessionResponse createClassroomSessionAdhoc(
+      UUID classroomId, CreateClassroomSessionAdhocCommand command) {
     // check classroom exists
     classroomRepository
         .findById(classroomId)
@@ -61,6 +61,14 @@ public class ClassroomSessionServiceImpl implements ClassroomSessionService {
   @Transactional(readOnly = true)
   public ClassroomSessionResponse getClassroomSessionById(UUID classroomId, UUID sessionId) {
     return classroomSessionMapper.toResponse(requireSessionInClassroom(classroomId, sessionId));
+  }
+
+  @Override
+  @Transactional
+  public ClassroomSessionResponse completeClassroomSession(UUID classroomId, UUID sessionId) {
+    ClassroomSession session = requireSessionInClassroom(classroomId, sessionId);
+    session.complete();
+    return classroomSessionMapper.toResponse(classroomSessionRepository.update(session));
   }
 
   @Override
@@ -114,6 +122,7 @@ public class ClassroomSessionServiceImpl implements ClassroomSessionService {
       UUID classroomId, UUID sessionId, CreateClassroomSessionAttendancesCommand command) {
     // check session exists in classroom
     ClassroomSession session = requireSessionInClassroom(classroomId, sessionId);
+    session.requireCanBeUpdated();
     List<CreateClassroomSessionAttendanceCommand> items = command.getAttendances();
 
     // reject duplicate member ids in request
@@ -203,7 +212,8 @@ public class ClassroomSessionServiceImpl implements ClassroomSessionService {
       UUID attendanceId,
       UpdateClassroomSessionAttendanceCommand command) {
     // check session exists in classroom
-    requireSessionInClassroom(classroomId, sessionId);
+    ClassroomSession session = requireSessionInClassroom(classroomId, sessionId);
+    session.requireCanBeUpdated();
 
     // check attendance exists on this session
     ClassroomSessionAttendance attendance = requireAttendanceOnSession(sessionId, attendanceId);
@@ -219,7 +229,8 @@ public class ClassroomSessionServiceImpl implements ClassroomSessionService {
   public void deleteClassroomSessionAttendance(
       UUID classroomId, UUID sessionId, UUID attendanceId) {
     // check session exists in classroom
-    requireSessionInClassroom(classroomId, sessionId);
+    ClassroomSession session = requireSessionInClassroom(classroomId, sessionId);
+    session.requireCanBeUpdated();
 
     // check attendance exists on this session
     requireAttendanceOnSession(sessionId, attendanceId);

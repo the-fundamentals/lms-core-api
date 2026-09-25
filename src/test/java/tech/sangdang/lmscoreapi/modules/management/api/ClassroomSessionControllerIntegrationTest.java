@@ -256,6 +256,73 @@ class ClassroomSessionControllerIntegrationTest {
         .andExpect(jsonPath("$.type").value("SCHEDULE"));
   }
 
+  @Test
+  @DisplayName("completes an open classroom session")
+  void completeClassroomSession_open_returns200() throws Exception {
+    when(classroomSessionRepository.findById(SESSION_ID))
+        .thenReturn(Optional.of(classroomSession()));
+    when(classroomSessionRepository.update(any(ClassroomSession.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    mockMvc
+        .perform(
+            post(
+                    "/admin/classrooms/{classroomId}/sessions/{sessionId}/complete",
+                    CLASSROOM_ID,
+                    SESSION_ID)
+                .with(adminJwt()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value(SESSION_ID.toString()))
+        .andExpect(jsonPath("$.status").value("COMPLETED"));
+
+    ArgumentCaptor<ClassroomSession> captor = ArgumentCaptor.forClass(ClassroomSession.class);
+    verify(classroomSessionRepository).update(captor.capture());
+    assertThat(captor.getValue().getStatus())
+        .isEqualTo(tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionStatus.COMPLETED);
+  }
+
+  @ParameterizedTest(name = "fails to complete a {0} session")
+  @CsvSource({"COMPLETED", "CANCELLED"})
+  void completeClassroomSession_notOpen_returns400(String statusName) throws Exception {
+    when(classroomSessionRepository.findById(SESSION_ID))
+        .thenReturn(
+            Optional.of(
+                classroomSession()
+                    .setStatus(
+                        tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionStatus
+                            .valueOf(statusName))));
+
+    mockMvc
+        .perform(
+            post(
+                    "/admin/classrooms/{classroomId}/sessions/{sessionId}/complete",
+                    CLASSROOM_ID,
+                    SESSION_ID)
+                .with(adminJwt()))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("CLASSROOM_SESSION_NOT_OPEN"));
+
+    verify(classroomSessionRepository, never()).update(any());
+  }
+
+  @Test
+  @DisplayName("fails to complete a session that does not exist")
+  void completeClassroomSession_missing_returns404() throws Exception {
+    when(classroomSessionRepository.findById(SESSION_ID)).thenReturn(Optional.empty());
+
+    mockMvc
+        .perform(
+            post(
+                    "/admin/classrooms/{classroomId}/sessions/{sessionId}/complete",
+                    CLASSROOM_ID,
+                    SESSION_ID)
+                .with(adminJwt()))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value("CLASSROOM_SESSION_NOT_FOUND"));
+
+    verify(classroomSessionRepository, never()).update(any());
+  }
+
   @ParameterizedTest(name = "{0}")
   @CsvSource({
     "fails to get a session that does not exist, MISSING",
@@ -862,6 +929,77 @@ class ClassroomSessionControllerIntegrationTest {
                         : "CLASSROOM_SESSION_ATTENDANCE_NOT_FOUND"));
 
     verify(classroomSessionAttendanceRepository, never()).deleteById(any());
+  }
+
+  @ParameterizedTest(name = "rejects {0} attendance when session is {1}")
+  @CsvSource({
+    "create, COMPLETED",
+    "create, CANCELLED",
+    "update, COMPLETED",
+    "update, CANCELLED",
+    "delete, COMPLETED",
+    "delete, CANCELLED"
+  })
+  void mutateAttendance_sessionNotOpen_returns400(String operation, String statusName)
+      throws Exception {
+    when(classroomSessionRepository.findById(SESSION_ID))
+        .thenReturn(
+            Optional.of(
+                classroomSession()
+                    .setStatus(
+                        tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionStatus
+                            .valueOf(statusName))));
+
+    switch (operation) {
+      case "create" -> {
+        mockMvc
+            .perform(
+                post(
+                        "/admin/classrooms/{classroomId}/sessions/{sessionId}/attendances",
+                        CLASSROOM_ID,
+                        SESSION_ID)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(jsonMapper.writeValueAsString(attendancesCommand(attendanceItem(MEMBER_ID))))
+                    .with(adminJwt()))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("CLASSROOM_SESSION_NOT_OPEN"));
+        verify(classroomMemberRepository, never()).findAllById(any());
+        verify(classroomSessionAttendanceRepository, never()).insertAll(any());
+      }
+      case "update" -> {
+        UpdateClassroomSessionAttendanceCommand command =
+            UpdateClassroomSessionAttendanceCommand.builder()
+                .status(ClassroomSessionAttendanceStatus.ABSENT)
+                .build();
+        mockMvc
+            .perform(
+                put(
+                        "/admin/classrooms/{classroomId}/sessions/{sessionId}/attendances/{attendanceId}",
+                        CLASSROOM_ID,
+                        SESSION_ID,
+                        ATTENDANCE_ID)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(jsonMapper.writeValueAsString(command))
+                    .with(adminJwt()))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("CLASSROOM_SESSION_NOT_OPEN"));
+        verify(classroomSessionAttendanceRepository, never()).update(any());
+      }
+      case "delete" -> {
+        mockMvc
+            .perform(
+                delete(
+                        "/admin/classrooms/{classroomId}/sessions/{sessionId}/attendances/{attendanceId}",
+                        CLASSROOM_ID,
+                        SESSION_ID,
+                        ATTENDANCE_ID)
+                    .with(adminJwt()))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("CLASSROOM_SESSION_NOT_OPEN"));
+        verify(classroomSessionAttendanceRepository, never()).deleteById(any());
+      }
+      default -> throw new IllegalArgumentException("Unsupported operation: " + operation);
+    }
   }
 
   private void stubInsertAll() {

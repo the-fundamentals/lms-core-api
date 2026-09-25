@@ -13,6 +13,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.relational.core.mapping.Table;
+import tech.sangdang.lmscoreapi.modules.management.dom.exception.ClassroomSessionCannotBeUpdatedException;
 
 @Getter
 @Setter
@@ -36,6 +37,16 @@ public class ClassroomSession {
   private ClassroomSessionType type;
   private UUID generatedBy;
 
+  /**
+   * Builds an adhoc session: status OPEN, type ADHOC.
+   *
+   * @param sessionDate calendar date
+   * @param startTime session start
+   * @param endTime session end
+   * @param classroomId classroom the session belongs to
+   * @param name optional display name
+   * @param description optional description
+   */
   public static ClassroomSession fromAdhoc(
       LocalDate sessionDate,
       LocalTime startTime,
@@ -54,6 +65,17 @@ public class ClassroomSession {
         .setType(ClassroomSessionType.ADHOC);
   }
 
+  /**
+   * Builds a generated schedule session: status OPEN, type SCHEDULE.
+   *
+   * @param sessionDate calendar date
+   * @param startTime session start
+   * @param endTime session end
+   * @param classroomId classroom the session belongs to
+   * @param name display name
+   * @param description description
+   * @param classroomScheduleRecurrenceId recurrence that produced this row
+   */
   public static ClassroomSession fromScheduleRecurrence(
       LocalDate sessionDate,
       LocalTime startTime,
@@ -72,5 +94,41 @@ public class ClassroomSession {
         .setStatus(ClassroomSessionStatus.OPEN)
         .setType(ClassroomSessionType.SCHEDULE)
         .setGeneratedBy(classroomScheduleRecurrenceId);
+  }
+
+  /**
+   * Whether the session can be mutated (attendance changes or completing).
+   *
+   * <ul>
+   *   <li>True only when status is OPEN.
+   * </ul>
+   */
+  public boolean canBeUpdated() {
+    return status == ClassroomSessionStatus.OPEN;
+  }
+
+  /**
+   * Rejects mutations unless {@link #canBeUpdated()}.
+   *
+   * @throws ClassroomSessionCannotBeUpdatedException when status is COMPLETED or CANCELLED
+   */
+  public void requireCanBeUpdated() {
+    if (!canBeUpdated()) {
+      throw ClassroomSessionCannotBeUpdatedException.of();
+    }
+  }
+
+  /**
+   * Sets status to COMPLETED.
+   *
+   * <ul>
+   *   <li>Only from OPEN.
+   * </ul>
+   *
+   * @throws ClassroomSessionCannotBeUpdatedException when status is not OPEN
+   */
+  public void complete() {
+    requireCanBeUpdated();
+    this.status = ClassroomSessionStatus.COMPLETED;
   }
 }
