@@ -60,7 +60,6 @@ import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionAttendanceFilter
 import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionAttendanceStatus;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionFilter;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionStatus;
-import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionType;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionAttendanceCommand;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionAttendancesCommand;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionCommand;
@@ -124,8 +123,6 @@ class ClassroomSessionControllerIntegrationTest {
             .endTime(END_TIME_VALUE)
             .name(SESSION_NAME)
             .description(SESSION_DESCRIPTION)
-            .status(ClassroomSessionStatus.OPEN)
-            .type(ClassroomSessionType.SCHEDULE)
             .build();
 
     mockMvc
@@ -143,7 +140,7 @@ class ClassroomSessionControllerIntegrationTest {
         .andExpect(jsonPath("$.name").value(SESSION_NAME))
         .andExpect(jsonPath("$.description").value(SESSION_DESCRIPTION))
         .andExpect(jsonPath("$.status").value("OPEN"))
-        .andExpect(jsonPath("$.type").value("SCHEDULE"))
+        .andExpect(jsonPath("$.type").value("ADHOC"))
         .andExpect(jsonPath("$.createdDate").exists())
         .andExpect(jsonPath("$.lastModifiedDate").exists());
 
@@ -158,7 +155,7 @@ class ClassroomSessionControllerIntegrationTest {
     assertThat(captor.getValue().getStatus())
         .isEqualTo(tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionStatus.OPEN);
     assertThat(captor.getValue().getType())
-        .isEqualTo(tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionType.SCHEDULE);
+        .isEqualTo(tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionType.ADHOC);
   }
 
   @Test
@@ -184,8 +181,6 @@ class ClassroomSessionControllerIntegrationTest {
             .sessionDate(SESSION_DATE)
             .startTime(START_TIME_VALUE)
             .endTime(END_TIME_VALUE)
-            .status(ClassroomSessionStatus.OPEN)
-            .type(ClassroomSessionType.SCHEDULE)
             .build();
 
     mockMvc
@@ -201,7 +196,7 @@ class ClassroomSessionControllerIntegrationTest {
         .andExpect(jsonPath("$.name").doesNotExist())
         .andExpect(jsonPath("$.description").doesNotExist())
         .andExpect(jsonPath("$.status").value("OPEN"))
-        .andExpect(jsonPath("$.type").value("SCHEDULE"));
+        .andExpect(jsonPath("$.type").value("ADHOC"));
 
     ArgumentCaptor<ClassroomSession> captor = ArgumentCaptor.forClass(ClassroomSession.class);
     verify(classroomSessionRepository).insert(captor.capture());
@@ -212,7 +207,7 @@ class ClassroomSessionControllerIntegrationTest {
     assertThat(captor.getValue().getStatus())
         .isEqualTo(tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionStatus.OPEN);
     assertThat(captor.getValue().getType())
-        .isEqualTo(tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionType.SCHEDULE);
+        .isEqualTo(tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionType.ADHOC);
   }
 
   @Test
@@ -225,8 +220,6 @@ class ClassroomSessionControllerIntegrationTest {
             .sessionDate(SESSION_DATE)
             .startTime(START_TIME_VALUE)
             .endTime(END_TIME_VALUE)
-            .status(ClassroomSessionStatus.OPEN)
-            .type(ClassroomSessionType.SCHEDULE)
             .build();
 
     mockMvc

@@ -490,8 +490,9 @@ paths:
       tags:
         - ClassroomSessions
       operationId: createClassroomSession
-      summary: Create a classroom session
-      description: Creates a new session for a classroom.
+      summary: Create an adhoc classroom session
+      description: >
+        Creates an adhoc session for a classroom. Status is always OPEN and type is always ADHOC.
       parameters:
         - $ref: "#/components/parameters/ClassroomIdPath"
       requestBody:
@@ -1702,14 +1703,13 @@ components:
       example: SCHEDULE
     CreateClassroomSessionCommand:
       type: object
-      description: Command to create a classroom session
+      description: >
+        Command to create an adhoc classroom session. Status is always OPEN and type is always ADHOC.
       additionalProperties: false
       required:
         - sessionDate
         - startTime
         - endTime
-        - status
-        - type
       properties:
         sessionDate:
           type: string
@@ -1738,10 +1738,6 @@ components:
           minLength: 1
           maxLength: 2000
           example: Introduction to the course and classroom expectations
-        status:
-          $ref: "#/components/schemas/ClassroomSessionStatus"
-        type:
-          $ref: "#/components/schemas/ClassroomSessionType"
     GenerateClassroomSessionsFromRecurrenceCommand:
       type: object
       description: >

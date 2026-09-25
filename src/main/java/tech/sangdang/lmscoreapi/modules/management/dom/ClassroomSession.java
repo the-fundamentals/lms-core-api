@@ -36,6 +36,24 @@ public class ClassroomSession {
   private ClassroomSessionType type;
   private UUID generatedBy;
 
+  public static ClassroomSession fromAdhoc(
+      LocalDate sessionDate,
+      LocalTime startTime,
+      LocalTime endTime,
+      UUID classroomId,
+      String name,
+      String description) {
+    return new ClassroomSession()
+        .setSessionDate(sessionDate)
+        .setStartTime(startTime)
+        .setEndTime(endTime)
+        .setClassroomId(classroomId)
+        .setName(name)
+        .setDescription(description)
+        .setStatus(ClassroomSessionStatus.OPEN)
+        .setType(ClassroomSessionType.ADHOC);
+  }
+
   public static ClassroomSession fromScheduleRecurrence(
       LocalDate sessionDate,
       LocalTime startTime,

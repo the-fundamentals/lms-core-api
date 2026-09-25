@@ -13,10 +13,14 @@ import tech.sangdang.lmscoreapi.generated.model.UpdateClassroomSessionAttendance
 public interface ClassroomSessionService {
 
   /**
-   * Creates a session in the classroom.
+   * Creates an adhoc session in the classroom.
+   *
+   * <ul>
+   *   <li>Status is always OPEN; type is always ADHOC.
+   * </ul>
    *
    * @param classroomId classroom the session belongs to
-   * @param command date, start/end times, required status/type, optional name/description
+   * @param command date, start/end times, optional name/description
    * @return created session
    */
   ClassroomSessionResponse createClassroomSession(

@@ -24,8 +24,6 @@ import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomSessionA
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomSessionMapper;
 import tech.sangdang.lmscoreapi.modules.management.dom.*;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionAttendanceStatus;
-import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionStatus;
-import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionType;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.*;
 
 @Service
@@ -49,15 +47,13 @@ public class ClassroomSessionServiceImpl implements ClassroomSessionService {
         .orElseThrow(() -> ObjectNotFoundException.of(Classroom.class, classroomId));
 
     ClassroomSession session =
-        new ClassroomSession()
-            .setClassroomId(classroomId)
-            .setSessionDate(command.getSessionDate())
-            .setStartTime(Utilities.parseTimeOrError(command.getStartTime()))
-            .setEndTime(Utilities.parseTimeOrError(command.getEndTime()))
-            .setName(command.getName())
-            .setDescription(command.getDescription())
-            .setStatus(ClassroomSessionStatus.valueOf(command.getStatus().getValue()))
-            .setType(ClassroomSessionType.valueOf(command.getType().getValue()));
+        ClassroomSession.fromAdhoc(
+            command.getSessionDate(),
+            Utilities.parseTimeOrError(command.getStartTime()),
+            Utilities.parseTimeOrError(command.getEndTime()),
+            classroomId,
+            command.getName(),
+            command.getDescription());
     return classroomSessionMapper.toResponse(classroomSessionRepository.insert(session));
   }
 
