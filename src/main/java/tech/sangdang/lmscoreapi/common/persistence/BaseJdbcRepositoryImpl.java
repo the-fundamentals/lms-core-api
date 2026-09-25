@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+
+import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jdbc.core.JdbcAggregateOperations;
@@ -15,8 +17,10 @@ import org.springframework.data.relational.core.query.Criteria;
 import org.springframework.data.relational.core.query.Query;
 import org.springframework.transaction.annotation.Transactional;
 import tech.sangdang.lmscoreapi.common.querying.BaseQuery;
+import tech.sangdang.lmscoreapi.common.querying.Operators;
 import tech.sangdang.lmscoreapi.common.querying.QueryFilterConditions;
 
+@Slf4j
 @Transactional(readOnly = true)
 public class BaseJdbcRepositoryImpl<Entity, IdType>
     implements BaseCommandRepository<Entity, IdType>, BaseQueryRepository<Entity, IdType> {
@@ -79,7 +83,9 @@ public class BaseJdbcRepositoryImpl<Entity, IdType>
 
   @Override
   public Stream<Entity> query(@NonNull BaseQuery baseQuery) {
-    return operations.streamAll(toRelationalQuery(baseQuery), entityClass);
+    var query = toRelationalQuery(baseQuery);
+    log.debug("Executing query {}", query.toString());
+    return operations.streamAll(query, entityClass);
   }
 
   private Query toRelationalQuery(BaseQuery baseQuery) {
@@ -109,12 +115,12 @@ public class BaseJdbcRepositoryImpl<Entity, IdType>
     String value = filter.getValue();
 
     return switch (filter.getOperator()) {
-      case "eq" -> Criteria.where(field).is(value);
-      case "like" -> Criteria.where(field).like("%" + value + "%");
-      case "gt" -> Criteria.where(field).greaterThan(value);
-      case "lt" -> Criteria.where(field).lessThan(value);
-      case "gte" -> Criteria.where(field).greaterThanOrEquals(value);
-      case "lte" -> Criteria.where(field).lessThanOrEquals(value);
+      case Operators.EQUAL -> Criteria.where(field).is(value);
+      case Operators.LIKE -> Criteria.where(field).like("%" + value + "%");
+      case Operators.GREATER_THAN -> Criteria.where(field).greaterThan(value);
+      case Operators.LESS_THAN -> Criteria.where(field).lessThan(value);
+      case Operators.GREATER_OR_EQUAL -> Criteria.where(field).greaterThanOrEquals(value);
+      case Operators.LESS_OR_EQUAL -> Criteria.where(field).lessThanOrEquals(value);
       default -> throw new IllegalArgumentException("Unknown operator: " + filter.getOperator());
     };
   }

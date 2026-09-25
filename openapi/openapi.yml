@@ -36,6 +36,9 @@ tags:
   - name: _Test
     description: >
       Test endpoints
+  - name: _Dev
+    description: >
+      Developer endpoints. Registered only on Spring profiles `local` and `test`. Not for production.
 
 security:
   - cognitoOAuth:
@@ -834,6 +837,28 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /dev/classroom-sessions/generate-from-recurrence:
+    post:
+      tags:
+        - _Dev
+      operationId: generateClassroomSessionsFromRecurrence
+      summary: Generate classroom sessions for the month after runDate
+      description: >
+        Triggers the same work as the 7th-of-month job: inserts OPEN/SCHEDULE sessions
+        for active classrooms whose recurrences overlap the calendar month after `runDate`
+        (first day through last day, inclusive). Existing generated rows for the same
+        classroom, recurrence, and date are skipped. Local and test profiles only.
+
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateClassroomSessionsFromRecurrenceCommand"
+      responses:
+        "204":
+          description: Generation ran
   /admin/classrooms/{classroomId}/schedule:
     get:
       tags:
@@ -1717,6 +1742,20 @@ components:
           $ref: "#/components/schemas/ClassroomSessionStatus"
         type:
           $ref: "#/components/schemas/ClassroomSessionType"
+    GenerateClassroomSessionsFromRecurrenceCommand:
+      type: object
+      description: >
+        Command to generate classroom sessions for the calendar month after runDate
+        (same as the monthly job on the 7th).
+      additionalProperties: false
+      required:
+        - runDate
+      properties:
+        runDate:
+          type: string
+          format: date
+          description: Date this ran; sessions are created for the following calendar month
+          example: "2026-10-07"
     ClassroomSessionFilter:
       type: object
       description: Filter for querying classroom sessions

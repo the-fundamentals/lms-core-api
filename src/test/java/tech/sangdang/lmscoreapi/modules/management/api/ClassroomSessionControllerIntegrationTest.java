@@ -73,7 +73,6 @@ import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSession;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionAttendance;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomMemberRepository;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomRepository;
-import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomScheduleRecurrenceRepository;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomSessionAttendanceRepository;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomSessionRepository;
 import tools.jackson.databind.json.JsonMapper;
@@ -99,7 +98,6 @@ class ClassroomSessionControllerIntegrationTest {
   @MockitoBean private ClassroomSessionRepository classroomSessionRepository;
   @MockitoBean private ClassroomMemberRepository classroomMemberRepository;
   @MockitoBean private ClassroomSessionAttendanceRepository classroomSessionAttendanceRepository;
-  @MockitoBean private ClassroomScheduleRecurrenceRepository classroomScheduleRecurrenceRepository;
 
   @Test
   @DisplayName("creates a classroom session")

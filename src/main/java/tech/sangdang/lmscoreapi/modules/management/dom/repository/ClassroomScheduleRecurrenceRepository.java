@@ -25,17 +25,6 @@ public interface ClassroomScheduleRecurrenceRepository
   List<ClassroomScheduleRecurrence> findByClassroomIdAndDeletedDateIsNull(
       @NonNull @Param("classroomId") UUID classroomId);
 
-  //  @Query(
-  //      """
-  //              SELECT * FROM classroom_schedule_recurrence
-  //              WHERE classroom_id IN :classroomIds AND deleted_date IS NULL
-  //                  AND recurrence_start_date <= :currentDate AND (recur_until IS NULL OR
-  // recur_until >= :currentDate)
-  //              """)
-  //  List<ClassroomScheduleRecurrence> findActiveByClassroomIdsAsOfDate(
-  //      @NonNull @Param("classroomIds") List<UUID> classroomIds,
-  //      @NonNull @Param("currentDate") LocalDate currentDate);
-
   /** Non-deleted recurrences for the classrooms that overlap {@code [startDate, endDate]}. */
   @Query(
       """

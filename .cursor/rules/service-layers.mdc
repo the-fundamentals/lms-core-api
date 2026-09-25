@@ -1,5 +1,5 @@
 ---
-description: Contracted vs internal services — JDBC-only stays on the impl; internal only when mixing I/O with DB
+description: Contracted vs internal — JDBC-only on the impl; internal for mixed I/O+DB or utilities
 globs: "**/app/**/*.java"
 alwaysApply: false
 ---
@@ -9,17 +9,22 @@ alwaysApply: false
 ## Contracted (`app/` + `app/impl/`)
 
 The interface is the contract. Controllers inject that interface or a port — never
-`@InternalService`. Name after the use case (`ProfileImageService` /
-`ProfileImageServiceImpl`).
+`@InternalService` or `app/internal` types. Name after the use case
+(`ProfileImageService` / `ProfileImageServiceImpl`).
 
 **JDBC-only:** put `@Transactional` (or `readOnly`) on the contracted impl and call
 repositories there. Multiple repository calls in one method are one transaction.
-Do not add an internal class.
+Do not add an `@InternalService` for JDBC-only work.
 
-## Internal (`app/internal/`, `@InternalService`)
+## Internal (`app/internal/`)
 
-Use **only** when the use case mixes outbound I/O (S3, HTTP, queues) with JDBC.
-I/O stays on the contracted impl; JDBC stays on this bean so the transaction does
-not wrap the I/O. Name after the record it owns (`ClassroomRecordService`), not
-the caller — the name must still make sense with every other class deleted. One
-internal type may serve more than one contracted service.
+**`@InternalService`:** use **only** when the use case mixes outbound I/O (S3, HTTP,
+queues) with JDBC. I/O stays on the contracted impl; JDBC stays on this bean so
+the transaction does not wrap the I/O. Name after the record it owns
+(`ClassroomRecordService`), not the caller — the name must still make sense with
+every other class deleted. One internal type may serve more than one contracted
+service.
+
+**Utility classes:** `app/internal/` may also hold small helpers (`*Utils`) that
+support contracted services. No Spring bean, no JDBC of their own. Do not inject
+them into controllers.

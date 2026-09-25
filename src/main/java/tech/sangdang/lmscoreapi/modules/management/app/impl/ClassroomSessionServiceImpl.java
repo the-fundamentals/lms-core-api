@@ -1,6 +1,5 @@
 package tech.sangdang.lmscoreapi.modules.management.app.impl;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -19,19 +18,14 @@ import tech.sangdang.lmscoreapi.common.exception.GenericBadRequestException;
 import tech.sangdang.lmscoreapi.common.exception.ObjectNotFoundException;
 import tech.sangdang.lmscoreapi.common.querying.BaseQuery;
 import tech.sangdang.lmscoreapi.common.querying.QueryFilterConditions;
-import tech.sangdang.lmscoreapi.generated.api.ClassroomSessionsApi;
-import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionAttendanceFilter;
-import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionAttendanceResponse;
-import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionFilter;
-import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionResponse;
-import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionAttendanceCommand;
-import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionAttendancesCommand;
-import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionCommand;
-import tech.sangdang.lmscoreapi.generated.model.UpdateClassroomSessionAttendanceCommand;
+import tech.sangdang.lmscoreapi.generated.model.*;
 import tech.sangdang.lmscoreapi.modules.management.app.ClassroomSessionService;
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomSessionAttendanceMapper;
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomSessionMapper;
 import tech.sangdang.lmscoreapi.modules.management.dom.*;
+import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionAttendanceStatus;
+import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionStatus;
+import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionType;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.*;
 
 @Service
@@ -44,7 +38,6 @@ public class ClassroomSessionServiceImpl implements ClassroomSessionService {
   private final ClassroomSessionAttendanceRepository classroomSessionAttendanceRepository;
   private final ClassroomSessionMapper classroomSessionMapper;
   private final ClassroomSessionAttendanceMapper classroomSessionAttendanceMapper;
-  private final ClassroomScheduleRecurrenceRepository classroomScheduleRecurrenceRepository;
 
   @Override
   @Transactional
@@ -236,73 +229,6 @@ public class ClassroomSessionServiceImpl implements ClassroomSessionService {
     requireAttendanceOnSession(sessionId, attendanceId);
 
     classroomSessionAttendanceRepository.deleteById(attendanceId);
-  }
-
-  @Override
-  @Transactional
-  public void generateSessionsFromRecurrence(LocalDate startDate, LocalDate endDate) {
-    List<Classroom> classrooms =
-        classroomRepository.findByStatusIn(List.of(ClassroomStatus.ACTIVE)).stream()
-            .filter(Classroom::isActive)
-            .toList();
-    List<UUID> classroomIds = classrooms.stream().map(Classroom::getId).toList();
-
-    List<ClassroomScheduleRecurrence> recurrences =
-        classroomScheduleRecurrenceRepository.findActiveByClassroomIdsAsOfDate(
-            classroomIds.toArray(UUID[]::new), startDate, endDate);
-
-    List<ClassroomSession> sessionsToCreate = new ArrayList<>();
-    recurrences.forEach(
-        recurrence -> {
-          List<LocalDate> dates = expandRecurrenceRule(recurrence, startDate, endDate);
-          dates.forEach(
-              date ->
-                  sessionsToCreate.add(
-                      ClassroomSession.fromScheduleRecurrence(
-                          date,
-                          recurrence.getStartTime(),
-                          recurrence.getEndTime(),
-                          recurrence.getClassroomId(),
-                          "Generated From Schedule",
-                          "This was automatically generated from a classroom schedule",
-                          recurrence.getId())));
-        });
-
-    classroomSessionRepository.insertAllIgnoringDuplicates(sessionsToCreate);
-  }
-
-  private List<LocalDate> expandRecurrenceRule(
-      ClassroomScheduleRecurrence recurrence, LocalDate startDate, LocalDate endDate) {
-    // clamp down start and end date
-    LocalDate effectiveStart =
-        startDate.isAfter(recurrence.getRecurrenceStartDate())
-            ? startDate
-            : recurrence.getRecurrenceStartDate();
-    LocalDate effectiveEnd =
-        (recurrence.getRecurUntil() != null && recurrence.getRecurUntil().isBefore(endDate))
-            ? recurrence.getRecurUntil()
-            : endDate;
-
-    return switch (recurrence.getFrequency()) {
-      case WEEKLY -> expandWeekly(recurrence, effectiveStart, effectiveEnd);
-    };
-  }
-
-  private List<LocalDate> expandWeekly(
-      ClassroomScheduleRecurrence recurrence, LocalDate effectiveStart, LocalDate effectiveEnd) {
-    List<LocalDate> dates = new ArrayList<>();
-    LocalDate cursor = effectiveStart;
-
-    while (cursor.getDayOfWeek() != recurrence.getByDay()) {
-      cursor = cursor.plusDays(1);
-    }
-
-    while (cursor.isBefore(effectiveEnd) || cursor.isEqual(effectiveEnd)) {
-      dates.add(cursor);
-      cursor = cursor.plusDays(7);
-    }
-
-    return dates;
   }
 
   private ClassroomSession requireSessionInClassroom(UUID classroomId, UUID sessionId) {

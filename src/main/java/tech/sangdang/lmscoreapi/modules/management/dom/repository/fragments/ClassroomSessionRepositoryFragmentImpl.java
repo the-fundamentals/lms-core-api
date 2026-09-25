@@ -6,7 +6,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
-import org.springframework.jdbc.core.namedparam.SqlParameterSourceUtils;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSession;
 
 // Must live in this package: Spring Data only loads fragment *Impl from the repository interface
