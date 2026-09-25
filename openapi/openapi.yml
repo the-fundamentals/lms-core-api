@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: LMS Core API
-  version: 0.2.10
+  version: 0.2.11
   description: Core API for the Learning Management System. Management endpoints under `/admin/**` require the ADMIN role. Authenticated self-service endpoints live under `/private/**`.
   contact:
     name: Sang Dang
@@ -21,12 +21,12 @@ tags:
     description: Admin-only classroom schedule recurrence management (`/admin/classrooms/.../schedule`)
   - name: ClassroomScheduleAdhoc
     description: >
-      Deprecated. No longer used; implementation removed. Admin-only ad-hoc classroom
-      schedule occurrences (`/admin/classrooms/.../schedule-adhoc`).
+      Deprecated. No longer used; implementation removed. Admin-only ad-hoc classroom schedule occurrences (`/admin/classrooms/.../schedule-adhoc`).
+
   - name: ClassroomScheduleCancelled
     description: >
-      Deprecated. No longer used; implementation removed. Admin-only cancelled classroom
-      schedule occurrences (`/admin/classrooms/.../schedule-cancelled`).
+      Deprecated. No longer used; implementation removed. Admin-only cancelled classroom schedule occurrences (`/admin/classrooms/.../schedule-cancelled`).
+
   - name: ClassroomSessions
     description: Admin-only classroom session and attendance management (`/admin/classrooms/.../sessions` and member attendance history)
   - name: ClassroomFinances
@@ -36,6 +36,7 @@ tags:
   - name: _Test
     description: >
       Test endpoints
+
   - name: _Dev
     description: >
       Developer endpoints. Registered only on Spring profiles `local` and `test`. Not for production.
@@ -493,6 +494,7 @@ paths:
       summary: Create an adhoc classroom session
       description: >
         Creates an adhoc session for a classroom. Status is always OPEN and type is always ADHOC.
+
       parameters:
         - $ref: "#/components/parameters/ClassroomIdPath"
       requestBody:
@@ -578,8 +580,8 @@ paths:
       operationId: completeClassroomSession
       summary: Complete a classroom session
       description: >
-        Moves the session status from OPEN to COMPLETED. COMPLETED and CANCELLED sessions are
-        rejected.
+        Moves the session status from OPEN to COMPLETED. COMPLETED and CANCELLED sessions are rejected.
+
       parameters:
         - $ref: "#/components/parameters/ClassroomIdPath"
         - $ref: "#/components/parameters/SessionId"
@@ -609,8 +611,8 @@ paths:
       operationId: cancelClassroomSession
       summary: Cancel a classroom session
       description: >
-        Moves the session status from OPEN to CANCELLED. COMPLETED and CANCELLED sessions are
-        rejected.
+        Moves the session status from OPEN to CANCELLED. COMPLETED and CANCELLED sessions are rejected.
+
       parameters:
         - $ref: "#/components/parameters/ClassroomIdPath"
         - $ref: "#/components/parameters/SessionId"
@@ -662,9 +664,7 @@ paths:
       operationId: createClassroomSessionAttendances
       summary: Create classroom session attendances
       description: >
-        Records attendance for up to 30 classroom members in a session. Duplicate classroom member
-        ids in the request are rejected. If any member already has attendance for the session, the
-        entire request fails. Session must be OPEN; COMPLETED and CANCELLED are rejected.
+        Records attendance for up to 30 classroom members in a session. Duplicate classroom member ids in the request are rejected. If any member already has attendance for the session, the entire request fails. Session must be OPEN; COMPLETED and CANCELLED are rejected.
 
       parameters:
         - $ref: "#/components/parameters/ClassroomIdPath"
@@ -707,8 +707,7 @@ paths:
       operationId: updateClassroomSessionAttendance
       summary: Update a classroom session attendance
       description: >
-        Updates only the attendance status (present or absent) for an existing classroom session
-        attendance record. Session must be OPEN; COMPLETED and CANCELLED are rejected.
+        Updates only the attendance status (present or absent) for an existing classroom session attendance record. Session must be OPEN; COMPLETED and CANCELLED are rejected.
 
       parameters:
         - $ref: "#/components/parameters/ClassroomIdPath"
@@ -745,8 +744,8 @@ paths:
       operationId: deleteClassroomSessionAttendance
       summary: Delete a classroom session attendance
       description: >
-        Hard-deletes a classroom session attendance record. Session must be OPEN; COMPLETED and
-        CANCELLED are rejected.
+        Hard-deletes a classroom session attendance record. Session must be OPEN; COMPLETED and CANCELLED are rejected.
+
       parameters:
         - $ref: "#/components/parameters/ClassroomIdPath"
         - $ref: "#/components/parameters/SessionId"
@@ -918,10 +917,7 @@ paths:
       operationId: generateClassroomSessionsFromRecurrence
       summary: Generate classroom sessions for the month after runDate
       description: >
-        Triggers the same work as the 7th-of-month job: inserts OPEN/SCHEDULE sessions
-        for active classrooms whose recurrences overlap the calendar month after `runDate`
-        (first day through last day, inclusive). Existing generated rows for the same
-        classroom, recurrence, and date are skipped. Local and test profiles only.
+        Triggers the same work as the 7th-of-month job: inserts OPEN/SCHEDULE sessions for active classrooms whose recurrences overlap the calendar month after `runDate` (first day through last day, inclusive). Existing generated rows for the same classroom, recurrence, and date are skipped. Local and test profiles only.
 
       security: []
       requestBody:
@@ -1015,8 +1011,7 @@ paths:
       deprecated: true
       summary: Get all ad-hoc classroom schedule occurrences
       description: >
-        Deprecated. No longer used; do not call; implementation removed.
-        Returns ad-hoc (one-off) schedule occurrences for a classroom. Optional `startDate` and `endDate` filter the occurrence `date` inclusively. Omit both to return every occurrence.
+        Deprecated. No longer used; do not call; implementation removed. Returns ad-hoc (one-off) schedule occurrences for a classroom. Optional `startDate` and `endDate` filter the occurrence `date` inclusively. Omit both to return every occurrence.
 
       parameters:
         - $ref: "#/components/parameters/ClassroomIdPath"
@@ -1048,8 +1043,8 @@ paths:
       deprecated: true
       summary: Create an ad-hoc classroom schedule occurrence
       description: >
-        Deprecated. No longer used; do not call; implementation removed.
-        Creates a one-off schedule occurrence for a classroom and returns it.
+        Deprecated. No longer used; do not call; implementation removed. Creates a one-off schedule occurrence for a classroom and returns it.
+
       parameters:
         - $ref: "#/components/parameters/ClassroomIdPath"
       requestBody:
@@ -1085,8 +1080,8 @@ paths:
       deprecated: true
       summary: Delete an ad-hoc classroom schedule occurrence
       description: >
-        Deprecated. No longer used; do not call; implementation removed.
-        Permanently deletes an ad-hoc schedule occurrence.
+        Deprecated. No longer used; do not call; implementation removed. Permanently deletes an ad-hoc schedule occurrence.
+
       parameters:
         - $ref: "#/components/parameters/ClassroomIdPath"
         - $ref: "#/components/parameters/AdhocId"
@@ -1107,8 +1102,7 @@ paths:
       deprecated: true
       summary: Get all cancelled classroom schedule occurrences
       description: >
-        Deprecated. No longer used; do not call; implementation removed.
-        Returns cancelled schedule occurrences for a classroom. Optional `startDate` and `endDate` filter the occurrence `date` inclusively. Omit both to return every occurrence.
+        Deprecated. No longer used; do not call; implementation removed. Returns cancelled schedule occurrences for a classroom. Optional `startDate` and `endDate` filter the occurrence `date` inclusively. Omit both to return every occurrence.
 
       parameters:
         - $ref: "#/components/parameters/ClassroomIdPath"
@@ -1140,8 +1134,8 @@ paths:
       deprecated: true
       summary: Create a cancelled classroom schedule occurrence
       description: >
-        Deprecated. No longer used; do not call; implementation removed.
-        Records a cancelled occurrence of a recurring classroom schedule and returns it.
+        Deprecated. No longer used; do not call; implementation removed. Records a cancelled occurrence of a recurring classroom schedule and returns it.
+
       parameters:
         - $ref: "#/components/parameters/ClassroomIdPath"
       requestBody:
@@ -1177,8 +1171,8 @@ paths:
       deprecated: true
       summary: Delete a cancelled classroom schedule occurrence
       description: >
-        Deprecated. No longer used; do not call; implementation removed.
-        Permanently deletes a cancelled-occurrence record (the class is no longer marked cancelled).
+        Deprecated. No longer used; do not call; implementation removed. Permanently deletes a cancelled-occurrence record (the class is no longer marked cancelled).
+
       parameters:
         - $ref: "#/components/parameters/ClassroomIdPath"
         - $ref: "#/components/parameters/CancelledId"
@@ -1779,6 +1773,7 @@ components:
       type: object
       description: >
         Command to create an adhoc classroom session. Status is always OPEN and type is always ADHOC.
+
       additionalProperties: false
       required:
         - sessionDate
@@ -1815,8 +1810,8 @@ components:
     GenerateClassroomSessionsFromRecurrenceCommand:
       type: object
       description: >
-        Command to generate classroom sessions for the calendar month after runDate
-        (same as the monthly job on the 7th).
+        Command to generate classroom sessions for the calendar month after runDate (same as the monthly job on the 7th).
+
       additionalProperties: false
       required:
         - runDate
