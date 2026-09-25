@@ -3,7 +3,6 @@ package tech.sangdang.lmscoreapi.common.querying;
 import java.util.ArrayList;
 import java.util.List;
 
-import lombok.Builder;
 import lombok.Data;
 import org.springframework.data.domain.Sort;
 
@@ -40,8 +39,8 @@ public class BaseQuery {
       baseQuery = new BaseQuery();
     }
 
-    public Builder firstOnly() {
-      baseQuery.setPage(1);
+    public Builder fetchFirst() {
+      baseQuery.setPage(0);
       baseQuery.setSize(1);
       return this;
     }

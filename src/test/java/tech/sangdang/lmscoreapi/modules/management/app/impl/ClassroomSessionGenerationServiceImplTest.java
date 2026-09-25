@@ -1,8 +1,10 @@
 package tech.sangdang.lmscoreapi.modules.management.app.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomFixtures.CLASSROOM_ID;
@@ -23,7 +25,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import tech.sangdang.lmscoreapi.common.exception.ObjectNotFoundException;
 import tech.sangdang.lmscoreapi.common.querying.BaseQuery;
+import tech.sangdang.lmscoreapi.modules.management.dom.Classroom;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomScheduleRecurrence;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSession;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionStatus;
@@ -143,11 +147,76 @@ class ClassroomSessionGenerationServiceImplTest {
     assertThat(capturedInserts()).isEmpty();
   }
 
+  @Test
+  @DisplayName("generates sessions for one active classroom in the given window")
+  void generateSessionsForClassroom_activeClassroom_insertsMondaysInWindow() {
+    stubClassroomQuery(classroom());
+    when(classroomScheduleRecurrenceRepository.findActiveByClassroomIdsAsOfDate(
+            any(UUID[].class), eq(NOV_1), eq(NOV_30)))
+        .thenReturn(List.of(classroomScheduleRecurrence()));
+
+    service.generateSessionsForClassroom(CLASSROOM_ID, NOV_1, NOV_30);
+
+    ArgumentCaptor<UUID[]> idsCaptor = ArgumentCaptor.forClass(UUID[].class);
+    verify(classroomScheduleRecurrenceRepository)
+        .findActiveByClassroomIdsAsOfDate(idsCaptor.capture(), eq(NOV_1), eq(NOV_30));
+    assertThat(idsCaptor.getValue()).containsExactly(CLASSROOM_ID);
+    assertThat(capturedInserts())
+        .extracting(ClassroomSession::getSessionDate)
+        .containsExactly(
+            LocalDate.of(2026, 11, 2),
+            LocalDate.of(2026, 11, 9),
+            LocalDate.of(2026, 11, 16),
+            LocalDate.of(2026, 11, 23),
+            LocalDate.of(2026, 11, 30));
+  }
+
+  @Test
+  @DisplayName("uses the caller window, not the month after runDate")
+  void generateSessionsForClassroom_decemberWindow_insertsDecemberMondays() {
+    LocalDate dec1 = LocalDate.of(2026, 12, 1);
+    LocalDate dec31 = LocalDate.of(2026, 12, 31);
+    stubClassroomQuery(classroom());
+    when(classroomScheduleRecurrenceRepository.findActiveByClassroomIdsAsOfDate(
+            any(UUID[].class), eq(dec1), eq(dec31)))
+        .thenReturn(List.of(classroomScheduleRecurrence()));
+
+    service.generateSessionsForClassroom(CLASSROOM_ID, dec1, dec31);
+
+    assertThat(capturedInserts())
+        .extracting(ClassroomSession::getSessionDate)
+        .containsExactly(
+            LocalDate.of(2026, 12, 7),
+            LocalDate.of(2026, 12, 14),
+            LocalDate.of(2026, 12, 21),
+            LocalDate.of(2026, 12, 28));
+  }
+
+  @Test
+  @DisplayName("throws when the classroom is missing or not ACTIVE")
+  void generateSessionsForClassroom_missingClassroom_throwsNotFound() {
+    stubClassroomQuery();
+
+    assertThatThrownBy(
+            () -> service.generateSessionsForClassroom(CLASSROOM_ID, NOV_1, NOV_30))
+        .isInstanceOf(ObjectNotFoundException.class)
+        .hasMessageContaining(CLASSROOM_ID.toString());
+
+    verify(classroomScheduleRecurrenceRepository, never())
+        .findActiveByClassroomIdsAsOfDate(
+            any(UUID[].class), any(LocalDate.class), any(LocalDate.class));
+    verify(classroomSessionRepository, never()).insertAllIgnoringDuplicates(any());
+  }
+
   private void stubActiveClassroomAndRecurrence(ClassroomScheduleRecurrence recurrence) {
-    when(classroomRepository.query(any(BaseQuery.class))).thenReturn(Stream.of(classroom()));
+    stubClassroomQuery(classroom());
     when(classroomScheduleRecurrenceRepository.findActiveByClassroomIdsAsOfDate(
             any(UUID[].class), eq(NOV_1), eq(NOV_30)))
         .thenReturn(List.of(recurrence));
+  }
+
+  private void stubClassroomQuery(Classroom... classrooms) {
+    when(classroomRepository.query(any(BaseQuery.class))).thenReturn(Stream.of(classrooms));
   }
 
   @SuppressWarnings("unchecked")

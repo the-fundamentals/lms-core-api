@@ -8,6 +8,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tech.sangdang.lmscoreapi.common.exception.ObjectNotFoundException;
 import tech.sangdang.lmscoreapi.common.querying.BaseQuery;
 import tech.sangdang.lmscoreapi.common.querying.Operators;
 import tech.sangdang.lmscoreapi.modules.management.app.ClassroomSessionGenerationService;
@@ -53,31 +54,28 @@ public class ClassroomSessionGenerationServiceImpl implements ClassroomSessionGe
     generateSessions(recurrences, startDate, endDate);
   }
 
-  // placeholder method
-  //  private void generateSessionsForClassroom(
-  //      UUID classroomId, LocalDate startDate, LocalDate endDate) {
-  //    Classroom classroom =
-  //        classroomRepository
-  //            .query(
-  //                BaseQuery.builder()
-  //                    .page(1)
-  //                    .size(1)
-  //                    .filters(
-  //                        List.of(
-  //                            QueryFilterConditions.of(
-  //                                Classroom.Fields.status, "eq", ClassroomStatus.ACTIVE.name()),
-  //                            QueryFilterConditions.of(
-  //                                Classroom.Fields.id, "eq", classroomId.toString())))
-  //                    .build())
-  //            .findFirst()
-  //            .orElseThrow();
-  //
-  //    List<ClassroomScheduleRecurrence> recurrences =
-  //        classroomScheduleRecurrenceRepository.findActiveByClassroomIdsAsOfDate(
-  //            new UUID[] {classroom.getId()}, startDate, endDate);
-  //
-  //    generateSessions(recurrences, startDate, endDate);
-  //  }
+  @Override
+  @Transactional
+  public void generateSessionsForClassroom(
+      UUID classroomId, LocalDate startDate, LocalDate endDate) {
+    Classroom classroom =
+        classroomRepository
+            .query(
+                BaseQuery.builder()
+                    .fetchFirst()
+                    .addFilter(Classroom.Fields.status, Operators.EQUAL, ClassroomStatus.ACTIVE)
+                    .addFilter(Classroom.Fields.id, Operators.EQUAL, classroomId.toString())
+                    .build())
+            .findFirst()
+            // ACTIVE-only query: missing and inactive both look like not found
+            .orElseThrow(() -> ObjectNotFoundException.of(Classroom.class, classroomId));
+
+    List<ClassroomScheduleRecurrence> recurrences =
+        classroomScheduleRecurrenceRepository.findActiveByClassroomIdsAsOfDate(
+            new UUID[] {classroom.getId()}, startDate, endDate);
+
+    generateSessions(recurrences, startDate, endDate);
+  }
 
   private void generateSessions(
       List<ClassroomScheduleRecurrence> recurrences, LocalDate startDate, LocalDate endDate) {

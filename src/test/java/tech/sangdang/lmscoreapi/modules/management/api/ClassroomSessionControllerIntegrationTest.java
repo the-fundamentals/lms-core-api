@@ -34,6 +34,7 @@ import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomSessi
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomSessionFixtures.classroomSession;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomSessionFixtures.classroomSessionAttendance;
 
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -59,11 +60,13 @@ import tech.sangdang.lmscoreapi.config.SecurityConfig;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionAttendanceFilter;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionAttendanceStatus;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionFilter;
+import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionFilterFiltersInner;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionStatus;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionAttendanceCommand;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionAttendancesCommand;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionCommand;
 import tech.sangdang.lmscoreapi.generated.model.UpdateClassroomSessionAttendanceCommand;
+import tech.sangdang.lmscoreapi.modules.management.app.ClassroomSessionGenerationService;
 import tech.sangdang.lmscoreapi.modules.management.app.impl.ClassroomSessionServiceImpl;
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomSessionAttendanceMapperImpl;
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomSessionMapperImpl;
@@ -97,6 +100,7 @@ class ClassroomSessionControllerIntegrationTest {
   @MockitoBean private ClassroomSessionRepository classroomSessionRepository;
   @MockitoBean private ClassroomMemberRepository classroomMemberRepository;
   @MockitoBean private ClassroomSessionAttendanceRepository classroomSessionAttendanceRepository;
+  @MockitoBean private ClassroomSessionGenerationService classroomSessionGenerationService;
 
   @Test
   @DisplayName("creates a classroom session")
@@ -445,6 +449,44 @@ class ClassroomSessionControllerIntegrationTest {
         .anyMatch(
             f ->
                 "classroomId".equals(f.getField()) && CLASSROOM_ID.toString().equals(f.getValue()));
+    verify(classroomSessionGenerationService, never())
+        .generateSessionsForClassroom(any(), any(), any());
+  }
+
+  @Test
+  @DisplayName("generates sessions when the query has sessionDate start and end")
+  void getAllClassroomSessions_dateWindow_generatesThenQueries() throws Exception {
+    when(classroomRepository.findById(CLASSROOM_ID)).thenReturn(Optional.of(classroom()));
+    when(classroomSessionRepository.query(any(BaseQuery.class)))
+        .thenReturn(Stream.of(classroomSession()));
+
+    ClassroomSessionFilter filter =
+        ClassroomSessionFilter.builder()
+            .filters(
+                List.of(
+                    ClassroomSessionFilterFiltersInner.builder()
+                        .field("sessionDate")
+                        .operator("gte")
+                        .value("2026-11-01")
+                        .build(),
+                    ClassroomSessionFilterFiltersInner.builder()
+                        .field("sessionDate")
+                        .operator("lte")
+                        .value("2026-11-30")
+                        .build()))
+            .build();
+
+    mockMvc
+        .perform(
+            post("/admin/classrooms/{classroomId}/sessions/query", CLASSROOM_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonMapper.writeValueAsString(filter))
+                .with(adminJwt()))
+        .andExpect(status().isOk());
+
+    verify(classroomSessionGenerationService)
+        .generateSessionsForClassroom(
+            CLASSROOM_ID, LocalDate.of(2026, 11, 1), LocalDate.of(2026, 11, 30));
   }
 
   @Test

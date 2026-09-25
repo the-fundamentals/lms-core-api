@@ -1,6 +1,8 @@
 package tech.sangdang.lmscoreapi.modules.management.app.impl;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -17,8 +19,10 @@ import tech.sangdang.lmscoreapi.common.exception.ConflictException;
 import tech.sangdang.lmscoreapi.common.exception.GenericBadRequestException;
 import tech.sangdang.lmscoreapi.common.exception.ObjectNotFoundException;
 import tech.sangdang.lmscoreapi.common.querying.BaseQuery;
+import tech.sangdang.lmscoreapi.common.querying.Operators;
 import tech.sangdang.lmscoreapi.common.querying.QueryFilterConditions;
 import tech.sangdang.lmscoreapi.generated.model.*;
+import tech.sangdang.lmscoreapi.modules.management.app.ClassroomSessionGenerationService;
 import tech.sangdang.lmscoreapi.modules.management.app.ClassroomSessionService;
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomSessionAttendanceMapper;
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomSessionMapper;
@@ -36,6 +40,7 @@ public class ClassroomSessionServiceImpl implements ClassroomSessionService {
   private final ClassroomSessionAttendanceRepository classroomSessionAttendanceRepository;
   private final ClassroomSessionMapper classroomSessionMapper;
   private final ClassroomSessionAttendanceMapper classroomSessionAttendanceMapper;
+  private final ClassroomSessionGenerationService classroomSessionGenerationService;
 
   @Override
   @Transactional
@@ -80,7 +85,7 @@ public class ClassroomSessionServiceImpl implements ClassroomSessionService {
   }
 
   @Override
-  @Transactional(readOnly = true)
+  @Transactional
   public List<ClassroomSessionResponse> queryClassroomSessions(
       UUID classroomId, ClassroomSessionFilter filter) {
     // check classroom exists
@@ -91,6 +96,10 @@ public class ClassroomSessionServiceImpl implements ClassroomSessionService {
     BaseQuery query = classroomSessionMapper.toBaseQuery(filter);
     List<QueryFilterConditions> filters =
         query.getFilters() == null ? new ArrayList<>() : new ArrayList<>(query.getFilters());
+
+    // PATCHWORK: query also generates missing schedule sessions for the requested date window.
+    // Will be updated in the future. Not read-only because generation writes.
+    maybeGenerateSessionsForDateWindow(classroomId, filter);
 
     // scope query to this classroom
     filters.add(QueryFilterConditions.of("classroomId", "eq", classroomId.toString()));
@@ -281,5 +290,38 @@ public class ClassroomSessionServiceImpl implements ClassroomSessionService {
       throw ObjectNotFoundException.of(ClassroomMember.class, memberId);
     }
     return member;
+  }
+
+  // PATCHWORK: infers an inclusive generation window from sessionDate gte/gt + lte/lt on the
+  // API filter (BaseQuery mapping currently drops filters). gt/lt treated as inclusive.
+  // Will be updated in the future.
+  private void maybeGenerateSessionsForDateWindow(UUID classroomId, ClassroomSessionFilter filter) {
+    if (filter == null || filter.getFilters() == null) {
+      return;
+    }
+    LocalDate startDate = null;
+    LocalDate endDate = null;
+    for (ClassroomSessionFilterFiltersInner condition : filter.getFilters()) {
+      if (condition == null
+          || !"sessionDate".equals(condition.getField())
+          || condition.getOperator() == null) {
+        continue;
+      }
+      LocalDate parsed;
+      try {
+        parsed = LocalDate.parse(condition.getValue());
+      } catch (DateTimeParseException ignored) {
+        continue;
+      }
+      switch (condition.getOperator()) {
+        case Operators.GREATER_OR_EQUAL, Operators.GREATER_THAN -> startDate = parsed;
+        case Operators.LESS_OR_EQUAL, Operators.LESS_THAN -> endDate = parsed;
+        default -> {}
+      }
+    }
+    if (startDate != null && endDate != null) {
+      classroomSessionGenerationService.generateSessionsForClassroom(
+          classroomId, startDate, endDate);
+    }
   }
 }

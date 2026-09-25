@@ -34,6 +34,8 @@ public interface ClassroomSessionService {
    *
    * <ul>
    *   <li>Always scoped to {@code classroomId} in addition to the filter.
+   *   <li>PATCHWORK: if the filter has both a sessionDate start and end, generates missing
+   *       schedule sessions for that window first. Will be updated in the future.
    * </ul>
    *
    * @param classroomId classroom whose sessions to query
