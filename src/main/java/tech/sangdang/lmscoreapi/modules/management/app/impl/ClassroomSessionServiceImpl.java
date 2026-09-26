@@ -54,8 +54,8 @@ public class ClassroomSessionServiceImpl implements ClassroomSessionService {
     ClassroomSession session =
         ClassroomSession.fromAdhoc(
             command.getSessionDate(),
-            Utilities.parseTimeOrError(command.getStartTime()),
-            Utilities.parseTimeOrError(command.getEndTime()),
+            command.getStartTime(),
+            command.getEndTime(),
             classroomId,
             command.getName(),
             command.getDescription());

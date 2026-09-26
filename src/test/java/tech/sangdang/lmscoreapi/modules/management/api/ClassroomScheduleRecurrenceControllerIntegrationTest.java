@@ -236,8 +236,8 @@ class ClassroomScheduleRecurrenceControllerIntegrationTest {
         .byDay(RecurrenceByDay.MONDAY)
         .recurrenceStartDate(RECURRENCE_START_DATE)
         .recurUntil(RECUR_UNTIL)
-        .startTime(START_TIME_VALUE)
-        .endTime(END_TIME_VALUE)
+        .startTime(START_TIME)
+        .endTime(END_TIME)
         .build();
   }
 }

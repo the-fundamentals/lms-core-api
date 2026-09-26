@@ -1787,12 +1787,12 @@ components:
           example: "2026-07-19"
         startTime:
           type: string
-          format: time
+          format: time-local
           description: Session start time
           example: "09:00:00"
         endTime:
           type: string
-          format: time
+          format: time-local
           description: Session end time
           example: "10:30:00"
         name:
@@ -1888,12 +1888,12 @@ components:
           example: "2026-07-19"
         startTime:
           type: string
-          format: time
+          format: time-local
           description: Session start time
           example: "09:00:00"
         endTime:
           type: string
-          format: time
+          format: time-local
           description: Session end time
           example: "10:30:00"
         name:
@@ -2120,12 +2120,12 @@ components:
           example: "2026-12-31"
         startTime:
           type: string
-          format: time
+          format: time-local
           description: Daily start time of the scheduled session
           example: "09:00:00"
         endTime:
           type: string
-          format: time
+          format: time-local
           description: Daily end time of the scheduled session
           example: "10:30:00"
     RecurrenceFrequency:
@@ -2187,12 +2187,12 @@ components:
           example: "2026-12-31"
         startTime:
           type: string
-          format: time
+          format: time-local
           description: Daily start time of the scheduled session
           example: "09:00:00"
         endTime:
           type: string
-          format: time
+          format: time-local
           description: Daily end time of the scheduled session
           example: "10:30:00"
         deletedDate:
@@ -2232,12 +2232,12 @@ components:
           example: "2026-07-20"
         startTime:
           type: string
-          format: time
+          format: time-local
           description: Start time of the ad-hoc occurrence
           example: "09:00:00"
         endTime:
           type: string
-          format: time
+          format: time-local
           description: End time of the ad-hoc occurrence
           example: "10:30:00"
     ClassroomScheduleAdhocResponse:
@@ -2271,12 +2271,12 @@ components:
           example: "2026-07-20"
         startTime:
           type: string
-          format: time
+          format: time-local
           description: Start time of the ad-hoc occurrence
           example: "09:00:00"
         endTime:
           type: string
-          format: time
+          format: time-local
           description: End time of the ad-hoc occurrence
           example: "10:30:00"
         createdDate:
@@ -2312,12 +2312,12 @@ components:
           example: "2026-07-20"
         startTime:
           type: string
-          format: time
+          format: time-local
           description: Start time of the cancelled occurrence
           example: "09:00:00"
         endTime:
           type: string
-          format: time
+          format: time-local
           description: End time of the cancelled occurrence
           example: "10:30:00"
     ClassroomScheduleCancelledResponse:
@@ -2351,12 +2351,12 @@ components:
           example: "2026-07-20"
         startTime:
           type: string
-          format: time
+          format: time-local
           description: Start time of the cancelled occurrence
           example: "09:00:00"
         endTime:
           type: string
-          format: time
+          format: time-local
           description: End time of the cancelled occurrence
           example: "10:30:00"
         createdDate:

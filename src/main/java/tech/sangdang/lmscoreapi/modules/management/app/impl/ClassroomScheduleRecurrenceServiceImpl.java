@@ -42,8 +42,8 @@ public class ClassroomScheduleRecurrenceServiceImpl implements ClassroomSchedule
             .setByDay(DayOfWeek.valueOf(command.getByDay().getValue()))
             .setRecurrenceStartDate(command.getRecurrenceStartDate())
             .setRecurUntil(command.getRecurUntil())
-            .setStartTime(Utilities.parseTimeOrError(command.getStartTime()))
-            .setEndTime(Utilities.parseTimeOrError(command.getEndTime()));
+            .setStartTime(command.getStartTime())
+            .setEndTime(command.getEndTime());
     return classroomScheduleRecurrenceMapper.toResponse(
         classroomScheduleRecurrenceRepository.insert(recurrence));
   }

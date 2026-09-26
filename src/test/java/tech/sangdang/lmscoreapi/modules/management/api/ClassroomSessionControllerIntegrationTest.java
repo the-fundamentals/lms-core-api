@@ -122,8 +122,8 @@ class ClassroomSessionControllerIntegrationTest {
     CreateClassroomSessionAdhocCommand command =
         CreateClassroomSessionAdhocCommand.builder()
             .sessionDate(SESSION_DATE)
-            .startTime(START_TIME_VALUE)
-            .endTime(END_TIME_VALUE)
+            .startTime(START_TIME)
+            .endTime(END_TIME)
             .name(SESSION_NAME)
             .description(SESSION_DESCRIPTION)
             .build();
@@ -182,8 +182,8 @@ class ClassroomSessionControllerIntegrationTest {
     CreateClassroomSessionAdhocCommand command =
         CreateClassroomSessionAdhocCommand.builder()
             .sessionDate(SESSION_DATE)
-            .startTime(START_TIME_VALUE)
-            .endTime(END_TIME_VALUE)
+            .startTime(START_TIME)
+            .endTime(END_TIME)
             .build();
 
     mockMvc
@@ -221,8 +221,8 @@ class ClassroomSessionControllerIntegrationTest {
     CreateClassroomSessionAdhocCommand command =
         CreateClassroomSessionAdhocCommand.builder()
             .sessionDate(SESSION_DATE)
-            .startTime(START_TIME_VALUE)
-            .endTime(END_TIME_VALUE)
+            .startTime(START_TIME)
+            .endTime(END_TIME)
             .build();
 
     mockMvc
