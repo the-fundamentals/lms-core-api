@@ -1,5 +1,8 @@
 package tech.sangdang.lmscoreapi.common.querying;
 
+import org.mapstruct.BeanMapping;
+import org.mapstruct.Builder;
+
 /**
  * Shared MapStruct parent for API filter → {@link BaseQuery} mapping.
  *
@@ -8,5 +11,6 @@ package tech.sangdang.lmscoreapi.common.querying;
  */
 public interface QueryMapper<TFilter> {
 
+  @BeanMapping(builder = @Builder(disableBuilder = true))
   BaseQuery toBaseQuery(TFilter apiFilter);
 }
