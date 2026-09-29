@@ -51,6 +51,16 @@ public class ClassroomSessionController implements ClassroomSessionsApi {
   }
 
   @Override
+  public ResponseEntity<?> updateClassroomSession(
+      @NonNull UUID classroomId,
+      @NonNull UUID sessionId,
+      @NonNull UpdateClassroomSessionCommand updateClassroomSessionCommand) {
+    return ResponseEntity.ok(
+        classroomSessionService.updateClassroomSession(
+            classroomId, sessionId, updateClassroomSessionCommand));
+  }
+
+  @Override
   public ResponseEntity<?> completeClassroomSession(
       @NonNull UUID classroomId, @NonNull UUID sessionId) {
     return ResponseEntity.ok(

@@ -70,6 +70,15 @@ public class ClassroomSessionServiceImpl implements ClassroomSessionService {
 
   @Override
   @Transactional
+  public ClassroomSessionResponse updateClassroomSession(
+      UUID classroomId, UUID sessionId, UpdateClassroomSessionCommand command) {
+    ClassroomSession session = requireSessionInClassroom(classroomId, sessionId);
+    session.updateDetails(command.getName(), command.getDescription());
+    return classroomSessionMapper.toResponse(classroomSessionRepository.update(session));
+  }
+
+  @Override
+  @Transactional
   public ClassroomSessionResponse completeClassroomSession(UUID classroomId, UUID sessionId) {
     ClassroomSession session = requireSessionInClassroom(classroomId, sessionId);
     session.complete();

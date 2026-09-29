@@ -7,7 +7,6 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import tech.sangdang.lmscoreapi.common.Utilities;
 import tech.sangdang.lmscoreapi.common.exception.ObjectNotFoundException;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomScheduleRecurrenceResponse;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomScheduleRecurrenceCommand;
@@ -64,8 +63,24 @@ public class ClassroomScheduleRecurrenceServiceImpl implements ClassroomSchedule
   }
 
   @Override
+  @Transactional(readOnly = true)
+  public ClassroomScheduleRecurrenceResponse getClassroomScheduleRecurrenceById(
+      UUID classroomId, UUID scheduleId) {
+    return classroomScheduleRecurrenceMapper.toResponse(
+        requireRecurrenceInClassroom(classroomId, scheduleId));
+  }
+
+  @Override
   @Transactional
   public void deleteClassroomScheduleRecurrence(UUID classroomId, UUID scheduleId) {
+    ClassroomScheduleRecurrence recurrence = requireRecurrenceInClassroom(classroomId, scheduleId);
+    recurrence.setDeletedDate(LocalDateTime.now());
+    classroomScheduleRecurrenceRepository.update(recurrence);
+  }
+
+  // Same classroom scoping as requireSessionInClassroom: missing or wrong classroom → 404
+  private ClassroomScheduleRecurrence requireRecurrenceInClassroom(
+      UUID classroomId, UUID scheduleId) {
     ClassroomScheduleRecurrence recurrence =
         classroomScheduleRecurrenceRepository
             .findById(scheduleId)
@@ -75,8 +90,6 @@ public class ClassroomScheduleRecurrenceServiceImpl implements ClassroomSchedule
     if (!classroomId.equals(recurrence.getClassroomId())) {
       throw ObjectNotFoundException.of(ClassroomScheduleRecurrence.class, scheduleId);
     }
-
-    recurrence.setDeletedDate(LocalDateTime.now());
-    classroomScheduleRecurrenceRepository.update(recurrence);
+    return recurrence;
   }
 }

@@ -5,11 +5,15 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -25,7 +29,10 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jdbc.core.JdbcAggregateOperations;
 import org.springframework.data.jdbc.core.convert.JdbcConverter;
 import org.springframework.data.mapping.PersistentEntity;
+import org.springframework.data.mapping.PersistentProperty;
+import org.springframework.data.relational.core.query.CriteriaDefinition;
 import org.springframework.data.relational.core.query.Query;
+import tech.sangdang.lmscoreapi.common.exception.GenericBadRequestException;
 import tech.sangdang.lmscoreapi.common.querying.BaseQuery;
 import tech.sangdang.lmscoreapi.common.querying.Operators;
 
@@ -177,6 +184,7 @@ class BaseJdbcRepositoryImplTest {
     })
     @DisplayName("maps filter operators to criteria")
     void query_operator_mapsToCriteria(String operator, String expectedCriteria) {
+      stubProperty("name", String.class);
       when(operations.streamAll(any(Query.class), eq(SampleEntity.class)))
           .thenReturn(Stream.empty());
 
@@ -193,6 +201,8 @@ class BaseJdbcRepositoryImplTest {
     @Test
     @DisplayName("ands multiple filters")
     void query_multipleFilters_andsCriteria() {
+      stubProperty("name", String.class);
+      stubProperty("status", String.class);
       when(operations.streamAll(any(Query.class), eq(SampleEntity.class)))
           .thenReturn(Stream.empty());
 
@@ -249,6 +259,90 @@ class BaseJdbcRepositoryImplTest {
           .isInstanceOf(IllegalArgumentException.class)
           .hasMessageContaining("Unknown operator: bogus");
     }
+
+    @Test
+    @DisplayName("binds ISO sessionDate strings as LocalDate")
+    void query_sessionDateFilter_bindsLocalDate() {
+      stubProperty("sessionDate", LocalDate.class);
+      when(operations.streamAll(any(Query.class), eq(SampleEntity.class)))
+          .thenReturn(Stream.empty());
+
+      BaseQuery baseQuery =
+          BaseQuery.builder()
+              .fetchFirst()
+              .addFilter("sessionDate", Operators.GREATER_OR_EQUAL, "2026-11-01")
+              .build();
+
+      repository.query(baseQuery).toList();
+
+      CriteriaDefinition criteria = captureStreamedQuery().getCriteria().orElseThrow();
+      assertThat(leafValue(criteria)).isEqualTo(LocalDate.of(2026, 11, 1));
+    }
+
+    @Test
+    @DisplayName("binds UUID filter strings as UUID")
+    void query_uuidFilter_bindsUuid() {
+      stubProperty("classroomId", UUID.class);
+      when(operations.streamAll(any(Query.class), eq(SampleEntity.class)))
+          .thenReturn(Stream.empty());
+
+      UUID classroomId = UUID.fromString("3fa85f64-5717-4562-b3fc-2c963f66afa6");
+      BaseQuery baseQuery =
+          BaseQuery.builder()
+              .fetchFirst()
+              .addFilter("classroomId", Operators.EQUAL, classroomId.toString())
+              .build();
+
+      repository.query(baseQuery).toList();
+
+      CriteriaDefinition criteria = captureStreamedQuery().getCriteria().orElseThrow();
+      assertThat(leafValue(criteria)).isEqualTo(classroomId);
+    }
+
+    @Test
+    @DisplayName("rejects an unknown filter field")
+    void query_unknownField_throws() {
+      when(persistentEntity.getPersistentProperty("nope")).thenReturn(null);
+
+      BaseQuery baseQuery =
+          BaseQuery.builder().fetchFirst().addFilter("nope", Operators.EQUAL, "x").build();
+
+      assertThatThrownBy(() -> repository.query(baseQuery).toList())
+          .isInstanceOf(GenericBadRequestException.class)
+          .hasMessageContaining("Unknown filter field: nope");
+    }
+
+    @Test
+    @DisplayName("rejects an unparsable typed filter value")
+    void query_invalidDate_throws() {
+      stubProperty("sessionDate", LocalDate.class);
+
+      BaseQuery baseQuery =
+          BaseQuery.builder()
+              .fetchFirst()
+              .addFilter("sessionDate", Operators.EQUAL, "not-a-date")
+              .build();
+
+      assertThatThrownBy(() -> repository.query(baseQuery).toList())
+          .isInstanceOf(GenericBadRequestException.class)
+          .hasMessageContaining("Invalid filter value for field: sessionDate");
+    }
+  }
+
+  private static Object leafValue(CriteriaDefinition criteria) {
+    if (criteria.isGroup()) {
+      return leafValue(criteria.getGroup().getFirst());
+    }
+    return criteria.getValue();
+  }
+
+  @SuppressWarnings("unchecked")
+  private void stubProperty(String field, Class<?> type) {
+    PersistentProperty<?> property = mock(PersistentProperty.class);
+    lenient().when(property.getType()).thenReturn((Class) type);
+    lenient()
+        .when(persistentEntity.getPersistentProperty(field))
+        .thenReturn((PersistentProperty) property);
   }
 
   private Query captureStreamedQuery() {

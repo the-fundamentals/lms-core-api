@@ -19,14 +19,6 @@ tags:
     description: Admin-only classroom member payment plans (`/admin/classrooms/.../payment-plans`)
   - name: ClassroomScheduleRecurrence
     description: Admin-only classroom schedule recurrence management (`/admin/classrooms/.../schedule`)
-  - name: ClassroomScheduleAdhoc
-    description: >
-      Deprecated. No longer used; implementation removed. Admin-only ad-hoc classroom schedule occurrences (`/admin/classrooms/.../schedule-adhoc`).
-
-  - name: ClassroomScheduleCancelled
-    description: >
-      Deprecated. No longer used; implementation removed. Admin-only cancelled classroom schedule occurrences (`/admin/classrooms/.../schedule-cancelled`).
-
   - name: ClassroomSessions
     description: Admin-only classroom session and attendance management (`/admin/classrooms/.../sessions` and member attendance history)
   - name: ClassroomFinances
@@ -573,6 +565,43 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+    put:
+      tags:
+        - ClassroomSessions
+      operationId: updateClassroomSession
+      summary: Update a classroom session
+      description: >
+        Updates the display name and description of an OPEN classroom session.
+        Date, times, status, and type are unchanged. COMPLETED and CANCELLED sessions are rejected.
+        Omitted name or description clears that field.
+      parameters:
+        - $ref: "#/components/parameters/ClassroomIdPath"
+        - $ref: "#/components/parameters/SessionId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateClassroomSessionCommand"
+      responses:
+        "200":
+          description: Classroom session updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassroomSessionResponse"
+        "400":
+          description: Invalid update command, or session is not OPEN
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Classroom session not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /admin/classrooms/{classroomId}/sessions/{sessionId}/complete:
     post:
       tags:
@@ -985,6 +1014,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
   /admin/classrooms/{classroomId}/schedule/{scheduleId}:
+    get:
+      tags:
+        - ClassroomScheduleRecurrence
+      operationId: getClassroomScheduleRecurrenceById
+      summary: Get a classroom schedule recurrence by id
+      description: Returns a single classroom schedule recurrence by its identifier.
+      parameters:
+        - $ref: "#/components/parameters/ClassroomIdPath"
+        - $ref: "#/components/parameters/ScheduleId"
+      responses:
+        "200":
+          description: Classroom schedule recurrence found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassroomScheduleRecurrenceResponse"
+        "404":
+          description: Classroom schedule recurrence not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
     delete:
       tags:
         - ClassroomScheduleRecurrence
@@ -999,188 +1050,6 @@ paths:
           description: Classroom schedule deleted
         "404":
           description: Classroom schedule not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-  /admin/classrooms/{classroomId}/schedule-adhoc:
-    get:
-      tags:
-        - ClassroomScheduleAdhoc
-      operationId: getAllClassroomScheduleAdhocs
-      deprecated: true
-      summary: Get all ad-hoc classroom schedule occurrences
-      description: >
-        Deprecated. No longer used; do not call; implementation removed. Returns ad-hoc (one-off) schedule occurrences for a classroom. Optional `startDate` and `endDate` filter the occurrence `date` inclusively. Omit both to return every occurrence.
-
-      parameters:
-        - $ref: "#/components/parameters/ClassroomIdPath"
-        - $ref: "#/components/parameters/OccurrenceStartDate"
-        - $ref: "#/components/parameters/OccurrenceEndDate"
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/GetAllClassroomScheduleAdhocsResponse"
-        "400":
-          description: Invalid date range (`startDate` is after `endDate`)
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "404":
-          description: Classroom not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-    post:
-      tags:
-        - ClassroomScheduleAdhoc
-      operationId: createClassroomScheduleAdhoc
-      deprecated: true
-      summary: Create an ad-hoc classroom schedule occurrence
-      description: >
-        Deprecated. No longer used; do not call; implementation removed. Creates a one-off schedule occurrence for a classroom and returns it.
-
-      parameters:
-        - $ref: "#/components/parameters/ClassroomIdPath"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CreateClassroomScheduleAdhocCommand"
-      responses:
-        "201":
-          description: Ad-hoc classroom schedule occurrence created
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ClassroomScheduleAdhocResponse"
-        "400":
-          description: Invalid create command
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "404":
-          description: Classroom not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-  /admin/classrooms/{classroomId}/schedule-adhoc/{adhocId}:
-    delete:
-      tags:
-        - ClassroomScheduleAdhoc
-      operationId: deleteClassroomScheduleAdhoc
-      deprecated: true
-      summary: Delete an ad-hoc classroom schedule occurrence
-      description: >
-        Deprecated. No longer used; do not call; implementation removed. Permanently deletes an ad-hoc schedule occurrence.
-
-      parameters:
-        - $ref: "#/components/parameters/ClassroomIdPath"
-        - $ref: "#/components/parameters/AdhocId"
-      responses:
-        "204":
-          description: Ad-hoc classroom schedule occurrence deleted
-        "404":
-          description: Ad-hoc classroom schedule occurrence not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-  /admin/classrooms/{classroomId}/schedule-cancelled:
-    get:
-      tags:
-        - ClassroomScheduleCancelled
-      operationId: getAllClassroomScheduleCancelleds
-      deprecated: true
-      summary: Get all cancelled classroom schedule occurrences
-      description: >
-        Deprecated. No longer used; do not call; implementation removed. Returns cancelled schedule occurrences for a classroom. Optional `startDate` and `endDate` filter the occurrence `date` inclusively. Omit both to return every occurrence.
-
-      parameters:
-        - $ref: "#/components/parameters/ClassroomIdPath"
-        - $ref: "#/components/parameters/OccurrenceStartDate"
-        - $ref: "#/components/parameters/OccurrenceEndDate"
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/GetAllClassroomScheduleCancelledsResponse"
-        "400":
-          description: Invalid date range (`startDate` is after `endDate`)
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "404":
-          description: Classroom not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-    post:
-      tags:
-        - ClassroomScheduleCancelled
-      operationId: createClassroomScheduleCancelled
-      deprecated: true
-      summary: Create a cancelled classroom schedule occurrence
-      description: >
-        Deprecated. No longer used; do not call; implementation removed. Records a cancelled occurrence of a recurring classroom schedule and returns it.
-
-      parameters:
-        - $ref: "#/components/parameters/ClassroomIdPath"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CreateClassroomScheduleCancelledCommand"
-      responses:
-        "201":
-          description: Cancelled classroom schedule occurrence created
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ClassroomScheduleCancelledResponse"
-        "400":
-          description: Invalid create command
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "404":
-          description: Classroom not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-  /admin/classrooms/{classroomId}/schedule-cancelled/{cancelledId}:
-    delete:
-      tags:
-        - ClassroomScheduleCancelled
-      operationId: deleteClassroomScheduleCancelled
-      deprecated: true
-      summary: Delete a cancelled classroom schedule occurrence
-      description: >
-        Deprecated. No longer used; do not call; implementation removed. Permanently deletes a cancelled-occurrence record (the class is no longer marked cancelled).
-
-      parameters:
-        - $ref: "#/components/parameters/ClassroomIdPath"
-        - $ref: "#/components/parameters/CancelledId"
-      responses:
-        "204":
-          description: Cancelled classroom schedule occurrence deleted
-        "404":
-          description: Cancelled classroom schedule occurrence not found
           content:
             application/json:
               schema:
@@ -1279,50 +1148,6 @@ components:
         format: uuid
         description: Classroom schedule UUID
         example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
-    AdhocId:
-      name: adhocId
-      in: path
-      required: true
-      deprecated: true
-      description: Deprecated. No longer used; implementation removed. Ad-hoc classroom schedule occurrence identifier
-      schema:
-        type: string
-        format: uuid
-        description: Ad-hoc classroom schedule occurrence UUID
-        example: b2c3d4e5-f6a7-8901-bcde-f12345678901
-    CancelledId:
-      name: cancelledId
-      in: path
-      required: true
-      deprecated: true
-      description: Deprecated. No longer used; implementation removed. Cancelled classroom schedule occurrence identifier
-      schema:
-        type: string
-        format: uuid
-        description: Cancelled classroom schedule occurrence UUID
-        example: c3d4e5f6-a7b8-9012-cdef-123456789012
-    OccurrenceStartDate:
-      name: startDate
-      in: query
-      required: false
-      deprecated: true
-      description: Deprecated. No longer used; implementation removed. Inclusive start of the occurrence date filter
-      schema:
-        type: string
-        format: date
-        description: Inclusive start date (ISO-8601)
-        example: "2026-07-01"
-    OccurrenceEndDate:
-      name: endDate
-      in: query
-      required: false
-      deprecated: true
-      description: Deprecated. No longer used; implementation removed. Inclusive end of the occurrence date filter
-      schema:
-        type: string
-        format: date
-        description: Inclusive end date (ISO-8601)
-        example: "2026-07-31"
     IdToken:
       name: X-ID-Token
       in: header
@@ -1807,6 +1632,25 @@ components:
           minLength: 1
           maxLength: 2000
           example: Introduction to the course and classroom expectations
+    UpdateClassroomSessionCommand:
+      type: object
+      description: >
+        Command to update a classroom session's display name and description.
+        Date, times, status, and type cannot be changed here.
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          description: Updated display name; omit or null to clear
+          minLength: 1
+          maxLength: 255
+          example: Week 1 lecture (reschedule)
+        description:
+          type: string
+          description: Updated description; omit or null to clear
+          minLength: 1
+          maxLength: 2000
+          example: Moved to room B; bring worksheets
     GenerateClassroomSessionsFromRecurrenceCommand:
       type: object
       description: >
@@ -2215,166 +2059,6 @@ components:
       description: Collection of classroom schedule recurrences
       items:
         $ref: "#/components/schemas/ClassroomScheduleRecurrenceResponse"
-    CreateClassroomScheduleAdhocCommand:
-      type: object
-      deprecated: true
-      description: Deprecated. No longer used; implementation removed. Command to create an ad-hoc classroom schedule occurrence
-      additionalProperties: false
-      required:
-        - date
-        - startTime
-        - endTime
-      properties:
-        date:
-          type: string
-          format: date
-          description: Calendar date of the ad-hoc occurrence
-          example: "2026-07-20"
-        startTime:
-          type: string
-          format: time-local
-          description: Start time of the ad-hoc occurrence
-          example: "09:00:00"
-        endTime:
-          type: string
-          format: time-local
-          description: End time of the ad-hoc occurrence
-          example: "10:30:00"
-    ClassroomScheduleAdhocResponse:
-      type: object
-      deprecated: true
-      description: Deprecated. No longer used; implementation removed. Ad-hoc classroom schedule occurrence returned by the API
-      additionalProperties: false
-      required:
-        - id
-        - classroomId
-        - date
-        - startTime
-        - endTime
-        - createdDate
-        - lastModifiedDate
-      properties:
-        id:
-          type: string
-          format: uuid
-          description: Unique ad-hoc occurrence identifier
-          example: b2c3d4e5-f6a7-8901-bcde-f12345678901
-        classroomId:
-          type: string
-          format: uuid
-          description: Classroom this occurrence belongs to
-          example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
-        date:
-          type: string
-          format: date
-          description: Calendar date of the ad-hoc occurrence
-          example: "2026-07-20"
-        startTime:
-          type: string
-          format: time-local
-          description: Start time of the ad-hoc occurrence
-          example: "09:00:00"
-        endTime:
-          type: string
-          format: time-local
-          description: End time of the ad-hoc occurrence
-          example: "10:30:00"
-        createdDate:
-          type: string
-          format: date-time
-          description: When the occurrence was created
-          example: 2026-07-14T00:00:00Z
-        lastModifiedDate:
-          type: string
-          format: date-time
-          description: When the occurrence was last modified
-          example: 2026-07-14T00:00:00Z
-    GetAllClassroomScheduleAdhocsResponse:
-      type: array
-      deprecated: true
-      description: Deprecated. No longer used; implementation removed. Collection of ad-hoc classroom schedule occurrences
-      items:
-        $ref: "#/components/schemas/ClassroomScheduleAdhocResponse"
-    CreateClassroomScheduleCancelledCommand:
-      type: object
-      deprecated: true
-      description: Deprecated. No longer used; implementation removed. Command to record a cancelled classroom schedule occurrence
-      additionalProperties: false
-      required:
-        - date
-        - startTime
-        - endTime
-      properties:
-        date:
-          type: string
-          format: date
-          description: Calendar date of the cancelled occurrence
-          example: "2026-07-20"
-        startTime:
-          type: string
-          format: time-local
-          description: Start time of the cancelled occurrence
-          example: "09:00:00"
-        endTime:
-          type: string
-          format: time-local
-          description: End time of the cancelled occurrence
-          example: "10:30:00"
-    ClassroomScheduleCancelledResponse:
-      type: object
-      deprecated: true
-      description: Deprecated. No longer used; implementation removed. Cancelled classroom schedule occurrence returned by the API
-      additionalProperties: false
-      required:
-        - id
-        - classroomId
-        - date
-        - startTime
-        - endTime
-        - createdDate
-        - lastModifiedDate
-      properties:
-        id:
-          type: string
-          format: uuid
-          description: Unique cancelled-occurrence identifier
-          example: c3d4e5f6-a7b8-9012-cdef-123456789012
-        classroomId:
-          type: string
-          format: uuid
-          description: Classroom this occurrence belongs to
-          example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
-        date:
-          type: string
-          format: date
-          description: Calendar date of the cancelled occurrence
-          example: "2026-07-20"
-        startTime:
-          type: string
-          format: time-local
-          description: Start time of the cancelled occurrence
-          example: "09:00:00"
-        endTime:
-          type: string
-          format: time-local
-          description: End time of the cancelled occurrence
-          example: "10:30:00"
-        createdDate:
-          type: string
-          format: date-time
-          description: When the cancelled occurrence was recorded
-          example: 2026-07-14T00:00:00Z
-        lastModifiedDate:
-          type: string
-          format: date-time
-          description: When the cancelled occurrence was last modified
-          example: 2026-07-14T00:00:00Z
-    GetAllClassroomScheduleCancelledsResponse:
-      type: array
-      deprecated: true
-      description: Deprecated. No longer used; implementation removed. Collection of cancelled classroom schedule occurrences
-      items:
-        $ref: "#/components/schemas/ClassroomScheduleCancelledResponse"
     AccountProfileResponse:
       type: object
       description: Account profile for the authenticated user (app-owned user data)

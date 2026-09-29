@@ -30,6 +30,16 @@ public interface ClassroomScheduleRecurrenceService {
   List<ClassroomScheduleRecurrenceResponse> getAllClassroomScheduleRecurrences(UUID classroomId);
 
   /**
+   * Loads a recurrence by id scoped to the classroom.
+   *
+   * @param classroomId classroom the recurrence belongs to
+   * @param scheduleId recurrence to load
+   * @return recurrence when found in that classroom
+   */
+  ClassroomScheduleRecurrenceResponse getClassroomScheduleRecurrenceById(
+      UUID classroomId, UUID scheduleId);
+
+  /**
    * Soft-deletes a recurrence (sets {@code deletedDate}).
    *
    * @param classroomId classroom the recurrence belongs to

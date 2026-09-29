@@ -148,6 +148,27 @@ class ClassroomScheduleRecurrenceControllerIntegrationTest {
   }
 
   @Test
+  @DisplayName("gets a classroom schedule recurrence by id")
+  void getClassroomScheduleRecurrenceById_found_returns200() throws Exception {
+    when(classroomScheduleRecurrenceRepository.findById(SCHEDULE_ID))
+        .thenReturn(Optional.of(classroomScheduleRecurrence()));
+
+    mockMvc
+        .perform(
+            get("/admin/classrooms/{classroomId}/schedule/{scheduleId}", CLASSROOM_ID, SCHEDULE_ID)
+                .with(adminJwt()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value(SCHEDULE_ID.toString()))
+        .andExpect(jsonPath("$.classroomId").value(CLASSROOM_ID.toString()))
+        .andExpect(jsonPath("$.frequency").value("WEEKLY"))
+        .andExpect(jsonPath("$.byDay").value("MONDAY"))
+        .andExpect(jsonPath("$.recurrenceStartDate").value(RECURRENCE_START_DATE_VALUE))
+        .andExpect(jsonPath("$.recurUntil").value(RECUR_UNTIL_VALUE))
+        .andExpect(jsonPath("$.startTime").value(START_TIME_VALUE))
+        .andExpect(jsonPath("$.endTime").value(END_TIME_VALUE));
+  }
+
+  @Test
   @DisplayName("soft-deletes a classroom schedule recurrence")
   void deleteClassroomScheduleRecurrence_valid_returns204() throws Exception {
     ClassroomScheduleRecurrence recurrence = classroomScheduleRecurrence();
@@ -202,11 +223,13 @@ class ClassroomScheduleRecurrenceControllerIntegrationTest {
 
   @ParameterizedTest(name = "{0}")
   @CsvSource({
-    "fails to delete a recurrence that does not exist, MISSING",
-    "fails to delete a recurrence that belongs to another classroom, WRONG_CLASSROOM"
+    "fails to get a recurrence that does not exist, GET, MISSING",
+    "fails to get a recurrence that belongs to another classroom, GET, WRONG_CLASSROOM",
+    "fails to delete a recurrence that does not exist, DELETE, MISSING",
+    "fails to delete a recurrence that belongs to another classroom, DELETE, WRONG_CLASSROOM"
   })
-  void scheduleLookup_failsWhenUnavailable(String displayName, String scheduleState)
-      throws Exception {
+  void scheduleLookup_failsWhenUnavailable(
+      String displayName, String httpMethod, String scheduleState) throws Exception {
     when(classroomScheduleRecurrenceRepository.findById(SCHEDULE_ID))
         .thenReturn(
             switch (scheduleState) {
@@ -216,13 +239,23 @@ class ClassroomScheduleRecurrenceControllerIntegrationTest {
               default -> throw new IllegalArgumentException("Unsupported state: " + scheduleState);
             });
 
+    MockHttpServletRequestBuilder request =
+        switch (httpMethod) {
+          case "GET" ->
+              get(
+                  "/admin/classrooms/{classroomId}/schedule/{scheduleId}",
+                  CLASSROOM_ID,
+                  SCHEDULE_ID);
+          case "DELETE" ->
+              delete(
+                  "/admin/classrooms/{classroomId}/schedule/{scheduleId}",
+                  CLASSROOM_ID,
+                  SCHEDULE_ID);
+          default -> throw new IllegalArgumentException("Unsupported method: " + httpMethod);
+        };
+
     mockMvc
-        .perform(
-            delete(
-                    "/admin/classrooms/{classroomId}/schedule/{scheduleId}",
-                    CLASSROOM_ID,
-                    SCHEDULE_ID)
-                .with(adminJwt()))
+        .perform(request.with(adminJwt()))
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.code").value("CLASSROOM_SCHEDULE_RECURRENCE_NOT_FOUND"))
         .andExpect(jsonPath("$.status").value(404));

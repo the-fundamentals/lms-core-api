@@ -119,6 +119,23 @@ public class ClassroomSession {
   }
 
   /**
+   * Replaces display name and description.
+   *
+   * <ul>
+   *   <li>Only when OPEN; null clears the field.
+   * </ul>
+   *
+   * @param name new display name, or null to clear
+   * @param description new description, or null to clear
+   * @throws ClassroomSessionCannotBeUpdatedException when status is not OPEN
+   */
+  public void updateDetails(String name, String description) {
+    requireCanBeUpdated();
+    this.name = name;
+    this.description = description;
+  }
+
+  /**
    * Sets status to COMPLETED.
    *
    * <ul>

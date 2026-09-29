@@ -7,13 +7,18 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
+import org.springframework.boot.convert.ApplicationConversionService;
+import org.springframework.core.convert.ConversionException;
+import org.springframework.core.convert.ConversionService;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jdbc.core.JdbcAggregateOperations;
 import org.springframework.data.jdbc.core.convert.JdbcConverter;
 import org.springframework.data.mapping.PersistentEntity;
+import org.springframework.data.mapping.PersistentProperty;
 import org.springframework.data.relational.core.query.Criteria;
 import org.springframework.data.relational.core.query.Query;
 import org.springframework.transaction.annotation.Transactional;
+import tech.sangdang.lmscoreapi.common.exception.GenericBadRequestException;
 import tech.sangdang.lmscoreapi.common.querying.BaseQuery;
 import tech.sangdang.lmscoreapi.common.querying.Operators;
 import tech.sangdang.lmscoreapi.common.querying.QueryFilterConditions;
@@ -23,7 +28,12 @@ import tech.sangdang.lmscoreapi.common.querying.QueryFilterConditions;
 public class BaseJdbcRepositoryImpl<Entity, IdType>
     implements BaseCommandRepository<Entity, IdType>, BaseQueryRepository<Entity, IdType> {
 
+  // JDBC write converters target Timestamp, not LocalDate — they cannot parse API filter strings.
+  private static final ConversionService FILTER_VALUES =
+      ApplicationConversionService.getSharedInstance();
+
   private final JdbcAggregateOperations operations;
+  private final PersistentEntity<Entity, ?> entity;
   private final Class<Entity> entityClass;
 
   public BaseJdbcRepositoryImpl(
@@ -31,6 +41,7 @@ public class BaseJdbcRepositoryImpl<Entity, IdType>
       @NonNull PersistentEntity<Entity, ?> entity,
       @NonNull JdbcConverter converter) {
     this.operations = operations;
+    this.entity = entity;
     this.entityClass = entity.getType();
   }
 
@@ -110,7 +121,18 @@ public class BaseJdbcRepositoryImpl<Entity, IdType>
 
   private Criteria toCriteria(QueryFilterConditions filter) {
     String field = filter.getField();
-    String value = filter.getValue();
+    Object value =
+        switch (filter.getOperator()) {
+          case Operators.LIKE -> filter.getValue();
+          case Operators.EQUAL,
+              Operators.GREATER_THAN,
+              Operators.LESS_THAN,
+              Operators.GREATER_OR_EQUAL,
+              Operators.LESS_OR_EQUAL ->
+              coerceFilterValue(filter);
+          default ->
+              throw new IllegalArgumentException("Unknown operator: " + filter.getOperator());
+        };
 
     return switch (filter.getOperator()) {
       case Operators.EQUAL -> Criteria.where(field).is(value);
@@ -121,6 +143,33 @@ public class BaseJdbcRepositoryImpl<Entity, IdType>
       case Operators.LESS_OR_EQUAL -> Criteria.where(field).lessThanOrEquals(value);
       default -> throw new IllegalArgumentException("Unknown operator: " + filter.getOperator());
     };
+  }
+
+  private Object coerceFilterValue(QueryFilterConditions filter) {
+    String value = filter.getValue();
+
+    PersistentProperty<?> property = entity.getPersistentProperty(filter.getField());
+    if (property == null) {
+      throw GenericBadRequestException.of(
+          "UNKNOWN_FILTER_FIELD", "Unknown filter field: " + filter.getField());
+    }
+
+    Class<?> type = property.getType();
+    if (type == String.class) {
+      return value;
+    }
+
+    try {
+      Object converted = FILTER_VALUES.convert(value, type);
+      if (converted == null) {
+        throw GenericBadRequestException.of(
+            "INVALID_FILTER_VALUE", "Invalid filter value for field: " + filter.getField());
+      }
+      return converted;
+    } catch (ConversionException ex) {
+      throw GenericBadRequestException.of(
+          "INVALID_FILTER_VALUE", "Invalid filter value for field: " + filter.getField());
+    }
   }
 
   private static <T> List<T> toList(Iterable<T> iterable) {
