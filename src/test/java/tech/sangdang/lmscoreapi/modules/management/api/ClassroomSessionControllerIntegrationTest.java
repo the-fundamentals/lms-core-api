@@ -65,6 +65,7 @@ import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionAdhocComma
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionAttendanceCommand;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionAttendancesCommand;
 import tech.sangdang.lmscoreapi.generated.model.UpdateClassroomSessionAttendanceCommand;
+import tech.sangdang.lmscoreapi.generated.model.UpdateClassroomSessionCommand;
 import tech.sangdang.lmscoreapi.modules.management.app.ClassroomSessionGenerationService;
 import tech.sangdang.lmscoreapi.modules.management.app.impl.ClassroomSessionServiceImpl;
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomSessionAttendanceMapperImpl;
@@ -122,8 +123,8 @@ class ClassroomSessionControllerIntegrationTest {
     CreateClassroomSessionAdhocCommand command =
         CreateClassroomSessionAdhocCommand.builder()
             .sessionDate(SESSION_DATE)
-            .startTime(START_TIME_VALUE)
-            .endTime(END_TIME_VALUE)
+            .startTime(START_TIME)
+            .endTime(END_TIME)
             .name(SESSION_NAME)
             .description(SESSION_DESCRIPTION)
             .build();
@@ -182,8 +183,8 @@ class ClassroomSessionControllerIntegrationTest {
     CreateClassroomSessionAdhocCommand command =
         CreateClassroomSessionAdhocCommand.builder()
             .sessionDate(SESSION_DATE)
-            .startTime(START_TIME_VALUE)
-            .endTime(END_TIME_VALUE)
+            .startTime(START_TIME)
+            .endTime(END_TIME)
             .build();
 
     mockMvc
@@ -221,8 +222,8 @@ class ClassroomSessionControllerIntegrationTest {
     CreateClassroomSessionAdhocCommand command =
         CreateClassroomSessionAdhocCommand.builder()
             .sessionDate(SESSION_DATE)
-            .startTime(START_TIME_VALUE)
-            .endTime(END_TIME_VALUE)
+            .startTime(START_TIME)
+            .endTime(END_TIME)
             .build();
 
     mockMvc
@@ -257,6 +258,117 @@ class ClassroomSessionControllerIntegrationTest {
         .andExpect(jsonPath("$.description").value(SESSION_DESCRIPTION))
         .andExpect(jsonPath("$.status").value("OPEN"))
         .andExpect(jsonPath("$.type").value("SCHEDULE"));
+  }
+
+  @Test
+  @DisplayName("updates an open classroom session name and description")
+  void updateClassroomSession_open_returns200() throws Exception {
+    when(classroomSessionRepository.findById(SESSION_ID))
+        .thenReturn(Optional.of(classroomSession()));
+    when(classroomSessionRepository.update(any(ClassroomSession.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    UpdateClassroomSessionCommand command =
+        UpdateClassroomSessionCommand.builder()
+            .name("Week 1 lecture (reschedule)")
+            .description("Moved to room B; bring worksheets")
+            .build();
+
+    mockMvc
+        .perform(
+            put("/admin/classrooms/{classroomId}/sessions/{sessionId}", CLASSROOM_ID, SESSION_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonMapper.writeValueAsString(command))
+                .with(adminJwt()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value(SESSION_ID.toString()))
+        .andExpect(jsonPath("$.name").value("Week 1 lecture (reschedule)"))
+        .andExpect(jsonPath("$.description").value("Moved to room B; bring worksheets"))
+        .andExpect(jsonPath("$.sessionDate").value(SESSION_DATE_VALUE))
+        .andExpect(jsonPath("$.startTime").value(START_TIME_VALUE))
+        .andExpect(jsonPath("$.endTime").value(END_TIME_VALUE))
+        .andExpect(jsonPath("$.status").value("OPEN"))
+        .andExpect(jsonPath("$.type").value("SCHEDULE"));
+
+    ArgumentCaptor<ClassroomSession> captor = ArgumentCaptor.forClass(ClassroomSession.class);
+    verify(classroomSessionRepository).update(captor.capture());
+    assertThat(captor.getValue().getName()).isEqualTo("Week 1 lecture (reschedule)");
+    assertThat(captor.getValue().getDescription()).isEqualTo("Moved to room B; bring worksheets");
+    assertThat(captor.getValue().getSessionDate()).isEqualTo(SESSION_DATE);
+    assertThat(captor.getValue().getStartTime()).isEqualTo(START_TIME);
+    assertThat(captor.getValue().getEndTime()).isEqualTo(END_TIME);
+  }
+
+  @Test
+  @DisplayName("clears name and description when omitted on update")
+  void updateClassroomSession_clearsOptionalFields_returns200() throws Exception {
+    when(classroomSessionRepository.findById(SESSION_ID))
+        .thenReturn(Optional.of(classroomSession()));
+    when(classroomSessionRepository.update(any(ClassroomSession.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    UpdateClassroomSessionCommand command = UpdateClassroomSessionCommand.builder().build();
+
+    mockMvc
+        .perform(
+            put("/admin/classrooms/{classroomId}/sessions/{sessionId}", CLASSROOM_ID, SESSION_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonMapper.writeValueAsString(command))
+                .with(adminJwt()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.name").doesNotExist())
+        .andExpect(jsonPath("$.description").doesNotExist());
+
+    ArgumentCaptor<ClassroomSession> captor = ArgumentCaptor.forClass(ClassroomSession.class);
+    verify(classroomSessionRepository).update(captor.capture());
+    assertThat(captor.getValue().getName()).isNull();
+    assertThat(captor.getValue().getDescription()).isNull();
+  }
+
+  @ParameterizedTest(name = "fails to update a {0} session")
+  @CsvSource({"COMPLETED", "CANCELLED"})
+  void updateClassroomSession_notOpen_returns400(String statusName) throws Exception {
+    when(classroomSessionRepository.findById(SESSION_ID))
+        .thenReturn(
+            Optional.of(
+                classroomSession()
+                    .setStatus(
+                        tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionStatus
+                            .valueOf(statusName))));
+
+    UpdateClassroomSessionCommand command =
+        UpdateClassroomSessionCommand.builder().name("Updated").build();
+
+    mockMvc
+        .perform(
+            put("/admin/classrooms/{classroomId}/sessions/{sessionId}", CLASSROOM_ID, SESSION_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonMapper.writeValueAsString(command))
+                .with(adminJwt()))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("CLASSROOM_SESSION_NOT_OPEN"));
+
+    verify(classroomSessionRepository, never()).update(any());
+  }
+
+  @Test
+  @DisplayName("fails to update a session that does not exist")
+  void updateClassroomSession_missing_returns404() throws Exception {
+    when(classroomSessionRepository.findById(SESSION_ID)).thenReturn(Optional.empty());
+
+    UpdateClassroomSessionCommand command =
+        UpdateClassroomSessionCommand.builder().name("Updated").build();
+
+    mockMvc
+        .perform(
+            put("/admin/classrooms/{classroomId}/sessions/{sessionId}", CLASSROOM_ID, SESSION_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonMapper.writeValueAsString(command))
+                .with(adminJwt()))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value("CLASSROOM_SESSION_NOT_FOUND"));
+
+    verify(classroomSessionRepository, never()).update(any());
   }
 
   @Test

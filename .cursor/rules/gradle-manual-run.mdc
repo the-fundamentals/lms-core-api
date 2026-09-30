@@ -1,0 +1,36 @@
+---
+description: Ask the user (AskQuestion) before any Gradle/wrapper command; Autopilot opts back into agent-run
+alwaysApply: true
+---
+
+# Gradle: ask before running
+
+Never invoke `./gradlew`, `gradlew.bat`, or `.\gradlew.bat` yourself (build, test,
+compile, bootRun, spotless*, openApiGenerate, or any other task) unless **Autopilot**
+is on for this conversation.
+
+When a Gradle step is needed:
+
+1. Use **AskQuestion** with the **exact** command(s) from the repo root.
+2. On Windows, use `.\gradlew.bat …` (not `./gradlew`).
+3. Offer at least these options:
+   - **I'll run it** — user runs the command and pastes/reports the result
+   - **Skip** — do not run; continue without that step
+   - **Autopilot** — agent may run Gradle itself for the rest of this conversation
+     (until the user says otherwise)
+
+Example question text:
+
+```text
+Please run from the repo root:
+
+.\gradlew.bat spotlessApply
+.\gradlew.bat openApiGenerate
+
+Then reply with the outcome (or choose Autopilot / Skip).
+```
+
+After **I'll run it**: wait for the user's result before assuming success.
+After **Autopilot**: running Gradle is allowed until they disable it.
+After **Skip**: proceed without running Gradle; do not re-ask for the same step
+unless requirements change.

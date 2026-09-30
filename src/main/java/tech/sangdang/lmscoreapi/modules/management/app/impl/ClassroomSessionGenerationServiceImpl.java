@@ -92,8 +92,8 @@ public class ClassroomSessionGenerationServiceImpl implements ClassroomSessionGe
                           recurrence.getStartTime(),
                           recurrence.getEndTime(),
                           recurrence.getClassroomId(),
-                          "Generated From Schedule",
-                          "This was automatically generated from a classroom schedule",
+                          recurrence.getName(),
+                          recurrence.getDescription(),
                           recurrence.getId())));
         });
 

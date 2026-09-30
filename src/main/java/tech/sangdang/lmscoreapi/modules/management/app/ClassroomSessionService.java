@@ -30,6 +30,22 @@ public interface ClassroomSessionService {
   ClassroomSessionResponse getClassroomSessionById(UUID classroomId, UUID sessionId);
 
   /**
+   * Updates an OPEN session's name and description.
+   *
+   * <ul>
+   *   <li>Date, times, status, and type are unchanged.
+   *   <li>COMPLETED and CANCELLED are 400; omitted fields clear.
+   * </ul>
+   *
+   * @param classroomId classroom the session belongs to
+   * @param sessionId session to update
+   * @param command name and description
+   * @return updated session
+   */
+  ClassroomSessionResponse updateClassroomSession(
+      UUID classroomId, UUID sessionId, UpdateClassroomSessionCommand command);
+
+  /**
    * Queries sessions in the classroom.
    *
    * <ul>

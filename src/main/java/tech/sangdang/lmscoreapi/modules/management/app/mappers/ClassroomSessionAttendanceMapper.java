@@ -4,17 +4,16 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import org.mapstruct.Mapper;
-import tech.sangdang.lmscoreapi.common.querying.BaseQuery;
+import tech.sangdang.lmscoreapi.common.querying.QueryMapper;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionAttendanceFilter;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomSessionAttendanceResponse;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionAttendance;
 
 @Mapper(componentModel = "spring")
-public interface ClassroomSessionAttendanceMapper {
+public interface ClassroomSessionAttendanceMapper
+    extends QueryMapper<ClassroomSessionAttendanceFilter> {
 
   ClassroomSessionAttendanceResponse toResponse(ClassroomSessionAttendance attendance);
-
-  BaseQuery toBaseQuery(ClassroomSessionAttendanceFilter apiFilter);
 
   default OffsetDateTime map(LocalDateTime value) {
     return value == null ? null : value.atOffset(ZoneOffset.UTC);

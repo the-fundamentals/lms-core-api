@@ -167,6 +167,11 @@ jobs:
             npm publish --tag "${DIST_TAG}"
           fi
 
-      - name: Write created tag to summary
+      - name: Write created tag ${{ env.NEW_VERSION }} to summary
         run: |
-          echo "📁 Uploaded new package to ${DIST_TAG}" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "## Published \`@the-fundamentals/core-openapi\`"
+            echo ""
+            echo "- **Version:** \`${NEW_VERSION}\`"
+            echo "- **npm dist-tag:** \`${DIST_TAG}\`"
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -33,6 +33,14 @@ public class ClassroomScheduleRecurrenceController implements ClassroomScheduleR
   }
 
   @Override
+  public ResponseEntity<?> getClassroomScheduleRecurrenceById(
+      @NonNull UUID classroomId, @NonNull UUID scheduleId) {
+    return ResponseEntity.ok(
+        classroomScheduleRecurrenceService.getClassroomScheduleRecurrenceById(
+            classroomId, scheduleId));
+  }
+
+  @Override
   public ResponseEntity<?> deleteClassroomScheduleRecurrence(
       @NonNull UUID classroomId, @NonNull UUID scheduleId) {
     classroomScheduleRecurrenceService.deleteClassroomScheduleRecurrence(classroomId, scheduleId);

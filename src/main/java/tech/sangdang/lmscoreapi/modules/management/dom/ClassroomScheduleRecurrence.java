@@ -36,4 +36,7 @@ public class ClassroomScheduleRecurrence {
   private LocalDate recurUntil;
   private LocalTime startTime;
   private LocalTime endTime;
+  // Session content template: copied onto sessions by ClassroomSessionGenerationServiceImpl
+  private String name;
+  private String description;
 }

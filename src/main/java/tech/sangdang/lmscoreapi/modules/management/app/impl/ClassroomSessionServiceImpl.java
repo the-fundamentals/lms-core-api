@@ -14,7 +14,6 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import tech.sangdang.lmscoreapi.common.Utilities;
 import tech.sangdang.lmscoreapi.common.exception.ConflictException;
 import tech.sangdang.lmscoreapi.common.exception.GenericBadRequestException;
 import tech.sangdang.lmscoreapi.common.exception.ObjectNotFoundException;
@@ -54,8 +53,8 @@ public class ClassroomSessionServiceImpl implements ClassroomSessionService {
     ClassroomSession session =
         ClassroomSession.fromAdhoc(
             command.getSessionDate(),
-            Utilities.parseTimeOrError(command.getStartTime()),
-            Utilities.parseTimeOrError(command.getEndTime()),
+            command.getStartTime(),
+            command.getEndTime(),
             classroomId,
             command.getName(),
             command.getDescription());
@@ -66,6 +65,15 @@ public class ClassroomSessionServiceImpl implements ClassroomSessionService {
   @Transactional(readOnly = true)
   public ClassroomSessionResponse getClassroomSessionById(UUID classroomId, UUID sessionId) {
     return classroomSessionMapper.toResponse(requireSessionInClassroom(classroomId, sessionId));
+  }
+
+  @Override
+  @Transactional
+  public ClassroomSessionResponse updateClassroomSession(
+      UUID classroomId, UUID sessionId, UpdateClassroomSessionCommand command) {
+    ClassroomSession session = requireSessionInClassroom(classroomId, sessionId);
+    session.updateDetails(command.getName(), command.getDescription());
+    return classroomSessionMapper.toResponse(classroomSessionRepository.update(session));
   }
 
   @Override

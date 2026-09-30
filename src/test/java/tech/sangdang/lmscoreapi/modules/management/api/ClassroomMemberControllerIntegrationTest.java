@@ -17,11 +17,13 @@ import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomFixtu
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomFixtures.classroom;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomMemberFixtures.ACCOUNT_ID;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomMemberFixtures.ACCOUNT_PROFILE_ID;
+import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomMemberFixtures.MEMBER_AVATAR;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomMemberFixtures.MEMBER_EMAIL;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomMemberFixtures.MEMBER_ID;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomMemberFixtures.MEMBER_NAME;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomMemberFixtures.SECOND_ACCOUNT_ID;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomMemberFixtures.SECOND_ACCOUNT_PROFILE_ID;
+import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomMemberFixtures.SECOND_MEMBER_AVATAR;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomMemberFixtures.SECOND_MEMBER_EMAIL;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomMemberFixtures.SECOND_MEMBER_ID;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomMemberFixtures.SECOND_MEMBER_NAME;
@@ -104,7 +106,8 @@ class ClassroomMemberControllerIntegrationTest {
         .andExpect(jsonPath("$[0].role").value("STUDENT"))
         .andExpect(jsonPath("$[0].status").value("ACTIVE"))
         .andExpect(jsonPath("$[0].email").value(MEMBER_EMAIL))
-        .andExpect(jsonPath("$[0].name").value(MEMBER_NAME));
+        .andExpect(jsonPath("$[0].name").value(MEMBER_NAME))
+        .andExpect(jsonPath("$[0].avatar").value(MEMBER_AVATAR));
 
     ArgumentCaptor<Iterable<ClassroomMember>> captor = iterableCaptor();
     verify(classroomMemberRepository).insertAll(captor.capture());
@@ -112,6 +115,7 @@ class ClassroomMemberControllerIntegrationTest {
     assertThat(inserted.getAccountId()).isEqualTo(ACCOUNT_ID);
     assertThat(inserted.getEmail()).isEqualTo(MEMBER_EMAIL);
     assertThat(inserted.getName()).isEqualTo(MEMBER_NAME);
+    assertThat(inserted.getAvatar()).isEqualTo(MEMBER_AVATAR);
 
     ArgumentCaptor<Classroom> classroomCaptor = ArgumentCaptor.forClass(Classroom.class);
     verify(classroomRepository).update(classroomCaptor.capture());
@@ -367,7 +371,8 @@ class ClassroomMemberControllerIntegrationTest {
         .andExpect(jsonPath("$[0].id").value(MEMBER_ID.toString()))
         .andExpect(jsonPath("$[0].accountId").value(ACCOUNT_ID))
         .andExpect(jsonPath("$[0].email").value(MEMBER_EMAIL))
-        .andExpect(jsonPath("$[0].name").value(MEMBER_NAME));
+        .andExpect(jsonPath("$[0].name").value(MEMBER_NAME))
+        .andExpect(jsonPath("$[0].avatar").value(MEMBER_AVATAR));
 
     verify(classroomMemberRepository).findByClassroomId(CLASSROOM_ID);
   }
@@ -400,7 +405,8 @@ class ClassroomMemberControllerIntegrationTest {
                             ClassroomMemberStatus.ACTIVE)
                         .setRole(incoming.getRole())
                         .setEmail(incoming.getEmail())
-                        .setName(incoming.getName()));
+                        .setName(incoming.getName())
+                        .setAvatar(incoming.getAvatar()));
               }
               return result;
             });
@@ -424,7 +430,8 @@ class ClassroomMemberControllerIntegrationTest {
         .setId(ACCOUNT_PROFILE_ID)
         .setEmail(MEMBER_EMAIL)
         .setFirstName(nameParts[0])
-        .setLastName(nameParts[1]);
+        .setLastName(nameParts[1])
+        .setAvatarKey(MEMBER_AVATAR);
   }
 
   private static AccountProfile secondAccountProfile() {
@@ -433,7 +440,8 @@ class ClassroomMemberControllerIntegrationTest {
         .setId(SECOND_ACCOUNT_PROFILE_ID)
         .setEmail(SECOND_MEMBER_EMAIL)
         .setFirstName(nameParts[0])
-        .setLastName(nameParts[1]);
+        .setLastName(nameParts[1])
+        .setAvatarKey(SECOND_MEMBER_AVATAR);
   }
 
   @SuppressWarnings("unchecked")
