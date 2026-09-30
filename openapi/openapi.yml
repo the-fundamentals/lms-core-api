@@ -984,8 +984,11 @@ paths:
       tags:
         - ClassroomScheduleRecurrence
       operationId: createClassroomScheduleRecurrence
-      summary: Create a classroom schedule recurrence
-      description: Creates a schedule recurrence for a classroom and returns it.
+      summary: Create classroom schedule recurrences for one or more weekdays
+      description: >
+        Creates one schedule recurrence row per weekday in `byDays`, sharing the
+        same frequency, date range, times, and optional name/description. Returns
+        all created rows.
       parameters:
         - $ref: "#/components/parameters/ClassroomIdPath"
       requestBody:
@@ -996,11 +999,11 @@ paths:
               $ref: "#/components/schemas/CreateClassroomScheduleRecurrenceCommand"
       responses:
         "201":
-          description: Classroom schedule recurrence created
+          description: Classroom schedule recurrences created (one per weekday)
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ClassroomScheduleRecurrenceResponse"
+                $ref: "#/components/schemas/GetAllClassroomScheduleRecurrencesResponse"
         "400":
           description: Invalid create command
           content:
@@ -1946,19 +1949,30 @@ components:
         $ref: "#/components/schemas/AccountProfileResponse"
     CreateClassroomScheduleRecurrenceCommand:
       type: object
-      description: Command to create a classroom schedule recurrence
+      description: >
+        Command to create classroom schedule recurrences — one persisted row per
+        weekday in `byDays`
       additionalProperties: false
       required:
         - frequency
-        - byDay
+        - byDays
         - recurrenceStartDate
         - startTime
         - endTime
       properties:
         frequency:
           $ref: "#/components/schemas/RecurrenceFrequency"
-        byDay:
-          $ref: "#/components/schemas/RecurrenceByDay"
+        byDays:
+          type: array
+          description: Weekdays to create a recurrence for (one row each)
+          minItems: 1
+          maxItems: 7
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/RecurrenceByDay"
+          example:
+            - MONDAY
+            - WEDNESDAY
         recurrenceStartDate:
           type: string
           format: date

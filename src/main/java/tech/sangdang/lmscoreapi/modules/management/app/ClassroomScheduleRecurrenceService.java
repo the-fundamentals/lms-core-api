@@ -8,17 +8,20 @@ import tech.sangdang.lmscoreapi.generated.model.CreateClassroomScheduleRecurrenc
 public interface ClassroomScheduleRecurrenceService {
 
   /**
-   * Creates a recurrence for the classroom.
+   * Creates one recurrence row per weekday in {@code command.byDays}.
    *
    * <ul>
+   *   <li>Shared frequency, date range, times, and optional name/description across rows.
    *   <li>Does not expand occurrences; {@code recurUntil} is optional.
+   *   <li>Does not reject weekdays that already exist on the classroom (separate creates may
+   *       duplicate a weekday).
    * </ul>
    *
-   * @param classroomId classroom the recurrence belongs to
-   * @param command frequency, weekday, start date, and daily times
-   * @return created recurrence
+   * @param classroomId classroom the recurrences belong to
+   * @param command frequency, weekdays, start date, and daily times
+   * @return created recurrences in {@code byDays} order
    */
-  ClassroomScheduleRecurrenceResponse createClassroomScheduleRecurrence(
+  List<ClassroomScheduleRecurrenceResponse> createClassroomScheduleRecurrence(
       UUID classroomId, CreateClassroomScheduleRecurrenceCommand command);
 
   /**

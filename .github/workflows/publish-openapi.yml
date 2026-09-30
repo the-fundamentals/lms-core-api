@@ -167,7 +167,7 @@ jobs:
             npm publish --tag "${DIST_TAG}"
           fi
 
-      - name: Write created tag to summary
+      - name: Write created tag ${{ env.NEW_VERSION }} to summary
         run: |
           {
             echo "## Published \`@the-fundamentals/core-openapi\`"
