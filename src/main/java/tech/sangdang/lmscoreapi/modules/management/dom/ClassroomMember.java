@@ -35,6 +35,9 @@ public class ClassroomMember {
   /** Denormalized field — sourced from account/identity service (via account profile cache). */
   private String name;
 
+  /** Denormalized field — copied from AccountProfile.avatarKey at membership create/upsert. */
+  private String avatar;
+
   public boolean isActive() {
     return status == ClassroomMemberStatus.ACTIVE;
   }

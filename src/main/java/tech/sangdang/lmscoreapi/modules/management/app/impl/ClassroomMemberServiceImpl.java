@@ -86,6 +86,9 @@ public class ClassroomMemberServiceImpl implements ClassroomMemberService {
       AccountProfile profile = profilesById.get(item.getAccountId());
       ClassroomMemberRole role = ClassroomMemberRole.valueOf(item.getRole().getValue());
       String displayName = profile.getFirstName() + " " + profile.getLastName();
+      // Create/upsert-time copy only — not kept in sync when AccountProfile.avatarKey changes
+      // later.
+      String avatar = profile.getAvatarKey();
       String accountId = item.getAccountId().toString();
       ClassroomMember existing = existingByAccountId.get(accountId);
 
@@ -96,6 +99,7 @@ public class ClassroomMemberServiceImpl implements ClassroomMemberService {
         existing.setStatus(ClassroomMemberStatus.ACTIVE);
         existing.setEmail(profile.getEmail());
         existing.setName(displayName);
+        existing.setAvatar(avatar);
 
         toUpdate.add(existing);
         if (wasRemoved) {
@@ -109,7 +113,8 @@ public class ClassroomMemberServiceImpl implements ClassroomMemberService {
                 .setRole(role)
                 .setStatus(ClassroomMemberStatus.ACTIVE)
                 .setEmail(profile.getEmail())
-                .setName(displayName));
+                .setName(displayName)
+                .setAvatar(avatar));
         newActiveCount++;
       }
     }

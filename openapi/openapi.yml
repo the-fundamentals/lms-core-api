@@ -1561,6 +1561,13 @@ components:
           minLength: 1
           maxLength: 255
           example: Alex Nguyen
+        avatar:
+          type: string
+          description: >
+            Denormalized avatar key from the account profile (copied at membership
+            create/upsert; null when the profile has no avatar)
+          maxLength: 255
+          example: public/3e4ef8d1-9581-402f-9e27-fec209aeb2d8
         createdDate:
           type: string
           format: date-time

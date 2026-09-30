@@ -14,7 +14,6 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import tech.sangdang.lmscoreapi.common.Utilities;
 import tech.sangdang.lmscoreapi.common.exception.ConflictException;
 import tech.sangdang.lmscoreapi.common.exception.GenericBadRequestException;
 import tech.sangdang.lmscoreapi.common.exception.ObjectNotFoundException;

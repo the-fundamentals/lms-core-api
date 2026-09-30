@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS classroom_member
     -- Denormalized fields from account/identity service
     email              VARCHAR(255) NOT NULL,
     name               VARCHAR(255) NOT NULL,
+    avatar             VARCHAR(255),
 
     FOREIGN KEY (classroom_id) REFERENCES classroom (id),
     UNIQUE (classroom_id, account_id)

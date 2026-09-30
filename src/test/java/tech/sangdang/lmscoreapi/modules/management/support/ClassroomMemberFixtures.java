@@ -22,6 +22,8 @@ public final class ClassroomMemberFixtures {
   public static final String SECOND_MEMBER_EMAIL = "jordan@example.com";
   public static final String MEMBER_NAME = "Alex Nguyen";
   public static final String SECOND_MEMBER_NAME = "Jordan Lee";
+  public static final String MEMBER_AVATAR = "public/3e4ef8d1-9581-402f-9e27-fec209aeb2d8";
+  public static final String SECOND_MEMBER_AVATAR = "public/540ba3e4-8026-45e9-9834-54aa0eb1a17a";
 
   private ClassroomMemberFixtures() {}
 
@@ -39,6 +41,7 @@ public final class ClassroomMemberFixtures {
         .setStatus(status)
         .setEmail(MEMBER_EMAIL)
         .setName(MEMBER_NAME)
+        .setAvatar(MEMBER_AVATAR)
         .setCreatedDate(CREATED_AT)
         .setLastModifiedDate(MODIFIED_AT);
   }
