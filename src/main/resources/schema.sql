@@ -72,6 +72,8 @@ CREATE TABLE IF NOT EXISTS classroom_schedule_recurrence
     recur_until           DATE,
     start_time            TIME        NOT NULL,
     end_time              TIME        NOT NULL,
+    name                  VARCHAR(255),
+    description           VARCHAR(2000),
     classroom_id          UUID,
 
     FOREIGN KEY (classroom_id) REFERENCES classroom (id)

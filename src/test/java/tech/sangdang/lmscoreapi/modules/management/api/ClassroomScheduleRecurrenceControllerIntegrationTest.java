@@ -14,9 +14,11 @@ import static tech.sangdang.lmscoreapi.helpers.SecurityTestSupport.adminJwt;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomFixtures.CLASSROOM_ID;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomFixtures.classroom;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomScheduleRecurrenceFixtures.BY_DAY;
+import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomScheduleRecurrenceFixtures.DESCRIPTION;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomScheduleRecurrenceFixtures.END_TIME;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomScheduleRecurrenceFixtures.END_TIME_VALUE;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomScheduleRecurrenceFixtures.FREQUENCY;
+import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomScheduleRecurrenceFixtures.NAME;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomScheduleRecurrenceFixtures.RECURRENCE_START_DATE;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomScheduleRecurrenceFixtures.RECURRENCE_START_DATE_VALUE;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomScheduleRecurrenceFixtures.RECUR_UNTIL;
@@ -86,7 +88,9 @@ class ClassroomScheduleRecurrenceControllerIntegrationTest {
                   .setRecurrenceStartDate(incoming.getRecurrenceStartDate())
                   .setRecurUntil(incoming.getRecurUntil())
                   .setStartTime(incoming.getStartTime())
-                  .setEndTime(incoming.getEndTime());
+                  .setEndTime(incoming.getEndTime())
+                  .setName(incoming.getName())
+                  .setDescription(incoming.getDescription());
             });
 
     CreateClassroomScheduleRecurrenceCommand command = createScheduleCommand();
@@ -106,6 +110,8 @@ class ClassroomScheduleRecurrenceControllerIntegrationTest {
         .andExpect(jsonPath("$.recurUntil").value(RECUR_UNTIL_VALUE))
         .andExpect(jsonPath("$.startTime").value(START_TIME_VALUE))
         .andExpect(jsonPath("$.endTime").value(END_TIME_VALUE))
+        .andExpect(jsonPath("$.name").value(NAME))
+        .andExpect(jsonPath("$.description").value(DESCRIPTION))
         .andExpect(jsonPath("$.deletedDate").doesNotExist())
         .andExpect(jsonPath("$.createdDate").exists())
         .andExpect(jsonPath("$.lastModifiedDate").exists());
@@ -120,6 +126,8 @@ class ClassroomScheduleRecurrenceControllerIntegrationTest {
     assertThat(captor.getValue().getRecurUntil()).isEqualTo(RECUR_UNTIL);
     assertThat(captor.getValue().getStartTime()).isEqualTo(START_TIME);
     assertThat(captor.getValue().getEndTime()).isEqualTo(END_TIME);
+    assertThat(captor.getValue().getName()).isEqualTo(NAME);
+    assertThat(captor.getValue().getDescription()).isEqualTo(DESCRIPTION);
   }
 
   @Test
@@ -141,7 +149,9 @@ class ClassroomScheduleRecurrenceControllerIntegrationTest {
         .andExpect(jsonPath("$[0].recurrenceStartDate").value(RECURRENCE_START_DATE_VALUE))
         .andExpect(jsonPath("$[0].recurUntil").value(RECUR_UNTIL_VALUE))
         .andExpect(jsonPath("$[0].startTime").value(START_TIME_VALUE))
-        .andExpect(jsonPath("$[0].endTime").value(END_TIME_VALUE));
+        .andExpect(jsonPath("$[0].endTime").value(END_TIME_VALUE))
+        .andExpect(jsonPath("$[0].name").value(NAME))
+        .andExpect(jsonPath("$[0].description").value(DESCRIPTION));
 
     verify(classroomScheduleRecurrenceRepository)
         .findByClassroomIdAndDeletedDateIsNull(CLASSROOM_ID);
@@ -165,7 +175,9 @@ class ClassroomScheduleRecurrenceControllerIntegrationTest {
         .andExpect(jsonPath("$.recurrenceStartDate").value(RECURRENCE_START_DATE_VALUE))
         .andExpect(jsonPath("$.recurUntil").value(RECUR_UNTIL_VALUE))
         .andExpect(jsonPath("$.startTime").value(START_TIME_VALUE))
-        .andExpect(jsonPath("$.endTime").value(END_TIME_VALUE));
+        .andExpect(jsonPath("$.endTime").value(END_TIME_VALUE))
+        .andExpect(jsonPath("$.name").value(NAME))
+        .andExpect(jsonPath("$.description").value(DESCRIPTION));
   }
 
   @Test
@@ -271,6 +283,8 @@ class ClassroomScheduleRecurrenceControllerIntegrationTest {
         .recurUntil(RECUR_UNTIL)
         .startTime(START_TIME)
         .endTime(END_TIME)
+        .name(NAME)
+        .description(DESCRIPTION)
         .build();
   }
 }

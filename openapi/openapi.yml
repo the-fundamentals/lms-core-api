@@ -1979,6 +1979,18 @@ components:
           format: time-local
           description: Daily end time of the scheduled session
           example: "10:30:00"
+        name:
+          type: string
+          description: Optional display name copied onto generated classroom sessions
+          minLength: 1
+          maxLength: 255
+          example: Week 1 lecture
+        description:
+          type: string
+          description: Optional description copied onto generated classroom sessions
+          minLength: 1
+          maxLength: 2000
+          example: Introduction to the course and classroom expectations
     RecurrenceFrequency:
       type: string
       description: How often the recurrence repeats
@@ -2046,6 +2058,18 @@ components:
           format: time-local
           description: Daily end time of the scheduled session
           example: "10:30:00"
+        name:
+          type: string
+          description: Optional display name copied onto generated classroom sessions
+          minLength: 1
+          maxLength: 255
+          example: Week 1 lecture
+        description:
+          type: string
+          description: Optional description copied onto generated classroom sessions
+          minLength: 1
+          maxLength: 2000
+          example: Introduction to the course and classroom expectations
         deletedDate:
           type: string
           format: date-time

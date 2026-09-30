@@ -9,7 +9,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomFixtures.CLASSROOM_ID;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomFixtures.classroom;
+import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomScheduleRecurrenceFixtures.DESCRIPTION;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomScheduleRecurrenceFixtures.END_TIME;
+import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomScheduleRecurrenceFixtures.NAME;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomScheduleRecurrenceFixtures.SCHEDULE_ID;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomScheduleRecurrenceFixtures.START_TIME;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomScheduleRecurrenceFixtures.classroomScheduleRecurrence;
@@ -98,6 +100,8 @@ class ClassroomSessionGenerationServiceImplTest {
               assertThat(session.getEndTime()).isEqualTo(END_TIME);
               assertThat(session.getGeneratedBy()).isEqualTo(SCHEDULE_ID);
               assertThat(session.getClassroomId()).isEqualTo(CLASSROOM_ID);
+              assertThat(session.getName()).isEqualTo(NAME);
+              assertThat(session.getDescription()).isEqualTo(DESCRIPTION);
             });
   }
 

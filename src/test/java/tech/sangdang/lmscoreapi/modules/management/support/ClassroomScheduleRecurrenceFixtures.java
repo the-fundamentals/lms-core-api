@@ -25,6 +25,8 @@ public final class ClassroomScheduleRecurrenceFixtures {
   public static final LocalTime END_TIME = LocalTime.of(10, 30, 0);
   public static final String START_TIME_VALUE = "09:00:00";
   public static final String END_TIME_VALUE = "10:30:00";
+  public static final String NAME = "Week 1 lecture";
+  public static final String DESCRIPTION = "Introduction to the course and classroom expectations";
   public static final LocalDateTime DELETED_AT = LocalDateTime.of(2026, 7, 20, 10, 0, 0);
 
   private ClassroomScheduleRecurrenceFixtures() {}
@@ -43,6 +45,8 @@ public final class ClassroomScheduleRecurrenceFixtures {
         .setRecurUntil(RECUR_UNTIL)
         .setStartTime(START_TIME)
         .setEndTime(END_TIME)
+        .setName(NAME)
+        .setDescription(DESCRIPTION)
         .setCreatedDate(CREATED_AT)
         .setLastModifiedDate(MODIFIED_AT);
   }
