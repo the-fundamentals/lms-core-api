@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: LMS Core API
-  version: 0.2.13
+  version: 0.2.14
   description: Core API for the Learning Management System. Management endpoints under `/admin/**` require the ADMIN role. Authenticated self-service endpoints live under `/private/**`.
   contact:
     name: Sang Dang
@@ -571,9 +571,8 @@ paths:
       operationId: updateClassroomSession
       summary: Update a classroom session
       description: >
-        Updates the display name and description of an OPEN classroom session.
-        Date, times, status, and type are unchanged. COMPLETED and CANCELLED sessions are rejected.
-        Omitted name or description clears that field.
+        Updates the display name and description of an OPEN classroom session. Date, times, status, and type are unchanged. COMPLETED and CANCELLED sessions are rejected. Omitted name or description clears that field.
+
       parameters:
         - $ref: "#/components/parameters/ClassroomIdPath"
         - $ref: "#/components/parameters/SessionId"
@@ -986,9 +985,8 @@ paths:
       operationId: createClassroomScheduleRecurrence
       summary: Create classroom schedule recurrences for one or more weekdays
       description: >
-        Creates one schedule recurrence row per weekday in `byDays`, sharing the
-        same frequency, date range, times, and optional name/description. Returns
-        all created rows.
+        Creates one schedule recurrence row per weekday in `byDays`, sharing the same frequency, date range, times, and optional name/description. Returns all created rows.
+
       parameters:
         - $ref: "#/components/parameters/ClassroomIdPath"
       requestBody:
@@ -1567,8 +1565,8 @@ components:
         avatar:
           type: string
           description: >
-            Denormalized avatar key from the account profile (copied at membership
-            create/upsert; null when the profile has no avatar)
+            Denormalized avatar key from the account profile (copied at membership create/upsert; null when the profile has no avatar)
+
           maxLength: 255
           example: public/3e4ef8d1-9581-402f-9e27-fec209aeb2d8
         createdDate:
@@ -1645,8 +1643,8 @@ components:
     UpdateClassroomSessionCommand:
       type: object
       description: >
-        Command to update a classroom session's display name and description.
-        Date, times, status, and type cannot be changed here.
+        Command to update a classroom session's display name and description. Date, times, status, and type cannot be changed here.
+
       additionalProperties: false
       properties:
         name:
@@ -1950,8 +1948,8 @@ components:
     CreateClassroomScheduleRecurrenceCommand:
       type: object
       description: >
-        Command to create classroom schedule recurrences — one persisted row per
-        weekday in `byDays`
+        Command to create classroom schedule recurrences — one persisted row per weekday in `byDays`
+
       additionalProperties: false
       required:
         - frequency
