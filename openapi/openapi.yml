@@ -286,7 +286,7 @@ paths:
       operationId: getAllClassroomPaymentPlans
       summary: Get current payment plans for a classroom
       description: >
-        Returns each member's current (active) payment plan for the classroom, not paginated. Replaced plans are omitted. Members with no current plan are omitted. Newest created date first.
+        Returns each member's current payment plan (`effectiveTo` null) for the classroom, not paginated. Replaced plans are omitted. Members with no current plan are omitted. Newest `effectiveFrom` first.
 
       parameters:
         - $ref: "#/components/parameters/ClassroomIdPath"
@@ -365,7 +365,7 @@ paths:
       operationId: getClassroomMemberPaymentPlans
       summary: Get payment plans for a classroom member
       description: >
-        Returns every payment plan for the member, not paginated. The current plan (if any) is first, then remaining plans by created date descending. An empty list means the member has no paid plan.
+        Returns every payment plan for the member, not paginated. The current plan (`effectiveTo` null, if any) is first, then remaining plans by `effectiveFrom` descending. An empty list means the member has no paid plan.
 
       parameters:
         - $ref: "#/components/parameters/ClassroomIdPath"
@@ -389,7 +389,7 @@ paths:
       operationId: createClassroomMemberPaymentPlan
       summary: Create a payment plan for a classroom member
       description: >
-        Inserts a new current payment plan. Any existing current plan for the member is marked not current in the same transaction. Plans are immutable after create.
+        Inserts a new current payment plan effective immediately. Any existing current plan for the member is closed (`effectiveTo` set) in the same transaction. Does not support future-dated plans. Plans are immutable after create; updates are not allowed.
 
       parameters:
         - $ref: "#/components/parameters/ClassroomIdPath"
@@ -420,29 +420,26 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
   /admin/classrooms/{classroomId}/members/{memberId}/payment-plans/{paymentPlanId}:
-    delete:
+    get:
       tags:
         - ClassroomMemberPaymentPlans
-      operationId: deleteClassroomMemberPaymentPlan
-      summary: Delete a classroom member payment plan
-      description: >
-        Hard-deletes a payment plan only if it was created within the last five minutes. Does not restore a previous plan as current.
+      operationId: getClassroomMemberPaymentPlanById
+      summary: Get a classroom member payment plan by id
+      description: Returns a single payment plan for the member by its identifier.
 
       parameters:
         - $ref: "#/components/parameters/ClassroomIdPath"
         - $ref: "#/components/parameters/MemberId"
         - $ref: "#/components/parameters/PaymentPlanId"
       responses:
-        "204":
-          description: Payment plan deleted
-        "404":
-          description: Payment plan not found
+        "200":
+          description: Payment plan found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "409":
-          description: Payment plan is outside the deletion window
+                $ref: "#/components/schemas/ClassroomMemberPaymentPlanResponse"
+        "404":
+          description: Payment plan not found
           content:
             application/json:
               schema:
@@ -1291,7 +1288,9 @@ components:
       example: PER_SESSION
     CreateClassroomMemberPaymentPlanCommand:
       type: object
-      description: Command to create a current payment plan for a classroom member
+      description: >
+        Command to create a current payment plan for a classroom member. Takes effect immediately;
+        effective dates are set by the server (no future scheduling).
       additionalProperties: false
       required:
         - type
@@ -1322,7 +1321,7 @@ components:
         - type
         - amount
         - currency
-        - isCurrent
+        - effectiveFrom
         - createdDate
         - lastModifiedDate
       properties:
@@ -1349,11 +1348,12 @@ components:
           minLength: 1
           maxLength: 32
           example: VND
-        isCurrent:
-          type: boolean
-          description: Whether this is the member's current plan
-          example: true
-        replacedAt:
+        effectiveFrom:
+          type: string
+          format: date-time
+          description: When this plan became current
+          example: 2026-07-14T00:00:00Z
+        effectiveTo:
           type: string
           format: date-time
           description: When this plan stopped being current. Null while current.

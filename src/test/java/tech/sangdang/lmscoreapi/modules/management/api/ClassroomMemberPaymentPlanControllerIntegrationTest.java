@@ -5,7 +5,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -80,8 +79,8 @@ class ClassroomMemberPaymentPlanControllerIntegrationTest {
               return paymentPlan(
                   PAYMENT_PLAN_ID,
                   incoming.getClassroomMemberId(),
-                  incoming.getIsCurrent(),
-                  incoming.getReplacedAt(),
+                  incoming.getEffectiveFrom(),
+                  incoming.getEffectiveTo(),
                   Instant.now());
             });
 
@@ -100,7 +99,8 @@ class ClassroomMemberPaymentPlanControllerIntegrationTest {
         .andExpect(jsonPath("$.type").value("PER_SESSION"))
         .andExpect(jsonPath("$.amount").value(AMOUNT))
         .andExpect(jsonPath("$.currency").value(CURRENCY))
-        .andExpect(jsonPath("$.isCurrent").value(true));
+        .andExpect(jsonPath("$.effectiveFrom").exists())
+        .andExpect(jsonPath("$.effectiveTo").doesNotExist());
 
     verify(classroomMemberPaymentPlanRepository, never())
         .update(any(ClassroomMemberPaymentPlan.class));
@@ -108,8 +108,8 @@ class ClassroomMemberPaymentPlanControllerIntegrationTest {
         ArgumentCaptor.forClass(ClassroomMemberPaymentPlan.class);
     verify(classroomMemberPaymentPlanRepository).insert(captor.capture());
     assertThat(captor.getValue().getClassroomMemberId()).isEqualTo(MEMBER_ID);
-    assertThat(captor.getValue().getIsCurrent()).isTrue();
-    assertThat(captor.getValue().getReplacedAt()).isNull();
+    assertThat(captor.getValue().getEffectiveFrom()).isNotNull();
+    assertThat(captor.getValue().getEffectiveTo()).isNull();
     assertThat(captor.getValue().getCurrency()).isEqualTo(CURRENCY);
   }
 
@@ -125,8 +125,8 @@ class ClassroomMemberPaymentPlanControllerIntegrationTest {
               return paymentPlan(
                   PAYMENT_PLAN_ID,
                   incoming.getClassroomMemberId(),
-                  incoming.getIsCurrent(),
-                  incoming.getReplacedAt(),
+                  incoming.getEffectiveFrom(),
+                  incoming.getEffectiveTo(),
                   Instant.now());
             });
 
@@ -156,9 +156,9 @@ class ClassroomMemberPaymentPlanControllerIntegrationTest {
   @Test
   @DisplayName("replaces the member's current payment plan when creating a new one")
   void createClassroomMemberPaymentPlan_replacesCurrent_returns201() throws Exception {
+    Instant existingFrom = Instant.now().minusSeconds(60);
     ClassroomMemberPaymentPlan existing =
-        paymentPlan(
-            PREVIOUS_PAYMENT_PLAN_ID, MEMBER_ID, true, null, Instant.now().minusSeconds(60));
+        paymentPlan(PREVIOUS_PAYMENT_PLAN_ID, MEMBER_ID, existingFrom, null, existingFrom);
 
     when(classroomMemberRepository.findById(MEMBER_ID)).thenReturn(Optional.of(classroomMember()));
     when(classroomMemberPaymentPlanRepository.findCurrent(MEMBER_ID))
@@ -172,8 +172,8 @@ class ClassroomMemberPaymentPlanControllerIntegrationTest {
               return paymentPlan(
                   PAYMENT_PLAN_ID,
                   incoming.getClassroomMemberId(),
-                  incoming.getIsCurrent(),
-                  incoming.getReplacedAt(),
+                  incoming.getEffectiveFrom(),
+                  incoming.getEffectiveTo(),
                   Instant.now());
             });
 
@@ -188,20 +188,20 @@ class ClassroomMemberPaymentPlanControllerIntegrationTest {
                 .with(adminJwt()))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.id").value(PAYMENT_PLAN_ID.toString()))
-        .andExpect(jsonPath("$.isCurrent").value(true));
+        .andExpect(jsonPath("$.effectiveTo").doesNotExist());
 
     ArgumentCaptor<ClassroomMemberPaymentPlan> updated =
         ArgumentCaptor.forClass(ClassroomMemberPaymentPlan.class);
     verify(classroomMemberPaymentPlanRepository).update(updated.capture());
     assertThat(updated.getValue().getId()).isEqualTo(PREVIOUS_PAYMENT_PLAN_ID);
-    assertThat(updated.getValue().getIsCurrent()).isFalse();
-    assertThat(updated.getValue().getReplacedAt()).isNotNull();
+    assertThat(updated.getValue().getEffectiveTo()).isNotNull();
 
     ArgumentCaptor<ClassroomMemberPaymentPlan> inserted =
         ArgumentCaptor.forClass(ClassroomMemberPaymentPlan.class);
     verify(classroomMemberPaymentPlanRepository).insert(inserted.capture());
-    assertThat(inserted.getValue().getIsCurrent()).isTrue();
-    assertThat(inserted.getValue().getReplacedAt()).isNull();
+    assertThat(inserted.getValue().getEffectiveFrom())
+        .isEqualTo(updated.getValue().getEffectiveTo());
+    assertThat(inserted.getValue().getEffectiveTo()).isNull();
 
     InOrder inOrder = Mockito.inOrder(classroomMemberPaymentPlanRepository);
     inOrder.verify(classroomMemberPaymentPlanRepository).update(any());
@@ -229,14 +229,12 @@ class ClassroomMemberPaymentPlanControllerIntegrationTest {
   @Test
   @DisplayName("lists payment plans with the current plan first")
   void getClassroomMemberPaymentPlans_returns200() throws Exception {
-    ClassroomMemberPaymentPlan current = currentPaymentPlan();
+    Instant previousFrom = Instant.now().minus(Duration.ofDays(1));
+    Instant currentFrom = Instant.now();
+    ClassroomMemberPaymentPlan current =
+        paymentPlan(PAYMENT_PLAN_ID, MEMBER_ID, currentFrom, null, currentFrom);
     ClassroomMemberPaymentPlan previous =
-        paymentPlan(
-            PREVIOUS_PAYMENT_PLAN_ID,
-            MEMBER_ID,
-            false,
-            Instant.now(),
-            Instant.now().minus(Duration.ofDays(1)));
+        paymentPlan(PREVIOUS_PAYMENT_PLAN_ID, MEMBER_ID, previousFrom, currentFrom, previousFrom);
 
     when(classroomMemberRepository.findById(MEMBER_ID)).thenReturn(Optional.of(classroomMember()));
     when(classroomMemberPaymentPlanRepository.findByMember(MEMBER_ID))
@@ -253,9 +251,74 @@ class ClassroomMemberPaymentPlanControllerIntegrationTest {
         .andExpect(jsonPath("$").isArray())
         .andExpect(jsonPath("$.length()").value(2))
         .andExpect(jsonPath("$[0].id").value(PAYMENT_PLAN_ID.toString()))
-        .andExpect(jsonPath("$[0].isCurrent").value(true))
+        .andExpect(jsonPath("$[0].effectiveTo").doesNotExist())
         .andExpect(jsonPath("$[1].id").value(PREVIOUS_PAYMENT_PLAN_ID.toString()))
-        .andExpect(jsonPath("$[1].isCurrent").value(false));
+        .andExpect(jsonPath("$[1].effectiveTo").exists());
+  }
+
+  @Test
+  @DisplayName("gets a payment plan by id")
+  void getClassroomMemberPaymentPlanById_returns200() throws Exception {
+    when(classroomMemberRepository.findById(MEMBER_ID)).thenReturn(Optional.of(classroomMember()));
+    when(classroomMemberPaymentPlanRepository.findById(PAYMENT_PLAN_ID))
+        .thenReturn(Optional.of(currentPaymentPlan()));
+
+    mockMvc
+        .perform(
+            get(
+                    "/admin/classrooms/{classroomId}/members/{memberId}/payment-plans/{paymentPlanId}",
+                    CLASSROOM_ID,
+                    MEMBER_ID,
+                    PAYMENT_PLAN_ID)
+                .with(adminJwt()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value(PAYMENT_PLAN_ID.toString()))
+        .andExpect(jsonPath("$.classroomMemberId").value(MEMBER_ID.toString()))
+        .andExpect(jsonPath("$.amount").value(AMOUNT))
+        .andExpect(jsonPath("$.effectiveFrom").exists())
+        .andExpect(jsonPath("$.effectiveTo").doesNotExist());
+  }
+
+  @Test
+  @DisplayName("fails to get a payment plan that does not exist")
+  void getClassroomMemberPaymentPlanById_missing_returns404() throws Exception {
+    when(classroomMemberRepository.findById(MEMBER_ID)).thenReturn(Optional.of(classroomMember()));
+    when(classroomMemberPaymentPlanRepository.findById(PAYMENT_PLAN_ID))
+        .thenReturn(Optional.empty());
+
+    mockMvc
+        .perform(
+            get(
+                    "/admin/classrooms/{classroomId}/members/{memberId}/payment-plans/{paymentPlanId}",
+                    CLASSROOM_ID,
+                    MEMBER_ID,
+                    PAYMENT_PLAN_ID)
+                .with(adminJwt()))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value("CLASSROOM_MEMBER_PAYMENT_PLAN_NOT_FOUND"));
+  }
+
+  @Test
+  @DisplayName("fails to get a payment plan that belongs to another member")
+  void getClassroomMemberPaymentPlanById_wrongMember_returns404() throws Exception {
+    UUID otherMemberId = UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
+    Instant now = Instant.now();
+    ClassroomMemberPaymentPlan plan = paymentPlan(PAYMENT_PLAN_ID, otherMemberId, now, null, now);
+
+    when(classroomMemberRepository.findById(MEMBER_ID)).thenReturn(Optional.of(classroomMember()));
+    when(classroomMemberPaymentPlanRepository.findById(PAYMENT_PLAN_ID))
+        .thenReturn(Optional.of(plan));
+
+    mockMvc
+        .perform(
+            get(
+                    "/admin/classrooms/{classroomId}/members/{memberId}/payment-plans/{paymentPlanId}",
+                    CLASSROOM_ID,
+                    MEMBER_ID,
+                    PAYMENT_PLAN_ID)
+                .with(adminJwt()))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value("CLASSROOM_MEMBER_PAYMENT_PLAN_NOT_FOUND"));
   }
 
   @Test
@@ -275,7 +338,7 @@ class ClassroomMemberPaymentPlanControllerIntegrationTest {
         .andExpect(jsonPath("$").isArray())
         .andExpect(jsonPath("$.length()").value(1))
         .andExpect(jsonPath("$[0].id").value(PAYMENT_PLAN_ID.toString()))
-        .andExpect(jsonPath("$[0].isCurrent").value(true));
+        .andExpect(jsonPath("$[0].effectiveTo").doesNotExist());
   }
 
   @Test
@@ -290,56 +353,6 @@ class ClassroomMemberPaymentPlanControllerIntegrationTest {
         .andExpect(jsonPath("$.code").value("CLASSROOM_NOT_FOUND"));
 
     verify(classroomMemberPaymentPlanRepository, never()).findByClassroom(any());
-  }
-
-  @Test
-  @DisplayName("deletes a payment plan created within five minutes")
-  void deleteClassroomMemberPaymentPlan_withinWindow_returns204() throws Exception {
-    ClassroomMemberPaymentPlan plan =
-        paymentPlan(PAYMENT_PLAN_ID, MEMBER_ID, true, null, Instant.now().minusSeconds(30));
-
-    when(classroomMemberRepository.findById(MEMBER_ID)).thenReturn(Optional.of(classroomMember()));
-    when(classroomMemberPaymentPlanRepository.findById(PAYMENT_PLAN_ID))
-        .thenReturn(Optional.of(plan));
-
-    mockMvc
-        .perform(
-            delete(
-                    "/admin/classrooms/{classroomId}/members/{memberId}/payment-plans/{paymentPlanId}",
-                    CLASSROOM_ID,
-                    MEMBER_ID,
-                    PAYMENT_PLAN_ID)
-                .with(adminJwt()))
-        .andExpect(status().isNoContent());
-
-    verify(classroomMemberPaymentPlanRepository).deleteById(PAYMENT_PLAN_ID);
-    verify(classroomMemberPaymentPlanRepository, never())
-        .update(any(ClassroomMemberPaymentPlan.class));
-  }
-
-  @Test
-  @DisplayName("rejects deleting a payment plan older than five minutes")
-  void deleteClassroomMemberPaymentPlan_outsideWindow_returns409() throws Exception {
-    ClassroomMemberPaymentPlan plan =
-        paymentPlan(
-            PAYMENT_PLAN_ID, MEMBER_ID, true, null, Instant.now().minus(Duration.ofMinutes(6)));
-
-    when(classroomMemberRepository.findById(MEMBER_ID)).thenReturn(Optional.of(classroomMember()));
-    when(classroomMemberPaymentPlanRepository.findById(PAYMENT_PLAN_ID))
-        .thenReturn(Optional.of(plan));
-
-    mockMvc
-        .perform(
-            delete(
-                    "/admin/classrooms/{classroomId}/members/{memberId}/payment-plans/{paymentPlanId}",
-                    CLASSROOM_ID,
-                    MEMBER_ID,
-                    PAYMENT_PLAN_ID)
-                .with(adminJwt()))
-        .andExpect(status().isConflict())
-        .andExpect(jsonPath("$.code").value("CLASSROOM_MEMBER_PAYMENT_PLAN_DELETE_WINDOW_EXPIRED"));
-
-    verify(classroomMemberPaymentPlanRepository, never()).deleteById(any());
   }
 
   @Test
@@ -360,52 +373,6 @@ class ClassroomMemberPaymentPlanControllerIntegrationTest {
         .andExpect(jsonPath("$.code").value("CLASSROOM_MEMBER_NOT_FOUND"));
 
     verify(classroomMemberPaymentPlanRepository, never()).insert(any());
-  }
-
-  @Test
-  @DisplayName("fails to delete a payment plan that does not exist")
-  void deleteClassroomMemberPaymentPlan_missing_returns404() throws Exception {
-    when(classroomMemberRepository.findById(MEMBER_ID)).thenReturn(Optional.of(classroomMember()));
-    when(classroomMemberPaymentPlanRepository.findById(PAYMENT_PLAN_ID))
-        .thenReturn(Optional.empty());
-
-    mockMvc
-        .perform(
-            delete(
-                    "/admin/classrooms/{classroomId}/members/{memberId}/payment-plans/{paymentPlanId}",
-                    CLASSROOM_ID,
-                    MEMBER_ID,
-                    PAYMENT_PLAN_ID)
-                .with(adminJwt()))
-        .andExpect(status().isNotFound())
-        .andExpect(jsonPath("$.code").value("CLASSROOM_MEMBER_PAYMENT_PLAN_NOT_FOUND"));
-
-    verify(classroomMemberPaymentPlanRepository, never()).deleteById(any());
-  }
-
-  @Test
-  @DisplayName("fails to delete a payment plan that belongs to another member")
-  void deleteClassroomMemberPaymentPlan_wrongMember_returns404() throws Exception {
-    UUID otherMemberId = UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
-    ClassroomMemberPaymentPlan plan =
-        paymentPlan(PAYMENT_PLAN_ID, otherMemberId, true, null, Instant.now());
-
-    when(classroomMemberRepository.findById(MEMBER_ID)).thenReturn(Optional.of(classroomMember()));
-    when(classroomMemberPaymentPlanRepository.findById(PAYMENT_PLAN_ID))
-        .thenReturn(Optional.of(plan));
-
-    mockMvc
-        .perform(
-            delete(
-                    "/admin/classrooms/{classroomId}/members/{memberId}/payment-plans/{paymentPlanId}",
-                    CLASSROOM_ID,
-                    MEMBER_ID,
-                    PAYMENT_PLAN_ID)
-                .with(adminJwt()))
-        .andExpect(status().isNotFound())
-        .andExpect(jsonPath("$.code").value("CLASSROOM_MEMBER_PAYMENT_PLAN_NOT_FOUND"));
-
-    verify(classroomMemberPaymentPlanRepository, never()).deleteById(any());
   }
 
   private static CreateClassroomMemberPaymentPlanCommand createCommand() {

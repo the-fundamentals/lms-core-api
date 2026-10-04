@@ -28,6 +28,8 @@ public class ClassroomMemberPaymentPlan {
   private PaymentPlanType type;
   private Long amount;
   private String currency;
-  private Boolean isCurrent;
-  private Instant replacedAt;
+  private Instant effectiveFrom;
+
+  /** Null while this is the member's current plan. */
+  private Instant effectiveTo;
 }

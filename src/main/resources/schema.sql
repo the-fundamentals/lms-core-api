@@ -50,15 +50,16 @@ CREATE TABLE IF NOT EXISTS classroom_member_payment_plan
     type                VARCHAR(32) NOT NULL DEFAULT 'PER_SESSION',
     amount              BIGINT      NOT NULL,
     currency            VARCHAR(32) NOT NULL DEFAULT 'VND',
-    is_current          BOOLEAN     NOT NULL,
-    replaced_at         TIMESTAMP,
+    effective_from      TIMESTAMP   NOT NULL,
+    effective_to        TIMESTAMP,
 
     FOREIGN KEY (classroom_member_id) REFERENCES classroom_member (id)
 );
 
+-- One open-ended (current) plan per member. No future-dated plans.
 CREATE UNIQUE INDEX IF NOT EXISTS unique_current_payment_plan
     ON classroom_member_payment_plan (classroom_member_id)
-    WHERE is_current = true;
+    WHERE effective_to IS NULL;
 
 CREATE TABLE IF NOT EXISTS classroom_schedule_recurrence
 (

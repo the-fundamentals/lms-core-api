@@ -21,19 +21,24 @@ public final class ClassroomMemberPaymentPlanFixtures {
   private ClassroomMemberPaymentPlanFixtures() {}
 
   public static ClassroomMemberPaymentPlan currentPaymentPlan() {
-    return paymentPlan(PAYMENT_PLAN_ID, MEMBER_ID, true, null, Instant.now());
+    Instant now = Instant.now();
+    return paymentPlan(PAYMENT_PLAN_ID, MEMBER_ID, now, null, now);
   }
 
   public static ClassroomMemberPaymentPlan paymentPlan(
-      UUID id, UUID classroomMemberId, boolean isCurrent, Instant replacedAt, Instant createdDate) {
+      UUID id,
+      UUID classroomMemberId,
+      Instant effectiveFrom,
+      Instant effectiveTo,
+      Instant createdDate) {
     return new ClassroomMemberPaymentPlan()
         .setId(id)
         .setClassroomMemberId(classroomMemberId)
         .setType(PaymentPlanType.PER_SESSION)
         .setAmount(AMOUNT)
         .setCurrency(CURRENCY)
-        .setIsCurrent(isCurrent)
-        .setReplacedAt(replacedAt)
+        .setEffectiveFrom(effectiveFrom)
+        .setEffectiveTo(effectiveTo)
         .setCreatedDate(createdDate)
         .setLastModifiedDate(createdDate);
   }

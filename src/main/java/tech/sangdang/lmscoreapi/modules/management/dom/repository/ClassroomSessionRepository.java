@@ -21,7 +21,8 @@ public interface ClassroomSessionRepository
    * Sums current student payment-plan amounts for ATTENDED rows on sessions in {@code [from, to)}.
    *
    * <ul>
-   *   <li>Uses each member's current plan only, not the plan at session time.
+   *   <li>Uses each member's current plan only ({@code effective_to} null), not the plan at session
+   *       time.
    *   <li>Teachers, ABSENT, UNSET, and members with no current plan are omitted.
    *   <li>Zero when nothing matches.
    * </ul>
@@ -37,7 +38,7 @@ public interface ClassroomSessionRepository
       JOIN classroom_attendance a ON a.session_id = s.id AND a.status = 'ATTENDED'
       JOIN classroom_member m ON m.id = a.classroom_member_id AND m.role = 'STUDENT'
       JOIN classroom_member_payment_plan p
-        ON p.classroom_member_id = m.id AND p.is_current = true
+        ON p.classroom_member_id = m.id AND p.effective_to IS NULL
       WHERE s.classroom_id = :classroomId
         AND s.session_date >= :from
         AND s.session_date < :to
