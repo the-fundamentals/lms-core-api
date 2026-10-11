@@ -30,7 +30,7 @@ public class ClassroomInvoiceLine {
   private String description;
   private Long unitPrice;
   private Integer quantity;
-  private Long finalAmount;
+  private Long finalAmount = 0L;
 
   public static ClassroomInvoiceLine ofLesson(
       String description, Long unitPrice, Integer quantity) {

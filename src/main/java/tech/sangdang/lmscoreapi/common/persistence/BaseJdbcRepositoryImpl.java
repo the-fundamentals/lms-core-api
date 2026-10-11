@@ -1,6 +1,7 @@
 package tech.sangdang.lmscoreapi.common.persistence;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -141,6 +142,7 @@ public class BaseJdbcRepositoryImpl<Entity, IdType>
       case Operators.LESS_THAN -> Criteria.where(field).lessThan(value);
       case Operators.GREATER_OR_EQUAL -> Criteria.where(field).greaterThanOrEquals(value);
       case Operators.LESS_OR_EQUAL -> Criteria.where(field).lessThanOrEquals(value);
+      case Operators.IN -> Criteria.where(field).in((Collection<?>) value);
       default -> throw new IllegalArgumentException("Unknown operator: " + filter.getOperator());
     };
   }

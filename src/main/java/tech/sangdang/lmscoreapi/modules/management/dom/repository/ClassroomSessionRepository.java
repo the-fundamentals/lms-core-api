@@ -5,7 +5,7 @@ import org.springframework.stereotype.Repository;
 import tech.sangdang.lmscoreapi.common.persistence.BaseCommandRepository;
 import tech.sangdang.lmscoreapi.common.persistence.BaseQueryRepository;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSession;
-import tech.sangdang.lmscoreapi.modules.management.dom.repository.fragments.ClassroomSessionRepositoryFragment;
+import tech.sangdang.lmscoreapi.modules.management.app.useCase.SessionGeneration.ClassroomSessionRepositoryFragment;
 
 @Repository
 public interface ClassroomSessionRepository

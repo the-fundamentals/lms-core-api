@@ -17,6 +17,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.relational.core.mapping.MappedCollection;
 import org.springframework.data.relational.core.mapping.Table;
+import tech.sangdang.lmscoreapi.modules.management.dom.exception.ClassroomInvoiceCannotBeApprovedException;
 
 @Getter
 @Setter
@@ -31,6 +32,9 @@ public class ClassroomInvoice {
   private @Id UUID id;
   private @CreatedDate LocalDateTime createdDate;
   private @LastModifiedDate LocalDateTime lastModifiedDate;
+
+  /** FK to {@code classroom.id} (column {@code classroom_id}). */
+  private UUID classroomId;
 
   /** FK to {@code classroom_member.id} (column {@code member_id}). */
   private UUID memberId;
@@ -57,20 +61,23 @@ public class ClassroomInvoice {
   // ===============================
 
   public static ClassroomInvoice ofGenerated(
+      UUID classroomId,
       UUID memberId,
       Set<ClassroomInvoiceLine> lines,
       LocalDate periodStart,
       ClassroomInvoicePeriodRange periodRange,
       String note) {
+    Set<ClassroomInvoiceLine> invoiceLines = lines == null ? new HashSet<>() : lines;
     return new ClassroomInvoice()
+        .setClassroomId(classroomId)
         .setMemberId(memberId)
         .setStatus(ClassroomInvoiceStatus.DRAFT)
         .setType(ClassroomInvoiceType.GENERATED)
         .setPeriodStart(periodStart)
         .setPeriodRange(periodRange)
         .setNote(note)
-        .setTotalAmount(0L)
-        .setLines(lines);
+        .setTotalAmount(ClassroomInvoice.calculateTotalAmount(invoiceLines))
+        .setLines(invoiceLines);
   }
 
   public static ClassroomInvoice ofAdhoc() {
@@ -93,7 +100,7 @@ public class ClassroomInvoice {
 
   public void requireCanBeApproved() {
     if (!canBeApproved()) {
-      throw new IllegalStateException("Cannot approve invoice");
+      throw ClassroomInvoiceCannotBeApprovedException.of();
     }
   }
 
@@ -123,5 +130,13 @@ public class ClassroomInvoice {
     if (!canBeCompleted()) {
       throw new IllegalStateException("Cannot complete invoice");
     }
+  }
+
+  // ===============================
+  // Utilities
+  // ===============================
+
+  public static Long calculateTotalAmount(Set<ClassroomInvoiceLine> items) {
+    return items.stream().mapToLong(ClassroomInvoiceLine::getFinalAmount).sum();
   }
 }

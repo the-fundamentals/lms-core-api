@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS classroom_member
     classroom_id       UUID         NOT NULL,
     role               VARCHAR(32),
     status             VARCHAR(32)  NOT NULL,
+    removed_date       TIMESTAMP,
     -- Denormalized fields from account/identity service
     email              VARCHAR(255) NOT NULL,
     name               VARCHAR(255) NOT NULL,
@@ -132,9 +133,10 @@ CREATE TABLE IF NOT EXISTS storage_grants
 
 CREATE TABLE IF NOT EXISTS classroom_invoice
 (
-    id                 UUID PRIMARY KEY,
+    id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     created_date       TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
     last_modified_date TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
+    classroom_id       UUID        NOT NULL,
     member_id          UUID        NOT NULL,
     status             VARCHAR(64) NOT NULL,        -- DRAFT, APPROVED, COMPLETED
     type               VARCHAR(64) NOT NULL,        -- GENERATED (ADHOC will be added later)
@@ -152,8 +154,10 @@ CREATE TABLE IF NOT EXISTS classroom_invoice
     payment_reference  TEXT,
     payment_note       TEXT,
 
+    FOREIGN KEY (classroom_id) REFERENCES classroom (id),
     FOREIGN KEY (member_id) REFERENCES classroom_member (id)
 );
+CREATE INDEX idx_classroom_invoice_classroom ON classroom_invoice (classroom_id);
 CREATE INDEX idx_classroom_invoice_member ON classroom_invoice (member_id);
 CREATE UNIQUE INDEX unique_generated_invoice_member_period
     ON classroom_invoice (member_id, period_range, period_start) NULLS NOT DISTINCT
@@ -162,7 +166,7 @@ CREATE UNIQUE INDEX unique_generated_invoice_member_period
 -- Aggregate child of classroom_invoice.
 CREATE TABLE IF NOT EXISTS classroom_invoice_line
 (
-    id                 UUID PRIMARY KEY,
+    id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     created_date       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_modified_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     invoice_id         UUID        NOT NULL,

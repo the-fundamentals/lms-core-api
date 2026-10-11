@@ -1,4 +1,4 @@
-package tech.sangdang.lmscoreapi.modules.management.dom.repository.fragments;
+package tech.sangdang.lmscoreapi.modules.management.app.useCase.SessionGeneration;
 
 import java.util.List;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSession;
