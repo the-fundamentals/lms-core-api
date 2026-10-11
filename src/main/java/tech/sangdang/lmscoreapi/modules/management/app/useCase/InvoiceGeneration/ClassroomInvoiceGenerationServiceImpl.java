@@ -37,6 +37,11 @@ public class ClassroomInvoiceGenerationServiceImpl implements ClassroomInvoiceGe
             .map(Classroom::getId)
             .toList();
 
+    if (classroomIds.isEmpty()) {
+      log.info("No active classrooms; skipping monthly invoice generation for {}", month);
+      return;
+    }
+
     // Fetch all active classroom members in these classrooms
     classroomMemberRepository.query(
         BaseQuery.builder()

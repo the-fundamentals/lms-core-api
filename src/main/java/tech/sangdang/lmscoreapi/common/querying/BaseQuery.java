@@ -1,9 +1,11 @@
 package tech.sangdang.lmscoreapi.common.querying;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import lombok.Data;
 import org.springframework.data.domain.Sort;
+import tech.sangdang.lmscoreapi.common.exception.GenericBadRequestException;
 
 @Data
 public class BaseQuery {
@@ -64,20 +66,30 @@ public class BaseQuery {
     }
 
     public Builder addFilter(String field, String operator, String value) {
-      if (baseQuery.getFilters() == null) {
-        baseQuery.setFilters(new ArrayList<>());
-      }
-
-      baseQuery.getFilters().add(QueryFilterConditions.of(field, operator, value));
-      return this;
+      return addFilterValue(field, operator, value);
     }
 
     public Builder addFilter(String field, String operator, Enum<?> value) {
+      return addFilterValue(field, operator, value.name());
+    }
+
+    /**
+     * Adds an {@code in} (or other multi-value) filter. Rejects null/empty — SQL {@code IN ()} is
+     * invalid.
+     */
+    public Builder addFilter(String field, String operator, Collection<?> values) {
+      if (values == null || values.isEmpty()) {
+        throw GenericBadRequestException.of(
+            "INVALID_FILTER_VALUE", "Filter value collection must not be empty: " + field);
+      }
+      return addFilterValue(field, operator, values);
+    }
+
+    private Builder addFilterValue(String field, String operator, Object value) {
       if (baseQuery.getFilters() == null) {
         baseQuery.setFilters(new ArrayList<>());
       }
-
-      baseQuery.getFilters().add(QueryFilterConditions.of(field, operator, value.name()));
+      baseQuery.getFilters().add(QueryFilterConditions.of(field, operator, value));
       return this;
     }
 
