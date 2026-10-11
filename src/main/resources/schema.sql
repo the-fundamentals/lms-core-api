@@ -99,8 +99,8 @@ CREATE TABLE IF NOT EXISTS classroom_session
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS unique_generated_session_idx
-ON classroom_session (classroom_id, generated_by, session_date)
-WHERE generated_by IS NOT NULL;
+    ON classroom_session (classroom_id, generated_by, session_date)
+    WHERE generated_by IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS classroom_attendance
 (
@@ -128,4 +128,52 @@ CREATE TABLE IF NOT EXISTS storage_grants
 
     UNIQUE (owner_id, object_key),
     FOREIGN KEY (owner_id) REFERENCES account_profile (id)
-)
+);
+
+CREATE TABLE IF NOT EXISTS classroom_invoice
+(
+    id                 UUID PRIMARY KEY,
+    created_date       TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
+    last_modified_date TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
+    member_id          UUID        NOT NULL,
+    status             VARCHAR(64) NOT NULL,        -- DRAFT, APPROVED, COMPLETED
+    type               VARCHAR(64) NOT NULL,        -- GENERATED (ADHOC will be added later)
+
+    period_start       DATE,
+    period_range       VARCHAR(64) DEFAULT 'MONTH', -- MONTH
+
+    total_amount       BIGINT      NOT NULL CHECK (total_amount >= 0),
+    note               TEXT,
+
+    approved_at        TIMESTAMP,
+    paid_at            TIMESTAMP,
+    paid_amount        BIGINT,
+    payment_method     VARCHAR(64),                 -- BANK, CASH, OTHER
+    payment_reference  TEXT,
+    payment_note       TEXT,
+
+    FOREIGN KEY (member_id) REFERENCES classroom_member (id)
+);
+CREATE INDEX idx_classroom_invoice_member ON classroom_invoice (member_id);
+CREATE UNIQUE INDEX unique_generated_invoice_member_period
+    ON classroom_invoice (member_id, period_range, period_start) NULLS NOT DISTINCT
+    WHERE type = 'GENERATED';
+
+-- Aggregate child of classroom_invoice.
+CREATE TABLE IF NOT EXISTS classroom_invoice_line
+(
+    id                 UUID PRIMARY KEY,
+    created_date       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_modified_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    invoice_id         UUID        NOT NULL,
+    kind               VARCHAR(64) NOT NULL, -- LESSON (or other types added here)
+    description        TEXT        NOT NULL,
+    unit_price         BIGINT      NOT NULL CHECK (unit_price >= 0),
+    quantity           INT         NOT NULL CHECK (quantity >= 0),
+
+    final_amount       BIGINT      NOT NULL,
+
+    CONSTRAINT chk_invoice_final_amount CHECK (final_amount = unit_price * quantity),
+    FOREIGN KEY (invoice_id) REFERENCES classroom_invoice (id)
+);
+CREATE INDEX idx_classroom_invoice_line_invoice ON classroom_invoice_line (invoice_id);
