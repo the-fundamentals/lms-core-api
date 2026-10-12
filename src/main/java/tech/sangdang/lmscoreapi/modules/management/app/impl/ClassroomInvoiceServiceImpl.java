@@ -1,15 +1,11 @@
 package tech.sangdang.lmscoreapi.modules.management.app.impl;
 
-import java.time.Month;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import tech.sangdang.lmscoreapi.common.exception.ConflictException;
 import tech.sangdang.lmscoreapi.common.exception.ObjectNotFoundException;
 import tech.sangdang.lmscoreapi.common.querying.BaseQuery;
 import tech.sangdang.lmscoreapi.common.querying.Operators;
@@ -17,7 +13,6 @@ import tech.sangdang.lmscoreapi.common.querying.QueryFilterConditions;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomInvoiceFilter;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomInvoiceResponse;
 import tech.sangdang.lmscoreapi.modules.management.app.ClassroomInvoiceService;
-import tech.sangdang.lmscoreapi.modules.management.app.dto.CreateGeneratedClassroomInvoiceCommand;
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomInvoiceMapper;
 import tech.sangdang.lmscoreapi.modules.management.dom.*;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomInvoiceRepository;
@@ -32,46 +27,6 @@ public class ClassroomInvoiceServiceImpl implements ClassroomInvoiceService {
   private final ClassroomMemberRepository classroomMemberRepository;
   private final ClassroomInvoiceRepository classroomInvoiceRepository;
   private final ClassroomInvoiceMapper classroomInvoiceMapper;
-
-  @Override
-  @Transactional
-  public ClassroomInvoiceResponse createGeneratedInvoice(
-      CreateGeneratedClassroomInvoiceCommand command) {
-    ClassroomMember member =
-        classroomMemberRepository
-            .findById(command.memberId())
-            .orElseThrow(
-                () -> ObjectNotFoundException.of(ClassroomMember.class, command.memberId()));
-
-    classroomInvoiceRepository
-        .findGeneratedByMemberAndPeriod(
-            command.memberId(), command.periodRange(), command.periodStart())
-        .ifPresent(
-            existing -> {
-              throw ConflictException.of(
-                  "CLASSROOM_INVOICE_ALREADY_EXISTS",
-                  "Generated invoice already exists for member period: " + existing.getId());
-            });
-
-    Set<ClassroomInvoiceLine> lines = new HashSet<>();
-    if (command.lines() != null) {
-      for (CreateGeneratedClassroomInvoiceCommand.Line line : command.lines()) {
-        lines.add(
-            ClassroomInvoiceLine.ofLesson(line.description(), line.unitPrice(), line.quantity()));
-      }
-    }
-
-    ClassroomInvoice invoice =
-        ClassroomInvoice.ofGenerated(
-            member.getClassroomId(),
-            command.memberId(),
-            lines,
-            command.periodStart(),
-            command.periodRange(),
-            command.note());
-
-    return classroomInvoiceMapper.toResponse(classroomInvoiceRepository.insert(invoice));
-  }
 
   @Override
   @Transactional(readOnly = true)

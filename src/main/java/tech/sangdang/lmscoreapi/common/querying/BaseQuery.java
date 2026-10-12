@@ -1,5 +1,6 @@
 package tech.sangdang.lmscoreapi.common.querying;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -71,6 +72,10 @@ public class BaseQuery {
 
     public Builder addFilter(String field, String operator, Enum<?> value) {
       return addFilterValue(field, operator, value.name());
+    }
+
+    public Builder addFilter(String field, String operator, LocalDateTime value) {
+      return addFilterValue(field, operator, value);
     }
 
     /**

@@ -1,4 +1,4 @@
-package tech.sangdang.lmscoreapi.modules.management.app.useCase.SessionGeneration;
+package tech.sangdang.lmscoreapi.modules.management.app.impl;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -21,9 +21,10 @@ import tech.sangdang.lmscoreapi.common.querying.BaseQuery;
 import tech.sangdang.lmscoreapi.common.querying.Operators;
 import tech.sangdang.lmscoreapi.common.querying.QueryFilterConditions;
 import tech.sangdang.lmscoreapi.generated.model.*;
-import tech.sangdang.lmscoreapi.modules.management.app.ClassroomSessionGenerationService;
+import tech.sangdang.lmscoreapi.modules.management.app.ClassroomSessionService;
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomSessionAttendanceMapper;
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomSessionMapper;
+import tech.sangdang.lmscoreapi.modules.management.app.useCase.SessionGeneration.ClassroomSessionGenerationService;
 import tech.sangdang.lmscoreapi.modules.management.dom.*;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionAttendanceStatus;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.*;

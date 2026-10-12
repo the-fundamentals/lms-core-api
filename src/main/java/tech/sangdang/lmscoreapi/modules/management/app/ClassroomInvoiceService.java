@@ -1,27 +1,11 @@
 package tech.sangdang.lmscoreapi.modules.management.app;
 
-import java.time.Month;
 import java.util.List;
 import java.util.UUID;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomInvoiceFilter;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomInvoiceResponse;
-import tech.sangdang.lmscoreapi.modules.management.app.dto.CreateGeneratedClassroomInvoiceCommand;
 
 public interface ClassroomInvoiceService {
-
-  /**
-   * Creates a GENERATED draft invoice for a member. No HTTP endpoint.
-   *
-   * <ul>
-   *   <li>Status is always DRAFT; type is always GENERATED.
-   *   <li>{@code classroomId} is taken from the member.
-   *   <li>Duplicate member + period (GENERATED) is 409.
-   * </ul>
-   *
-   * @param command member, period, optional note, and lines
-   * @return created invoice
-   */
-  ClassroomInvoiceResponse createGeneratedInvoice(CreateGeneratedClassroomInvoiceCommand command);
 
   /**
    * Queries invoices for a classroom.

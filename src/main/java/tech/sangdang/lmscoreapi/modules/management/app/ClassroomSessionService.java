@@ -1,4 +1,4 @@
-package tech.sangdang.lmscoreapi.modules.management.app.useCase.SessionGeneration;
+package tech.sangdang.lmscoreapi.modules.management.app;
 
 import java.util.List;
 import java.util.UUID;

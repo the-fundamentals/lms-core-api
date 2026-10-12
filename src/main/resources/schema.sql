@@ -157,11 +157,11 @@ CREATE TABLE IF NOT EXISTS classroom_invoice
     FOREIGN KEY (classroom_id) REFERENCES classroom (id),
     FOREIGN KEY (member_id) REFERENCES classroom_member (id)
 );
-CREATE INDEX idx_classroom_invoice_classroom ON classroom_invoice (classroom_id);
-CREATE INDEX idx_classroom_invoice_member ON classroom_invoice (member_id);
-CREATE UNIQUE INDEX unique_generated_invoice_member_period
+CREATE INDEX IF NOT EXISTS idx_classroom_invoice_classroom ON classroom_invoice (classroom_id);
+CREATE INDEX IF NOT EXISTS idx_classroom_invoice_member ON classroom_invoice (member_id);
+CREATE UNIQUE INDEX IF NOT EXISTS unique_generated_invoice_member_period
     ON classroom_invoice (member_id, period_range, period_start) NULLS NOT DISTINCT
-    WHERE type = 'GENERATED';
+WHERE type = 'GENERATED';
 
 -- Aggregate child of classroom_invoice.
 CREATE TABLE IF NOT EXISTS classroom_invoice_line
@@ -180,4 +180,4 @@ CREATE TABLE IF NOT EXISTS classroom_invoice_line
     CONSTRAINT chk_invoice_final_amount CHECK (final_amount = unit_price * quantity),
     FOREIGN KEY (invoice_id) REFERENCES classroom_invoice (id)
 );
-CREATE INDEX idx_classroom_invoice_line_invoice ON classroom_invoice_line (invoice_id);
+CREATE INDEX IF NOT EXISTS idx_classroom_invoice_line_invoice ON classroom_invoice_line (invoice_id);

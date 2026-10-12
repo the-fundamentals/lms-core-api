@@ -22,7 +22,7 @@ import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomMembe
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomMemberPaymentPlanFixtures.paymentPlan;
 
 import java.time.Duration;
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -81,7 +81,7 @@ class ClassroomMemberPaymentPlanControllerIntegrationTest {
                   incoming.getClassroomMemberId(),
                   incoming.getEffectiveFrom(),
                   incoming.getEffectiveTo(),
-                  Instant.now());
+                  LocalDateTime.now());
             });
 
     mockMvc
@@ -127,7 +127,7 @@ class ClassroomMemberPaymentPlanControllerIntegrationTest {
                   incoming.getClassroomMemberId(),
                   incoming.getEffectiveFrom(),
                   incoming.getEffectiveTo(),
-                  Instant.now());
+                  LocalDateTime.now());
             });
 
     mockMvc
@@ -156,7 +156,7 @@ class ClassroomMemberPaymentPlanControllerIntegrationTest {
   @Test
   @DisplayName("replaces the member's current payment plan when creating a new one")
   void createClassroomMemberPaymentPlan_replacesCurrent_returns201() throws Exception {
-    Instant existingFrom = Instant.now().minusSeconds(60);
+    LocalDateTime existingFrom = LocalDateTime.now().minusSeconds(60);
     ClassroomMemberPaymentPlan existing =
         paymentPlan(PREVIOUS_PAYMENT_PLAN_ID, MEMBER_ID, existingFrom, null, existingFrom);
 
@@ -174,7 +174,7 @@ class ClassroomMemberPaymentPlanControllerIntegrationTest {
                   incoming.getClassroomMemberId(),
                   incoming.getEffectiveFrom(),
                   incoming.getEffectiveTo(),
-                  Instant.now());
+                  LocalDateTime.now());
             });
 
     mockMvc
@@ -229,8 +229,8 @@ class ClassroomMemberPaymentPlanControllerIntegrationTest {
   @Test
   @DisplayName("lists payment plans with the current plan first")
   void getClassroomMemberPaymentPlans_returns200() throws Exception {
-    Instant previousFrom = Instant.now().minus(Duration.ofDays(1));
-    Instant currentFrom = Instant.now();
+    LocalDateTime previousFrom = LocalDateTime.now().minus(Duration.ofDays(1));
+    LocalDateTime currentFrom = LocalDateTime.now();
     ClassroomMemberPaymentPlan current =
         paymentPlan(PAYMENT_PLAN_ID, MEMBER_ID, currentFrom, null, currentFrom);
     ClassroomMemberPaymentPlan previous =
@@ -302,7 +302,7 @@ class ClassroomMemberPaymentPlanControllerIntegrationTest {
   @DisplayName("fails to get a payment plan that belongs to another member")
   void getClassroomMemberPaymentPlanById_wrongMember_returns404() throws Exception {
     UUID otherMemberId = UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
-    Instant now = Instant.now();
+    LocalDateTime now = LocalDateTime.now();
     ClassroomMemberPaymentPlan plan = paymentPlan(PAYMENT_PLAN_ID, otherMemberId, now, null, now);
 
     when(classroomMemberRepository.findById(MEMBER_ID)).thenReturn(Optional.of(classroomMember()));

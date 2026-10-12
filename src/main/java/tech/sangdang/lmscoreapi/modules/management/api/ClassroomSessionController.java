@@ -8,7 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import tech.sangdang.lmscoreapi.generated.api.ClassroomSessionsApi;
 import tech.sangdang.lmscoreapi.generated.model.*;
-import tech.sangdang.lmscoreapi.modules.management.app.useCase.SessionGeneration.ClassroomSessionService;
+import tech.sangdang.lmscoreapi.modules.management.app.ClassroomSessionService;
 
 @RestController
 @RequiredArgsConstructor

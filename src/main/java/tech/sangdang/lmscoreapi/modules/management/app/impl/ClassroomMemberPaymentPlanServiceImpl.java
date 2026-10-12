@@ -1,6 +1,6 @@
 package tech.sangdang.lmscoreapi.modules.management.app.impl;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -36,10 +36,9 @@ public class ClassroomMemberPaymentPlanServiceImpl implements ClassroomMemberPay
       UUID classroomId, UUID memberId, CreateClassroomMemberPaymentPlanCommand command) {
     requireMemberInClassroom(classroomId, memberId);
 
-    Instant now = Instant.now();
+    LocalDateTime now = LocalDateTime.now();
 
-    // Close the open-ended plan (if any); new plan starts at the same instant — no future
-    // scheduling
+    // Close the open-ended plan (if any); new plan starts at the same time — no future scheduling
     classroomMemberPaymentPlanRepository
         .findCurrent(memberId)
         .ifPresent(

@@ -1,6 +1,6 @@
 package tech.sangdang.lmscoreapi.modules.management.app.mappers;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import org.mapstruct.Mapper;
@@ -12,7 +12,7 @@ public interface ClassroomMemberPaymentPlanMapper {
 
   ClassroomMemberPaymentPlanResponse toResponse(ClassroomMemberPaymentPlan plan);
 
-  default OffsetDateTime map(Instant value) {
+  default OffsetDateTime map(LocalDateTime value) {
     return value == null ? null : value.atOffset(ZoneOffset.UTC);
   }
 }

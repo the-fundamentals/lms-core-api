@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -332,6 +333,26 @@ class BaseJdbcRepositoryImplTest {
 
       CriteriaDefinition criteria = captureStreamedQuery().getCriteria().orElseThrow();
       assertThat(leafValue(criteria)).isEqualTo(LocalDate.of(2026, 11, 1));
+    }
+
+    @Test
+    @DisplayName("binds typed LocalDateTime filters for range operators")
+    void query_localDateTimeFilter_passThrough() {
+      stubProperty("createdDate", LocalDateTime.class);
+      when(operations.streamAll(any(Query.class), eq(SampleEntity.class)))
+          .thenReturn(Stream.empty());
+
+      LocalDateTime createdFrom = LocalDateTime.of(2026, 10, 1, 0, 0);
+      BaseQuery baseQuery =
+          BaseQuery.builder()
+              .fetchFirst()
+              .addFilter("createdDate", Operators.GREATER_OR_EQUAL, createdFrom)
+              .build();
+
+      repository.query(baseQuery).toList();
+
+      CriteriaDefinition criteria = captureStreamedQuery().getCriteria().orElseThrow();
+      assertThat(leafValue(criteria)).isEqualTo(createdFrom);
     }
 
     @Test

@@ -30,4 +30,8 @@ public class ClassroomSessionAttendance {
   private UUID classroomMemberId;
   private LocalDateTime attendanceDate;
   private ClassroomSessionAttendanceStatus status;
+
+  public boolean hasAttended() {
+    return status == ClassroomSessionAttendanceStatus.ATTENDED;
+  }
 }

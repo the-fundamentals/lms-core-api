@@ -1004,6 +1004,28 @@ paths:
       responses:
         "204":
           description: Generation ran
+  /dev/classroom-invoices/generate:
+    post:
+      tags:
+        - _Dev
+      operationId: generateClassroomInvoices
+      summary: Generate classroom invoices for a date-time window
+      description: >
+        Triggers the same work as the monthly invoice job for an explicit attendance window.
+        Creates GENERATED draft invoices for active STUDENT members (including zero attendances).
+        Unit price comes from the member's current payment plan (`effectiveTo` null); 0 if none.
+        Existing GENERATED invoices for the same member/period are skipped. Local and test profiles only.
+
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateClassroomInvoicesCommand"
+      responses:
+        "204":
+          description: Generation ran
   /admin/classrooms/{classroomId}/schedule:
     get:
       tags:
@@ -1696,6 +1718,27 @@ components:
           format: date
           description: Date this ran; sessions are created for the following calendar month
           example: "2026-10-07"
+    GenerateClassroomInvoicesCommand:
+      type: object
+      description: >
+        Command to generate classroom invoices for an inclusive attendance window
+        (job uses previous-month start through first day of the current month).
+
+      additionalProperties: false
+      required:
+        - startDateTime
+        - endDateTime
+      properties:
+        startDateTime:
+          type: string
+          format: date-time
+          description: Inclusive attendance window start
+          example: "2026-09-01T00:00:00"
+        endDateTime:
+          type: string
+          format: date-time
+          description: Inclusive attendance window end
+          example: "2026-10-01T00:00:00"
     ClassroomSessionFilter:
       type: object
       description: Filter for querying classroom sessions

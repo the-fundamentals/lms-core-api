@@ -68,4 +68,24 @@ public interface ClassroomMemberPaymentPlanRepository
       ORDER BY p.effective_from DESC
       """)
   List<ClassroomMemberPaymentPlan> findByClassroom(@NonNull @Param("classroomId") UUID classroomId);
+
+  /**
+   * Returns each member's current payment plan ({@code effective_to} null).
+   *
+   * <ul>
+   *   <li>At most one plan per member (unique current-plan index).
+   *   <li>Members with no current plan are omitted.
+   * </ul>
+   *
+   * @param memberIds members whose current plans to load
+   */
+  @Query(
+      """
+      SELECT p.*
+      FROM classroom_member_payment_plan p
+      WHERE p.classroom_member_id IN (:memberIds)
+        AND p.effective_to IS NULL
+      """)
+  List<ClassroomMemberPaymentPlan> findCurrentByMembers(
+      @NonNull @Param("memberIds") List<UUID> memberIds);
 }

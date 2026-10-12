@@ -2,7 +2,7 @@ package tech.sangdang.lmscoreapi.modules.management.support;
 
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomMemberFixtures.MEMBER_ID;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.UUID;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomMemberPaymentPlan;
 import tech.sangdang.lmscoreapi.modules.management.dom.PaymentPlanType;
@@ -15,22 +15,22 @@ public final class ClassroomMemberPaymentPlanFixtures {
       UUID.fromString("6ba7b810-9dad-11d1-80b4-00c04fd430c8");
   public static final long AMOUNT = 150_000L;
   public static final String CURRENCY = "VND";
-  public static final Instant CREATED_AT = Instant.parse("2026-07-14T00:00:00Z");
-  public static final Instant MODIFIED_AT = Instant.parse("2026-07-14T00:00:00Z");
+  public static final LocalDateTime CREATED_AT = LocalDateTime.of(2026, 7, 14, 0, 0);
+  public static final LocalDateTime MODIFIED_AT = LocalDateTime.of(2026, 7, 14, 0, 0);
 
   private ClassroomMemberPaymentPlanFixtures() {}
 
   public static ClassroomMemberPaymentPlan currentPaymentPlan() {
-    Instant now = Instant.now();
+    LocalDateTime now = LocalDateTime.now();
     return paymentPlan(PAYMENT_PLAN_ID, MEMBER_ID, now, null, now);
   }
 
   public static ClassroomMemberPaymentPlan paymentPlan(
       UUID id,
       UUID classroomMemberId,
-      Instant effectiveFrom,
-      Instant effectiveTo,
-      Instant createdDate) {
+      LocalDateTime effectiveFrom,
+      LocalDateTime effectiveTo,
+      LocalDateTime createdDate) {
     return new ClassroomMemberPaymentPlan()
         .setId(id)
         .setClassroomMemberId(classroomMemberId)
