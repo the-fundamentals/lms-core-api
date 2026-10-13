@@ -73,14 +73,14 @@ main() {
     mise_bootstrap_repo "${web_root}"
     run_web_checks "${web_root}"
   else
-    echo "WARN: lms-web-management not checked out; skipping web bootstrap." >&2
+    echo "WARN: lms-web-management missing or no mise.toml (wrong branch?); skipping web." >&2
   fi
 
   if tf_root="$(find_sibling_repo lms-terraform-iac)"; then
     mise_bootstrap_repo "${tf_root}"
     run_terraform_checks "${tf_root}"
   else
-    echo "WARN: lms-terraform-iac not checked out; skipping terraform bootstrap." >&2
+    echo "WARN: lms-terraform-iac missing or no mise.toml (wrong branch?); skipping terraform." >&2
   fi
 
   echo "==> Cloud agent install finished."
