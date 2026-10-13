@@ -1,7 +1,7 @@
 {
   "name": "LMS (mise, tests-first)",
   "user": "ubuntu",
-  "install": "bash .cursor/cloud-agent-install.sh",
+  "install": "bash /agent/repos/lms-core-api/.cursor/cloud-agent-install.sh",
   "repositoryDependencies": [
     "github.com/the-fundamentals/lms-web-management",
     "github.com/the-fundamentals/lms-terraform-iac"
