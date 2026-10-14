@@ -13,19 +13,42 @@ ensure_mise() {
   eval "$(mise activate bash)"
 }
 
-find_sibling_repo() {
+# Build pods often clone siblings at default branch; mise.toml lives on random/hotfix today.
+SIBLING_REF="${LMS_SIBLING_REF:-random/hotfix}"
+
+locate_sibling_dir() {
   local name="$1"
   local candidate=""
   for candidate in \
     "$(dirname "$API_ROOT")/${name}" \
     "/agent/repos/${name}" \
     "/workspace/${name}"; do
-    if [[ -f "${candidate}/mise.toml" ]]; then
+    if [[ -d "${candidate}/.git" ]]; then
       echo "${candidate}"
       return 0
     fi
   done
   return 1
+}
+
+ensure_sibling_has_mise() {
+  local root="$1"
+  if [[ -f "${root}/mise.toml" ]]; then
+    return 0
+  fi
+  echo "==> ${root}: fetching ${SIBLING_REF} (mise.toml not on current branch)"
+  cd "${root}"
+  git fetch origin "${SIBLING_REF}"
+  git checkout -B "${SIBLING_REF}" "origin/${SIBLING_REF}"
+  [[ -f "${root}/mise.toml" ]]
+}
+
+resolve_sibling_repo() {
+  local name="$1"
+  local dir=""
+  dir="$(locate_sibling_dir "${name}")" || return 1
+  ensure_sibling_has_mise "${dir}" || return 1
+  echo "${dir}"
 }
 
 mise_bootstrap_repo() {
@@ -69,14 +92,14 @@ main() {
   mise_bootstrap_repo "${API_ROOT}"
   run_api_checks
 
-  if web_root="$(find_sibling_repo lms-web-management)"; then
+  if web_root="$(resolve_sibling_repo lms-web-management)"; then
     mise_bootstrap_repo "${web_root}"
     run_web_checks "${web_root}"
   else
     echo "WARN: lms-web-management missing or no mise.toml (wrong branch?); skipping web." >&2
   fi
 
-  if tf_root="$(find_sibling_repo lms-terraform-iac)"; then
+  if tf_root="$(resolve_sibling_repo lms-terraform-iac)"; then
     mise_bootstrap_repo "${tf_root}"
     run_terraform_checks "${tf_root}"
   else
