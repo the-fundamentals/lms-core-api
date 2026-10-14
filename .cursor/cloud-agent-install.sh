@@ -68,8 +68,8 @@ run_api_checks() {
 run_web_checks() {
   local web_root="$1"
   if [[ -z "${GITHUB_TOKEN:-}" ]]; then
-    echo "ERROR: GITHUB_TOKEN is required for bun install (GitHub Packages)." >&2
-    exit 1
+    echo "WARN: GITHUB_TOKEN unset; skipping web bun install + lint." >&2
+    return 0
   fi
   export GITHUB_TOKEN
   echo "==> Web: bun install + lint"
@@ -80,8 +80,9 @@ run_web_checks() {
 
 run_terraform_checks() {
   local tf_root="$1"
-  echo "==> Terraform: init (no backend) + validate"
+  echo "==> Terraform: fmt -check, init (no backend), validate"
   cd "${tf_root}"
+  mise exec -- terraform fmt -check -recursive
   mise exec -- terraform init -backend=false -input=false
   mise exec -- terraform validate
 }
@@ -92,18 +93,19 @@ main() {
   mise_bootstrap_repo "${API_ROOT}"
   run_api_checks
 
+  if tf_root="$(resolve_sibling_repo lms-terraform-iac)"; then
+    mise_bootstrap_repo "${tf_root}"
+    run_terraform_checks "${tf_root}"
+  else
+    echo "ERROR: lms-terraform-iac missing or no mise.toml after ${SIBLING_REF} checkout." >&2
+    exit 1
+  fi
+
   if web_root="$(resolve_sibling_repo lms-web-management)"; then
     mise_bootstrap_repo "${web_root}"
     run_web_checks "${web_root}"
   else
     echo "WARN: lms-web-management missing or no mise.toml (wrong branch?); skipping web." >&2
-  fi
-
-  if tf_root="$(resolve_sibling_repo lms-terraform-iac)"; then
-    mise_bootstrap_repo "${tf_root}"
-    run_terraform_checks "${tf_root}"
-  else
-    echo "WARN: lms-terraform-iac missing or no mise.toml (wrong branch?); skipping terraform." >&2
   fi
 
   echo "==> Cloud agent install finished."

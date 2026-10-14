@@ -20,7 +20,8 @@ Build output (`build/`, including generated OpenAPI Java) is gitignored.
 
 Tool versions come from each repo’s **`mise.toml`** (API, web, terraform). The committed
 `.cursor/environment.json` runs `.cursor/cloud-agent-install.sh` on environment builds:
-mise install, then dependency-free checks (`./gradlew test`, web `lint`, `terraform validate`).
+mise install, then `./gradlew test`, then `terraform fmt -check` / `init -backend=false` /
+`validate`, then web `bun install` + `lint` when `GITHUB_TOKEN` is set.
 Sibling repos are listed under `repositoryDependencies`.
 
 **Default agent mode:** edit code and run tests/lint — no Postgres, Docker, or dev servers.
