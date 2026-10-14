@@ -36,10 +36,10 @@ ensure_sibling_has_mise() {
   if [[ -f "${root}/mise.toml" ]]; then
     return 0
   fi
-  echo "==> ${root}: fetching ${SIBLING_REF} (mise.toml not on current branch)"
+  echo "==> ${root}: fetching ${SIBLING_REF} (mise.toml not on current branch)" >&2
   cd "${root}"
-  git fetch origin "${SIBLING_REF}"
-  git checkout -B "${SIBLING_REF}" "origin/${SIBLING_REF}"
+  git fetch origin "${SIBLING_REF}" >&2
+  git checkout -B "${SIBLING_REF}" "origin/${SIBLING_REF}" >&2
   [[ -f "${root}/mise.toml" ]]
 }
 
