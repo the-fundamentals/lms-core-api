@@ -53,7 +53,8 @@ public class ClassroomInvoiceGenerationServiceImpl implements ClassroomInvoiceGe
                 BaseQuery.builder()
                     .fetchAll()
                     .addFilter(ClassroomMember.Fields.classroomId, Operators.IN, classroomIds)
-                    .addFilter(ClassroomMember.Fields.role, Operators.EQUAL, ClassroomMemberRole.STUDENT)
+                    .addFilter(
+                        ClassroomMember.Fields.role, Operators.EQUAL, ClassroomMemberRole.STUDENT)
                     .addFilter(
                         ClassroomMember.Fields.status,
                         Operators.EQUAL,
@@ -100,9 +101,7 @@ public class ClassroomInvoiceGenerationServiceImpl implements ClassroomInvoiceGe
         classroomMemberPaymentPlanRepository.findCurrentByMembers(memberIds).stream()
             .collect(
                 Collectors.toMap(
-                    ClassroomMemberPaymentPlan::getClassroomMemberId,
-                    plan -> plan,
-                    (a, b) -> a));
+                    ClassroomMemberPaymentPlan::getClassroomMemberId, plan -> plan, (a, b) -> a));
 
     List<ClassroomInvoice> invoices = new ArrayList<>();
     members.forEach(

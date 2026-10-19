@@ -12,6 +12,7 @@ import tech.sangdang.lmscoreapi.common.querying.Operators;
 import tech.sangdang.lmscoreapi.common.querying.QueryFilterConditions;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomInvoiceFilter;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomInvoiceResponse;
+import tech.sangdang.lmscoreapi.generated.model.CompleteClassroomInvoiceCommand;
 import tech.sangdang.lmscoreapi.modules.management.app.ClassroomInvoiceService;
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomInvoiceMapper;
 import tech.sangdang.lmscoreapi.modules.management.dom.*;
@@ -60,6 +61,20 @@ public class ClassroomInvoiceServiceImpl implements ClassroomInvoiceService {
   public ClassroomInvoiceResponse approveInvoice(UUID classroomId, UUID invoiceId) {
     ClassroomInvoice invoice = requireInvoiceInClassroom(classroomId, invoiceId);
     invoice.approve();
+    return classroomInvoiceMapper.toResponse(classroomInvoiceRepository.update(invoice));
+  }
+
+  @Override
+  @Transactional
+  public ClassroomInvoiceResponse completeInvoice(
+      UUID classroomId, UUID invoiceId, CompleteClassroomInvoiceCommand command) {
+    ClassroomInvoice invoice = requireInvoiceInClassroom(classroomId, invoiceId);
+    // paidAt is server time, same as approvedAt — clients do not send it
+    invoice.complete(
+        command.getPaidAmount(),
+        ClassroomInvoicePaymentMethod.valueOf(command.getPaymentMethod().getValue()),
+        command.getPaymentReference(),
+        command.getPaymentNote());
     return classroomInvoiceMapper.toResponse(classroomInvoiceRepository.update(invoice));
   }
 

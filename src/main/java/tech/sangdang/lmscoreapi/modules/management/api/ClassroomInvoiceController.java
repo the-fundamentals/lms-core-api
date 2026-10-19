@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import tech.sangdang.lmscoreapi.generated.api.ClassroomInvoicesApi;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomInvoiceFilter;
+import tech.sangdang.lmscoreapi.generated.model.CompleteClassroomInvoiceCommand;
 import tech.sangdang.lmscoreapi.modules.management.app.ClassroomInvoiceService;
 
 @RestController
@@ -32,5 +33,15 @@ public class ClassroomInvoiceController implements ClassroomInvoicesApi {
   public ResponseEntity<?> approveClassroomInvoice(
       @NonNull UUID classroomId, @NonNull UUID invoiceId) {
     return ResponseEntity.ok(classroomInvoiceService.approveInvoice(classroomId, invoiceId));
+  }
+
+  @Override
+  public ResponseEntity<?> completeClassroomInvoice(
+      @NonNull UUID classroomId,
+      @NonNull UUID invoiceId,
+      @NonNull CompleteClassroomInvoiceCommand completeClassroomInvoiceCommand) {
+    return ResponseEntity.ok(
+        classroomInvoiceService.completeInvoice(
+            classroomId, invoiceId, completeClassroomInvoiceCommand));
   }
 }

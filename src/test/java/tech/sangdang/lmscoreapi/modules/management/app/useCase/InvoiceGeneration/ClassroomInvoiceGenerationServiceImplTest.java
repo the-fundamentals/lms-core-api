@@ -110,9 +110,7 @@ class ClassroomInvoiceGenerationServiceImplTest {
     long expectedTotal = expectedUnitPrice * attendanceCount;
     List<ClassroomSessionAttendance> attendances = attendances(attendanceCount);
     List<ClassroomMemberPaymentPlan> plans =
-        planAmount == null
-            ? List.of()
-            : List.of(currentPlan(planAmount));
+        planAmount == null ? List.of() : List.of(currentPlan(planAmount));
 
     when(classroomRepository.query(any(BaseQuery.class))).thenReturn(Stream.of(classroom()));
     when(classroomMemberRepository.query(any(BaseQuery.class)))

@@ -494,6 +494,44 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /admin/classrooms/{classroomId}/invoices/{invoiceId}/complete:
+    post:
+      tags:
+        - ClassroomInvoices
+      operationId: completeClassroomInvoice
+      summary: Complete a classroom invoice
+      description: >
+        Moves the invoice status from APPROVED to COMPLETED and records payment.
+        Sets paidAt on the server. Non-APPROVED invoices are rejected.
+
+      parameters:
+        - $ref: "#/components/parameters/ClassroomIdPath"
+        - $ref: "#/components/parameters/InvoiceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompleteClassroomInvoiceCommand"
+      responses:
+        "200":
+          description: Classroom invoice completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassroomInvoiceResponse"
+        "400":
+          description: Invoice is not APPROVED
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Classroom invoice not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /admin/classrooms/{classroomId}/members/{memberId}/attendances/query:
     post:
       tags:
@@ -2293,6 +2331,36 @@ components:
       enum:
         - LESSON
       example: LESSON
+    CompleteClassroomInvoiceCommand:
+      type: object
+      description: >
+        Command to mark an APPROVED classroom invoice COMPLETED and record payment.
+        paidAt is set by the server.
+      additionalProperties: false
+      required:
+        - paidAmount
+        - paymentMethod
+      properties:
+        paidAmount:
+          type: integer
+          format: int64
+          description: Amount paid in the smallest currency unit
+          minimum: 0
+          example: 1200000
+        paymentMethod:
+          $ref: "#/components/schemas/ClassroomInvoicePaymentMethod"
+        paymentReference:
+          type: string
+          description: External payment reference
+          minLength: 1
+          maxLength: 255
+          example: TXN-12345
+        paymentNote:
+          type: string
+          description: Optional payment note
+          minLength: 1
+          maxLength: 2000
+          example: Paid via bank transfer
     ClassroomInvoiceFilter:
       type: object
       description: Filter for querying classroom invoices

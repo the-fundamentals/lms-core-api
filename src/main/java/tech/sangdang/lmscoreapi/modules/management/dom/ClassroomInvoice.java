@@ -5,7 +5,6 @@ import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
-
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -18,6 +17,7 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.relational.core.mapping.MappedCollection;
 import org.springframework.data.relational.core.mapping.Table;
 import tech.sangdang.lmscoreapi.modules.management.dom.exception.ClassroomInvoiceCannotBeApprovedException;
+import tech.sangdang.lmscoreapi.modules.management.dom.exception.ClassroomInvoiceCannotBeCompletedException;
 
 @Getter
 @Setter
@@ -128,7 +128,7 @@ public class ClassroomInvoice {
 
   public void requireCanBeCompleted() {
     if (!canBeCompleted()) {
-      throw new IllegalStateException("Cannot complete invoice");
+      throw ClassroomInvoiceCannotBeCompletedException.of();
     }
   }
 
