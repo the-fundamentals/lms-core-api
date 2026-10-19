@@ -408,6 +408,39 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /admin/classrooms/{classroomId}/invoices:
+    post:
+      tags:
+        - ClassroomInvoices
+      operationId: createClassroomInvoiceAdhoc
+      summary: Create an adhoc classroom invoice
+      description: >
+        Creates a DRAFT invoice of type ADHOC for a member of the classroom.
+        Period is left unset. Line totals and the invoice total are computed by the server
+        (`finalAmount = unitPrice * quantity`). At least one line is required.
+        The member must belong to the path classroom.
+
+      parameters:
+        - $ref: "#/components/parameters/ClassroomIdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateClassroomInvoiceAdhocCommand"
+      responses:
+        "201":
+          description: Adhoc classroom invoice created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassroomInvoiceResponse"
+        "404":
+          description: Classroom member not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /admin/classrooms/{classroomId}/invoices/query:
     post:
       tags:
@@ -2310,6 +2343,7 @@ components:
       description: How the classroom invoice was created
       enum:
         - GENERATED
+        - ADHOC
       example: GENERATED
     ClassroomInvoicePeriodRange:
       type: string
@@ -2330,7 +2364,68 @@ components:
       description: Kind of invoice line
       enum:
         - LESSON
+        - OTHER
       example: LESSON
+    CreateClassroomInvoiceAdhocCommand:
+      type: object
+      description: >
+        Command to create an adhoc classroom invoice. Status is always DRAFT and type is always ADHOC.
+        Period is not set. Totals are computed by the server.
+
+      additionalProperties: false
+      required:
+        - memberId
+        - lines
+      properties:
+        memberId:
+          type: string
+          format: uuid
+          description: Classroom member this invoice belongs to
+          example: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+        note:
+          type: string
+          description: Optional invoice note
+          minLength: 1
+          maxLength: 2000
+          example: Makeup fee for missed materials
+        lines:
+          type: array
+          description: Invoice lines. At least one.
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/CreateClassroomInvoiceAdhocLineCommand"
+    CreateClassroomInvoiceAdhocLineCommand:
+      type: object
+      description: >
+        One line on an adhoc classroom invoice. finalAmount is not accepted; the server sets it to unitPrice * quantity.
+
+      additionalProperties: false
+      required:
+        - kind
+        - description
+        - unitPrice
+        - quantity
+      properties:
+        kind:
+          $ref: "#/components/schemas/ClassroomInvoiceLineKind"
+        description:
+          type: string
+          description: Line description
+          minLength: 1
+          maxLength: 2000
+          example: Replacement workbook
+        unitPrice:
+          type: integer
+          format: int64
+          description: Unit price in the smallest currency unit
+          minimum: 0
+          example: 50000
+        quantity:
+          type: integer
+          format: int32
+          description: Quantity
+          minimum: 0
+          example: 1
     CompleteClassroomInvoiceCommand:
       type: object
       description: >

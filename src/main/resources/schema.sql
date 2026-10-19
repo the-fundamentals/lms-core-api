@@ -139,7 +139,7 @@ CREATE TABLE IF NOT EXISTS classroom_invoice
     classroom_id       UUID        NOT NULL,
     member_id          UUID        NOT NULL,
     status             VARCHAR(64) NOT NULL,        -- DRAFT, APPROVED, COMPLETED
-    type               VARCHAR(64) NOT NULL,        -- GENERATED (ADHOC will be added later)
+    type               VARCHAR(64) NOT NULL,        -- GENERATED, ADHOC
 
     period_start       DATE,
     period_range       VARCHAR(64) DEFAULT 'MONTH', -- MONTH
@@ -170,7 +170,7 @@ CREATE TABLE IF NOT EXISTS classroom_invoice_line
     created_date       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_modified_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     invoice_id         UUID        NOT NULL,
-    kind               VARCHAR(64) NOT NULL, -- LESSON (or other types added here)
+    kind               VARCHAR(64) NOT NULL, -- LESSON, OTHER
     description        TEXT        NOT NULL,
     unit_price         BIGINT      NOT NULL CHECK (unit_price >= 0),
     quantity           INT         NOT NULL CHECK (quantity >= 0),

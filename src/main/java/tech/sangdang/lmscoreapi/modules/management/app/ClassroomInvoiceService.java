@@ -5,6 +5,7 @@ import java.util.UUID;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomInvoiceFilter;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomInvoiceResponse;
 import tech.sangdang.lmscoreapi.generated.model.CompleteClassroomInvoiceCommand;
+import tech.sangdang.lmscoreapi.generated.model.CreateClassroomInvoiceAdhocCommand;
 
 public interface ClassroomInvoiceService {
 
@@ -21,6 +22,21 @@ public interface ClassroomInvoiceService {
    * @return matching invoices
    */
   List<ClassroomInvoiceResponse> queryInvoices(UUID classroomId, ClassroomInvoiceFilter filter);
+
+  /**
+   * Creates a DRAFT ADHOC invoice for a member of the classroom.
+   *
+   * <ul>
+   *   <li>Period is left unset.
+   *   <li>Line totals and the invoice total are computed here.
+   * </ul>
+   *
+   * @param classroomId classroom the member belongs to
+   * @param command member, optional note, and at least one line
+   * @return created invoice
+   */
+  ClassroomInvoiceResponse createAdhocInvoice(
+      UUID classroomId, CreateClassroomInvoiceAdhocCommand command);
 
   /**
    * Returns an invoice by id within the classroom.

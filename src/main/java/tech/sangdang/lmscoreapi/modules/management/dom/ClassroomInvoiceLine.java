@@ -32,13 +32,18 @@ public class ClassroomInvoiceLine {
   private Integer quantity;
   private Long finalAmount = 0L;
 
-  public static ClassroomInvoiceLine ofLesson(
-      String description, Long unitPrice, Integer quantity) {
+  public static ClassroomInvoiceLine of(
+      ClassroomInvoiceLineKind kind, String description, Long unitPrice, Integer quantity) {
     return new ClassroomInvoiceLine()
-        .setKind(ClassroomInvoiceLineKind.LESSON)
+        .setKind(kind)
         .setDescription(description)
         .setUnitPrice(unitPrice)
         .setQuantity(quantity)
         .setFinalAmount(unitPrice * quantity);
+  }
+
+  public static ClassroomInvoiceLine ofLesson(
+      String description, Long unitPrice, Integer quantity) {
+    return of(ClassroomInvoiceLineKind.LESSON, description, unitPrice, quantity);
   }
 }

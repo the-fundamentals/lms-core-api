@@ -1,5 +1,6 @@
 package tech.sangdang.lmscoreapi.modules.management.dom;
 
 public enum ClassroomInvoiceLineKind {
-  LESSON
+  LESSON,
+  OTHER
 }

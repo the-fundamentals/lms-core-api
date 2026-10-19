@@ -80,8 +80,20 @@ public class ClassroomInvoice {
         .setLines(invoiceLines);
   }
 
-  public static ClassroomInvoice ofAdhoc() {
-    throw new UnsupportedOperationException("Not implemented yet");
+  public static ClassroomInvoice ofAdhoc(
+      UUID classroomId, UUID memberId, Set<ClassroomInvoiceLine> lines, String note) {
+    Set<ClassroomInvoiceLine> invoiceLines = lines == null ? new HashSet<>() : lines;
+    return new ClassroomInvoice()
+        .setClassroomId(classroomId)
+        .setMemberId(memberId)
+        .setStatus(ClassroomInvoiceStatus.DRAFT)
+        .setType(ClassroomInvoiceType.ADHOC)
+        // Explicit nulls: column default period_range 'MONTH' must not apply to adhoc rows.
+        .setPeriodStart(null)
+        .setPeriodRange(null)
+        .setNote(note)
+        .setTotalAmount(ClassroomInvoice.calculateTotalAmount(invoiceLines))
+        .setLines(invoiceLines);
   }
 
   // ===============================

@@ -2,7 +2,9 @@ package tech.sangdang.lmscoreapi.modules.management.app.impl;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,6 +15,7 @@ import tech.sangdang.lmscoreapi.common.querying.QueryFilterConditions;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomInvoiceFilter;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomInvoiceResponse;
 import tech.sangdang.lmscoreapi.generated.model.CompleteClassroomInvoiceCommand;
+import tech.sangdang.lmscoreapi.generated.model.CreateClassroomInvoiceAdhocCommand;
 import tech.sangdang.lmscoreapi.modules.management.app.ClassroomInvoiceService;
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomInvoiceMapper;
 import tech.sangdang.lmscoreapi.modules.management.dom.*;
@@ -28,6 +31,28 @@ public class ClassroomInvoiceServiceImpl implements ClassroomInvoiceService {
   private final ClassroomMemberRepository classroomMemberRepository;
   private final ClassroomInvoiceRepository classroomInvoiceRepository;
   private final ClassroomInvoiceMapper classroomInvoiceMapper;
+
+  @Override
+  @Transactional
+  public ClassroomInvoiceResponse createAdhocInvoice(
+      UUID classroomId, CreateClassroomInvoiceAdhocCommand command) {
+    requireMemberInClassroom(classroomId, command.getMemberId());
+
+    Set<ClassroomInvoiceLine> lines =
+        command.getLines().stream()
+            .map(
+                line ->
+                    ClassroomInvoiceLine.of(
+                        ClassroomInvoiceLineKind.valueOf(line.getKind().getValue()),
+                        line.getDescription(),
+                        line.getUnitPrice(),
+                        line.getQuantity()))
+            .collect(Collectors.toSet());
+
+    ClassroomInvoice invoice =
+        ClassroomInvoice.ofAdhoc(classroomId, command.getMemberId(), lines, command.getNote());
+    return classroomInvoiceMapper.toResponse(classroomInvoiceRepository.insert(invoice));
+  }
 
   @Override
   @Transactional(readOnly = true)
@@ -76,6 +101,17 @@ public class ClassroomInvoiceServiceImpl implements ClassroomInvoiceService {
         command.getPaymentReference(),
         command.getPaymentNote());
     return classroomInvoiceMapper.toResponse(classroomInvoiceRepository.update(invoice));
+  }
+
+  private ClassroomMember requireMemberInClassroom(UUID classroomId, UUID memberId) {
+    ClassroomMember member =
+        classroomMemberRepository
+            .findById(memberId)
+            .orElseThrow(() -> ObjectNotFoundException.of(ClassroomMember.class, memberId));
+    if (!classroomId.equals(member.getClassroomId())) {
+      throw ObjectNotFoundException.of(ClassroomMember.class, memberId);
+    }
+    return member;
   }
 
   private ClassroomInvoice requireInvoiceInClassroom(UUID classroomId, UUID invoiceId) {
