@@ -17,12 +17,12 @@ tags:
     description: Admin-only classroom member management (`/admin/classrooms/.../members`)
   - name: ClassroomMemberPaymentPlans
     description: Admin-only classroom member payment plans (`/admin/classrooms/.../payment-plans`)
+  - name: ClassroomInvoices
+    description: Admin-only classroom invoices (`/admin/classrooms/.../invoices`)
   - name: ClassroomScheduleRecurrence
     description: Admin-only classroom schedule recurrence management (`/admin/classrooms/.../schedule`)
   - name: ClassroomSessions
     description: Admin-only classroom session and attendance management (`/admin/classrooms/.../sessions` and member attendance history)
-  - name: ClassroomFinances
-    description: Admin-only classroom financial management (`/admin/classrooms/.../revenue` and related finance routes)
   - name: Storage
     description: Private endpoints to upload files to the system
   - name: _Test
@@ -286,7 +286,7 @@ paths:
       operationId: getAllClassroomPaymentPlans
       summary: Get current payment plans for a classroom
       description: >
-        Returns each member's current (active) payment plan for the classroom, not paginated. Replaced plans are omitted. Members with no current plan are omitted. Newest created date first.
+        Returns each member's current payment plan (`effectiveTo` null) for the classroom, not paginated. Replaced plans are omitted. Members with no current plan are omitted. Newest `effectiveFrom` first.
 
       parameters:
         - $ref: "#/components/parameters/ClassroomIdPath"
@@ -297,42 +297,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/GetAllClassroomMemberPaymentPlansResponse"
-        "404":
-          description: Classroom not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-  /admin/classrooms/{classroomId}/revenue/query:
-    post:
-      tags:
-        - ClassroomFinances
-      operationId: getClassroomRevenue
-      summary: Get classroom revenue for a time range
-      description: >
-        Returns one revenue total for the classroom. Sums each ATTENDED student's current payment-plan amount for sessions whose sessionDate is in `[from, to)` (`from` inclusive, `to` exclusive). Teachers, ABSENT, UNSET, and members without a current plan contribute nothing. Uses the member's current plan only — not the plan that was current at session time. Currency is always VND.
-
-      parameters:
-        - $ref: "#/components/parameters/ClassroomIdPath"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/GetClassroomRevenueQuery"
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ClassroomRevenueResponse"
-        "400":
-          description: Invalid range (`from` is not before `to`)
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
         "404":
           description: Classroom not found
           content:
@@ -365,7 +329,7 @@ paths:
       operationId: getClassroomMemberPaymentPlans
       summary: Get payment plans for a classroom member
       description: >
-        Returns every payment plan for the member, not paginated. The current plan (if any) is first, then remaining plans by created date descending. An empty list means the member has no paid plan.
+        Returns every payment plan for the member, not paginated. The current plan (`effectiveTo` null, if any) is first, then remaining plans by `effectiveFrom` descending. An empty list means the member has no paid plan.
 
       parameters:
         - $ref: "#/components/parameters/ClassroomIdPath"
@@ -389,7 +353,7 @@ paths:
       operationId: createClassroomMemberPaymentPlan
       summary: Create a payment plan for a classroom member
       description: >
-        Inserts a new current payment plan. Any existing current plan for the member is marked not current in the same transaction. Plans are immutable after create.
+        Inserts a new current payment plan effective immediately. Any existing current plan for the member is closed (`effectiveTo` set) in the same transaction. Does not support future-dated plans. Plans are immutable after create; updates are not allowed.
 
       parameters:
         - $ref: "#/components/parameters/ClassroomIdPath"
@@ -420,29 +384,183 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
   /admin/classrooms/{classroomId}/members/{memberId}/payment-plans/{paymentPlanId}:
-    delete:
+    get:
       tags:
         - ClassroomMemberPaymentPlans
-      operationId: deleteClassroomMemberPaymentPlan
-      summary: Delete a classroom member payment plan
-      description: >
-        Hard-deletes a payment plan only if it was created within the last five minutes. Does not restore a previous plan as current.
+      operationId: getClassroomMemberPaymentPlanById
+      summary: Get a classroom member payment plan by id
+      description: Returns a single payment plan for the member by its identifier.
 
       parameters:
         - $ref: "#/components/parameters/ClassroomIdPath"
         - $ref: "#/components/parameters/MemberId"
         - $ref: "#/components/parameters/PaymentPlanId"
       responses:
-        "204":
-          description: Payment plan deleted
+        "200":
+          description: Payment plan found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassroomMemberPaymentPlanResponse"
         "404":
           description: Payment plan not found
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-        "409":
-          description: Payment plan is outside the deletion window
+  /admin/classrooms/{classroomId}/invoices:
+    post:
+      tags:
+        - ClassroomInvoices
+      operationId: createClassroomInvoiceAdhoc
+      summary: Create an adhoc classroom invoice
+      description: >
+        Creates a DRAFT invoice of type ADHOC for a member of the classroom.
+        Period is left unset. Line totals and the invoice total are computed by the server
+        (`finalAmount = unitPrice * quantity`). At least one line is required.
+        The member must belong to the path classroom.
+
+      parameters:
+        - $ref: "#/components/parameters/ClassroomIdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateClassroomInvoiceAdhocCommand"
+      responses:
+        "201":
+          description: Adhoc classroom invoice created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassroomInvoiceResponse"
+        "404":
+          description: Classroom member not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /admin/classrooms/{classroomId}/invoices/query:
+    post:
+      tags:
+        - ClassroomInvoices
+      operationId: queryClassroomInvoices
+      summary: Query invoices for a classroom
+      description: >
+        Query invoices belonging to a classroom. Always scoped to the path `classroomId` in
+        addition to the filter. Use `memberId` in filters to narrow to one member.
+        Pagination and sorting follow the same pattern as other query endpoints.
+
+      parameters:
+        - $ref: "#/components/parameters/ClassroomIdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClassroomInvoiceFilter"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetAllClassroomInvoicesResponse"
+        "404":
+          description: Classroom not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /admin/classrooms/{classroomId}/invoices/{invoiceId}:
+    get:
+      tags:
+        - ClassroomInvoices
+      operationId: getClassroomInvoiceById
+      summary: Get a classroom invoice by id
+      description: Returns a single invoice for the classroom by its identifier.
+      parameters:
+        - $ref: "#/components/parameters/ClassroomIdPath"
+        - $ref: "#/components/parameters/InvoiceId"
+      responses:
+        "200":
+          description: Classroom invoice found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassroomInvoiceResponse"
+        "404":
+          description: Classroom invoice not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /admin/classrooms/{classroomId}/invoices/{invoiceId}/approve:
+    post:
+      tags:
+        - ClassroomInvoices
+      operationId: approveClassroomInvoice
+      summary: Approve a classroom invoice
+      description: >
+        Moves the invoice status from DRAFT to APPROVED. Non-DRAFT invoices are rejected.
+
+      parameters:
+        - $ref: "#/components/parameters/ClassroomIdPath"
+        - $ref: "#/components/parameters/InvoiceId"
+      responses:
+        "200":
+          description: Classroom invoice approved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassroomInvoiceResponse"
+        "400":
+          description: Invoice is not DRAFT
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Classroom invoice not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /admin/classrooms/{classroomId}/invoices/{invoiceId}/complete:
+    post:
+      tags:
+        - ClassroomInvoices
+      operationId: completeClassroomInvoice
+      summary: Complete a classroom invoice
+      description: >
+        Moves the invoice status from APPROVED to COMPLETED and records payment.
+        Sets paidAt on the server. Non-APPROVED invoices are rejected.
+
+      parameters:
+        - $ref: "#/components/parameters/ClassroomIdPath"
+        - $ref: "#/components/parameters/InvoiceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompleteClassroomInvoiceCommand"
+      responses:
+        "200":
+          description: Classroom invoice completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassroomInvoiceResponse"
+        "400":
+          description: Invoice is not APPROVED
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Classroom invoice not found
           content:
             application/json:
               schema:
@@ -957,6 +1075,28 @@ paths:
       responses:
         "204":
           description: Generation ran
+  /dev/classroom-invoices/generate:
+    post:
+      tags:
+        - _Dev
+      operationId: generateClassroomInvoices
+      summary: Generate classroom invoices for a date-time window
+      description: >
+        Triggers the same work as the monthly invoice job for an explicit attendance window.
+        Creates GENERATED draft invoices for active STUDENT members (including zero attendances).
+        Unit price comes from the member's current payment plan (`effectiveTo` null); 0 if none.
+        Existing GENERATED invoices for the same member/period are skipped. Local and test profiles only.
+
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateClassroomInvoicesCommand"
+      responses:
+        "204":
+          description: Generation ran
   /admin/classrooms/{classroomId}/schedule:
     get:
       tags:
@@ -1129,6 +1269,16 @@ components:
         format: uuid
         description: Classroom member payment plan UUID
         example: 550e8400-e29b-41d4-a716-446655440000
+    InvoiceId:
+      name: invoiceId
+      in: path
+      required: true
+      description: Classroom invoice identifier
+      schema:
+        type: string
+        format: uuid
+        description: Classroom invoice UUID
+        example: 6ba7b810-9dad-11d1-80b4-00c04fd430c8
     AttendanceId:
       name: attendanceId
       in: path
@@ -1291,7 +1441,9 @@ components:
       example: PER_SESSION
     CreateClassroomMemberPaymentPlanCommand:
       type: object
-      description: Command to create a current payment plan for a classroom member
+      description: >
+        Command to create a current payment plan for a classroom member. Takes effect immediately;
+        effective dates are set by the server (no future scheduling).
       additionalProperties: false
       required:
         - type
@@ -1322,7 +1474,7 @@ components:
         - type
         - amount
         - currency
-        - isCurrent
+        - effectiveFrom
         - createdDate
         - lastModifiedDate
       properties:
@@ -1349,11 +1501,12 @@ components:
           minLength: 1
           maxLength: 32
           example: VND
-        isCurrent:
-          type: boolean
-          description: Whether this is the member's current plan
-          example: true
-        replacedAt:
+        effectiveFrom:
+          type: string
+          format: date-time
+          description: When this plan became current
+          example: 2026-07-14T00:00:00Z
+        effectiveTo:
           type: string
           format: date-time
           description: When this plan stopped being current. Null while current.
@@ -1373,48 +1526,6 @@ components:
       description: Collection of classroom member payment plans
       items:
         $ref: "#/components/schemas/ClassroomMemberPaymentPlanResponse"
-    GetClassroomRevenueQuery:
-      type: object
-      description: >
-        Time range for classroom revenue. Filtered on sessionDate; `from` is inclusive and `to` is exclusive.
-
-      additionalProperties: false
-      required:
-        - from
-        - to
-      properties:
-        from:
-          type: string
-          format: date-time
-          description: Start of the range (inclusive) on sessionDate
-          example: 2026-08-01T00:00:00Z
-        to:
-          type: string
-          format: date-time
-          description: End of the range (exclusive) on sessionDate
-          example: 2026-09-01T00:00:00Z
-    ClassroomRevenueResponse:
-      type: object
-      description: Classroom revenue total for a time range
-      additionalProperties: false
-      required:
-        - revenue
-        - currency
-      properties:
-        revenue:
-          type: integer
-          format: int64
-          description: >
-            Sum of current student payment-plan amounts for ATTENDED sessions in the range, in the smallest currency unit. Zero when nothing matches.
-
-          minimum: 0
-          example: 1000000
-        currency:
-          type: string
-          description: Currency code. Always VND for this endpoint.
-          minLength: 1
-          maxLength: 32
-          example: VND
     GetAllClassroomsQuery:
       type: object
       description: Query to retrieve all classrooms
@@ -1569,6 +1680,11 @@ components:
 
           maxLength: 255
           example: public/3e4ef8d1-9581-402f-9e27-fec209aeb2d8
+        removedDate:
+          type: string
+          format: date-time
+          description: When the member was removed; null while ACTIVE
+          example: 2026-07-20T00:00:00Z
         createdDate:
           type: string
           format: date-time
@@ -1673,6 +1789,27 @@ components:
           format: date
           description: Date this ran; sessions are created for the following calendar month
           example: "2026-10-07"
+    GenerateClassroomInvoicesCommand:
+      type: object
+      description: >
+        Command to generate classroom invoices for an inclusive attendance window
+        (job uses previous-month start through first day of the current month).
+
+      additionalProperties: false
+      required:
+        - startDateTime
+        - endDateTime
+      properties:
+        startDateTime:
+          type: string
+          format: date-time
+          description: Inclusive attendance window start
+          example: "2026-09-01T00:00:00"
+        endDateTime:
+          type: string
+          format: date-time
+          description: Inclusive attendance window end
+          example: "2026-10-01T00:00:00"
     ClassroomSessionFilter:
       type: object
       description: Filter for querying classroom sessions
@@ -2193,6 +2330,315 @@ components:
           maxLength: 64
           example: public/3e4ef8d1-9581-402f-9e27-fec209aeb2d8
           pattern: ^public\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$
+    ClassroomInvoiceStatus:
+      type: string
+      description: Lifecycle status of a classroom invoice
+      enum:
+        - DRAFT
+        - APPROVED
+        - COMPLETED
+      example: DRAFT
+    ClassroomInvoiceType:
+      type: string
+      description: How the classroom invoice was created
+      enum:
+        - GENERATED
+        - ADHOC
+      example: GENERATED
+    ClassroomInvoicePeriodRange:
+      type: string
+      description: Billing period range for a generated invoice
+      enum:
+        - MONTH
+      example: MONTH
+    ClassroomInvoicePaymentMethod:
+      type: string
+      description: How the invoice was paid
+      enum:
+        - BANK
+        - CASH
+        - OTHER
+      example: BANK
+    ClassroomInvoiceLineKind:
+      type: string
+      description: Kind of invoice line
+      enum:
+        - LESSON
+        - OTHER
+      example: LESSON
+    CreateClassroomInvoiceAdhocCommand:
+      type: object
+      description: >
+        Command to create an adhoc classroom invoice. Status is always DRAFT and type is always ADHOC.
+        Period is not set. Totals are computed by the server.
+
+      additionalProperties: false
+      required:
+        - memberId
+        - lines
+      properties:
+        memberId:
+          type: string
+          format: uuid
+          description: Classroom member this invoice belongs to
+          example: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+        note:
+          type: string
+          description: Optional invoice note
+          minLength: 1
+          maxLength: 2000
+          example: Makeup fee for missed materials
+        lines:
+          type: array
+          description: Invoice lines. At least one.
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/CreateClassroomInvoiceAdhocLineCommand"
+    CreateClassroomInvoiceAdhocLineCommand:
+      type: object
+      description: >
+        One line on an adhoc classroom invoice. finalAmount is not accepted; the server sets it to unitPrice * quantity.
+
+      additionalProperties: false
+      required:
+        - kind
+        - description
+        - unitPrice
+        - quantity
+      properties:
+        kind:
+          $ref: "#/components/schemas/ClassroomInvoiceLineKind"
+        description:
+          type: string
+          description: Line description
+          minLength: 1
+          maxLength: 2000
+          example: Replacement workbook
+        unitPrice:
+          type: integer
+          format: int64
+          description: Unit price in the smallest currency unit
+          minimum: 0
+          example: 50000
+        quantity:
+          type: integer
+          format: int32
+          description: Quantity
+          minimum: 0
+          example: 1
+    CompleteClassroomInvoiceCommand:
+      type: object
+      description: >
+        Command to mark an APPROVED classroom invoice COMPLETED and record payment.
+        paidAt is set by the server.
+      additionalProperties: false
+      required:
+        - paidAmount
+        - paymentMethod
+      properties:
+        paidAmount:
+          type: integer
+          format: int64
+          description: Amount paid in the smallest currency unit
+          minimum: 0
+          example: 1200000
+        paymentMethod:
+          $ref: "#/components/schemas/ClassroomInvoicePaymentMethod"
+        paymentReference:
+          type: string
+          description: External payment reference
+          minLength: 1
+          maxLength: 255
+          example: TXN-12345
+        paymentNote:
+          type: string
+          description: Optional payment note
+          minLength: 1
+          maxLength: 2000
+          example: Paid via bank transfer
+    ClassroomInvoiceFilter:
+      type: object
+      description: Filter for querying classroom invoices
+      additionalProperties: false
+      properties:
+        page:
+          type: integer
+          default: 0
+          minimum: 0
+        size:
+          type: integer
+          default: 10
+          minimum: 1
+          maximum: 50
+        sortBy:
+          type: string
+          pattern: '^(createdDate|periodStart|totalAmount|status|type|memberId)$'
+        sortDirection:
+          type: string
+          enum: [ASC, DESC]
+          default: DESC
+        filters:
+          type: array
+          items:
+            type: object
+            required: [field, operator, value]
+            properties:
+              field:
+                type: string
+                pattern: '^(memberId|status|type|periodStart|periodRange|createdDate|totalAmount)$'
+              operator:
+                type: string
+                pattern: '^(eq|like|gt|lt|gte|lte)$'
+              value:
+                type: string
+    ClassroomInvoiceLineResponse:
+      type: object
+      description: Line item on a classroom invoice
+      additionalProperties: false
+      required:
+        - id
+        - kind
+        - description
+        - unitPrice
+        - quantity
+        - finalAmount
+        - createdDate
+        - lastModifiedDate
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique invoice line identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        kind:
+          $ref: "#/components/schemas/ClassroomInvoiceLineKind"
+        description:
+          type: string
+          description: Line description
+          example: 8 lessons in October
+        unitPrice:
+          type: integer
+          format: int64
+          description: Unit price in the smallest currency unit
+          minimum: 0
+          example: 150000
+        quantity:
+          type: integer
+          format: int32
+          description: Quantity
+          minimum: 0
+          example: 8
+        finalAmount:
+          type: integer
+          format: int64
+          description: Line total (unitPrice * quantity)
+          example: 1200000
+        createdDate:
+          type: string
+          format: date-time
+          description: When the line was created
+          example: 2026-07-14T00:00:00Z
+        lastModifiedDate:
+          type: string
+          format: date-time
+          description: When the line was last modified
+          example: 2026-07-14T00:00:00Z
+    ClassroomInvoiceResponse:
+      type: object
+      description: Classroom invoice resource returned by the API
+      additionalProperties: false
+      required:
+        - id
+        - classroomId
+        - memberId
+        - status
+        - type
+        - totalAmount
+        - lines
+        - createdDate
+        - lastModifiedDate
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique classroom invoice identifier
+          example: 6ba7b810-9dad-11d1-80b4-00c04fd430c8
+        classroomId:
+          type: string
+          format: uuid
+          description: Classroom this invoice belongs to
+          example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+        memberId:
+          type: string
+          format: uuid
+          description: Classroom member this invoice belongs to
+          example: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+        status:
+          $ref: "#/components/schemas/ClassroomInvoiceStatus"
+        type:
+          $ref: "#/components/schemas/ClassroomInvoiceType"
+        periodStart:
+          type: string
+          format: date
+          description: Period start date (generated invoices)
+          example: "2026-10-01"
+        periodRange:
+          $ref: "#/components/schemas/ClassroomInvoicePeriodRange"
+        totalAmount:
+          type: integer
+          format: int64
+          description: Invoice total in the smallest currency unit
+          minimum: 0
+          example: 1200000
+        note:
+          type: string
+          description: Optional invoice note
+          example: October tuition
+        approvedAt:
+          type: string
+          format: date-time
+          description: When the invoice was approved
+          example: 2026-10-05T00:00:00Z
+        paidAt:
+          type: string
+          format: date-time
+          description: When the invoice was marked paid
+          example: 2026-10-10T00:00:00Z
+        paidAmount:
+          type: integer
+          format: int64
+          description: Amount paid in the smallest currency unit
+          example: 1200000
+        paymentMethod:
+          $ref: "#/components/schemas/ClassroomInvoicePaymentMethod"
+        paymentReference:
+          type: string
+          description: External payment reference
+          example: TXN-12345
+        paymentNote:
+          type: string
+          description: Optional payment note
+          example: Paid via bank transfer
+        lines:
+          type: array
+          description: Invoice line items
+          items:
+            $ref: "#/components/schemas/ClassroomInvoiceLineResponse"
+        createdDate:
+          type: string
+          format: date-time
+          description: When the invoice was created
+          example: 2026-07-14T00:00:00Z
+        lastModifiedDate:
+          type: string
+          format: date-time
+          description: When the invoice was last modified
+          example: 2026-07-14T00:00:00Z
+    GetAllClassroomInvoicesResponse:
+      type: array
+      description: Collection of classroom invoices
+      items:
+        $ref: "#/components/schemas/ClassroomInvoiceResponse"
     ErrorResponse:
       type: object
       description: Standard API error payload

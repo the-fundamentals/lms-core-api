@@ -1,0 +1,26 @@
+---
+description: Use Entity.Fields and Operators constants when building QueryFilterConditions
+globs: src/**/*.java
+alwaysApply: false
+---
+
+# Query filter field / operator constants
+
+When building `QueryFilterConditions` (or `BaseQuery.addFilter`), do not hardcode field names or operator strings.
+
+1. **Field** — use `<Entity>.Fields.<property>` from Lombok `@FieldNameConstants`.
+2. **Operator** — use `Operators.*` (e.g. `Operators.EQUAL`), never `"eq"` / `"gte"` literals.
+
+If the entity has no `Fields` nested type, add `@FieldNameConstants` to that entity and **tell the user** you added it.
+
+```java
+// ❌ BAD
+filters.add(QueryFilterConditions.of("classroomId", "eq", classroomId.toString()));
+
+// ✅ GOOD
+filters.add(
+    QueryFilterConditions.of(
+        ClassroomInvoice.Fields.classroomId, Operators.EQUAL, classroomId.toString()));
+```
+
+Same for `BaseQuery.builder().addFilter(...)`.

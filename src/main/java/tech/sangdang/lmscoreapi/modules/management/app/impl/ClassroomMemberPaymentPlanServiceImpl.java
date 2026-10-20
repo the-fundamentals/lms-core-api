@@ -1,13 +1,11 @@
 package tech.sangdang.lmscoreapi.modules.management.app.impl;
 
-import java.time.Duration;
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import tech.sangdang.lmscoreapi.common.exception.ConflictException;
 import tech.sangdang.lmscoreapi.common.exception.ObjectNotFoundException;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomMemberPaymentPlanResponse;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomMemberPaymentPlanCommand;
@@ -25,7 +23,6 @@ import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomRepos
 @RequiredArgsConstructor
 public class ClassroomMemberPaymentPlanServiceImpl implements ClassroomMemberPaymentPlanService {
 
-  private static final Duration DELETE_WINDOW = Duration.ofMinutes(5);
   private static final String DEFAULT_CURRENCY = "VND";
 
   private final ClassroomRepository classroomRepository;
@@ -37,18 +34,16 @@ public class ClassroomMemberPaymentPlanServiceImpl implements ClassroomMemberPay
   @Transactional
   public ClassroomMemberPaymentPlanResponse createClassroomMemberPaymentPlan(
       UUID classroomId, UUID memberId, CreateClassroomMemberPaymentPlanCommand command) {
-    // check member exists in classroom
     requireMemberInClassroom(classroomId, memberId);
 
-    Instant now = Instant.now();
+    LocalDateTime now = LocalDateTime.now();
 
-    // replace current plan (if any) and insert the new current plan
+    // Close the open-ended plan (if any); new plan starts at the same time — no future scheduling
     classroomMemberPaymentPlanRepository
         .findCurrent(memberId)
         .ifPresent(
             current -> {
-              current.setIsCurrent(false);
-              current.setReplacedAt(now);
+              current.setEffectiveTo(now);
               classroomMemberPaymentPlanRepository.update(current);
             });
 
@@ -58,8 +53,8 @@ public class ClassroomMemberPaymentPlanServiceImpl implements ClassroomMemberPay
             .setType(PaymentPlanType.valueOf(command.getType().getValue()))
             .setAmount(command.getAmount())
             .setCurrency(resolveCurrency(command.getCurrency()))
-            .setIsCurrent(true)
-            .setReplacedAt(null);
+            .setEffectiveFrom(now)
+            .setEffectiveTo(null);
 
     return classroomMemberPaymentPlanMapper.toResponse(
         classroomMemberPaymentPlanRepository.insert(plan));
@@ -69,13 +64,30 @@ public class ClassroomMemberPaymentPlanServiceImpl implements ClassroomMemberPay
   @Transactional(readOnly = true)
   public List<ClassroomMemberPaymentPlanResponse> getClassroomMemberPaymentPlans(
       UUID classroomId, UUID memberId) {
-    // check member exists in classroom
     requireMemberInClassroom(classroomId, memberId);
 
-    // load plans for the member (current first)
     return classroomMemberPaymentPlanRepository.findByMember(memberId).stream()
         .map(classroomMemberPaymentPlanMapper::toResponse)
         .toList();
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public ClassroomMemberPaymentPlanResponse getClassroomMemberPaymentPlanById(
+      UUID classroomId, UUID memberId, UUID paymentPlanId) {
+    requireMemberInClassroom(classroomId, memberId);
+
+    ClassroomMemberPaymentPlan plan =
+        classroomMemberPaymentPlanRepository
+            .findById(paymentPlanId)
+            .orElseThrow(
+                () -> ObjectNotFoundException.of(ClassroomMemberPaymentPlan.class, paymentPlanId));
+
+    if (!memberId.equals(plan.getClassroomMemberId())) {
+      throw ObjectNotFoundException.of(ClassroomMemberPaymentPlan.class, paymentPlanId);
+    }
+
+    return classroomMemberPaymentPlanMapper.toResponse(plan);
   }
 
   @Override
@@ -90,34 +102,6 @@ public class ClassroomMemberPaymentPlanServiceImpl implements ClassroomMemberPay
         .filter(plan -> plan != null && plan.getId() != null)
         .map(classroomMemberPaymentPlanMapper::toResponse)
         .toList();
-  }
-
-  @Override
-  @Transactional
-  public void deleteClassroomMemberPaymentPlan(
-      UUID classroomId, UUID memberId, UUID paymentPlanId) {
-    // check member exists in classroom
-    requireMemberInClassroom(classroomId, memberId);
-
-    ClassroomMemberPaymentPlan plan =
-        classroomMemberPaymentPlanRepository
-            .findById(paymentPlanId)
-            .orElseThrow(
-                () -> ObjectNotFoundException.of(ClassroomMemberPaymentPlan.class, paymentPlanId));
-
-    if (!memberId.equals(plan.getClassroomMemberId())) {
-      throw ObjectNotFoundException.of(ClassroomMemberPaymentPlan.class, paymentPlanId);
-    }
-
-    Instant createdDate = plan.getCreatedDate();
-    if (createdDate == null || createdDate.isBefore(Instant.now().minus(DELETE_WINDOW))) {
-      throw ConflictException.of(
-          "CLASSROOM_MEMBER_PAYMENT_PLAN_DELETE_WINDOW_EXPIRED",
-          "Payment plan can only be deleted within 5 minutes of creation");
-    }
-
-    // delete only when still inside the creation window
-    classroomMemberPaymentPlanRepository.deleteById(paymentPlanId);
   }
 
   private static String resolveCurrency(String currency) {

@@ -1,5 +1,6 @@
 package tech.sangdang.lmscoreapi.modules.management.app.impl;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -97,6 +98,7 @@ public class ClassroomMemberServiceImpl implements ClassroomMemberService {
 
         existing.setRole(role);
         existing.setStatus(ClassroomMemberStatus.ACTIVE);
+        existing.setRemovedDate(null);
         existing.setEmail(profile.getEmail());
         existing.setName(displayName);
         existing.setAvatar(avatar);
@@ -153,6 +155,7 @@ public class ClassroomMemberServiceImpl implements ClassroomMemberService {
     }
 
     member.setStatus(ClassroomMemberStatus.REMOVED);
+    member.setRemovedDate(LocalDateTime.now());
     classroomMemberRepository.update(member);
     classroomRecordService.adjustNumberOfMembers(classroomId, -1);
   }

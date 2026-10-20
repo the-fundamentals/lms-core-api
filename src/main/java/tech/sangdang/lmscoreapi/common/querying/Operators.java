@@ -7,4 +7,5 @@ public class Operators {
   public static final String LESS_THAN = "lt";
   public static final String GREATER_OR_EQUAL = "gte";
   public static final String LESS_OR_EQUAL = "lte";
+  public static final String IN = "in";
 }

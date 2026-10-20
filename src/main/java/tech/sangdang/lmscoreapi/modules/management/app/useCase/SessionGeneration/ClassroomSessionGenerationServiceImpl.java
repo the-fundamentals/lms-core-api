@@ -1,4 +1,4 @@
-package tech.sangdang.lmscoreapi.modules.management.app.impl;
+package tech.sangdang.lmscoreapi.modules.management.app.useCase.SessionGeneration;
 
 import java.time.LocalDate;
 import java.time.temporal.TemporalAdjusters;
@@ -11,7 +11,6 @@ import org.springframework.transaction.annotation.Transactional;
 import tech.sangdang.lmscoreapi.common.exception.ObjectNotFoundException;
 import tech.sangdang.lmscoreapi.common.querying.BaseQuery;
 import tech.sangdang.lmscoreapi.common.querying.Operators;
-import tech.sangdang.lmscoreapi.modules.management.app.ClassroomSessionGenerationService;
 import tech.sangdang.lmscoreapi.modules.management.app.internal.RecurrenceRuleUtils;
 import tech.sangdang.lmscoreapi.modules.management.dom.Classroom;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomScheduleRecurrence;
@@ -19,14 +18,13 @@ import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSession;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomStatus;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomRepository;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomScheduleRecurrenceRepository;
-import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomSessionRepository;
 
 @Service
 @RequiredArgsConstructor
 public class ClassroomSessionGenerationServiceImpl implements ClassroomSessionGenerationService {
 
   private final ClassroomRepository classroomRepository;
-  private final ClassroomSessionRepository classroomSessionRepository;
+  private final ClassroomSessionGenerationRepository classroomSessionGenerationRepository;
   private final ClassroomScheduleRecurrenceRepository classroomScheduleRecurrenceRepository;
 
   @Override
@@ -97,6 +95,6 @@ public class ClassroomSessionGenerationServiceImpl implements ClassroomSessionGe
                           recurrence.getId())));
         });
 
-    classroomSessionRepository.insertAllIgnoringDuplicates(sessionsToCreate);
+    classroomSessionGenerationRepository.insertAllIgnoringDuplicates(sessionsToCreate);
   }
 }
