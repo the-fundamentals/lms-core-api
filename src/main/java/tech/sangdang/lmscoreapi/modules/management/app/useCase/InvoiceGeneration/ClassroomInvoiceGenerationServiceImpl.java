@@ -27,7 +27,7 @@ public class ClassroomInvoiceGenerationServiceImpl implements ClassroomInvoiceGe
   @Transactional
   public void generateInvoices(LocalDateTime startDateTime, LocalDateTime endDateTime) {
 
-    // MVP: fetchAll caps at 10k rows — batch/page if a tenant can exceed that.
+    // MVP: fetchAll caps at 10k rows — batch/page if a tenant can exceed that
     List<UUID> classroomIds =
         classroomRepository
             .query(
