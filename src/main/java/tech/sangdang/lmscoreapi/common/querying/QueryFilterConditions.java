@@ -10,9 +10,11 @@ import lombok.NoArgsConstructor;
 public class QueryFilterConditions {
   protected String field;
   protected String operator;
-  protected String value;
 
-  public static QueryFilterConditions of(String field, String operator, String value) {
+  /** Scalar (usually {@link String} from API) or {@link java.util.Collection} for {@code in}. */
+  protected Object value;
+
+  public static QueryFilterConditions of(String field, String operator, Object value) {
     return new QueryFilterConditions(field, operator, value);
   }
 }

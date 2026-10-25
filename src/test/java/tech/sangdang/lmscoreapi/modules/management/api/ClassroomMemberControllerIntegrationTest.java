@@ -335,6 +335,7 @@ class ClassroomMemberControllerIntegrationTest {
     ArgumentCaptor<ClassroomMember> captor = ArgumentCaptor.forClass(ClassroomMember.class);
     verify(classroomMemberRepository).update(captor.capture());
     assertThat(captor.getValue().getStatus()).isEqualTo(ClassroomMemberStatus.REMOVED);
+    assertThat(captor.getValue().getRemovedDate()).isNotNull();
 
     ArgumentCaptor<Classroom> classroomCaptor = ArgumentCaptor.forClass(Classroom.class);
     verify(classroomRepository).update(classroomCaptor.capture());

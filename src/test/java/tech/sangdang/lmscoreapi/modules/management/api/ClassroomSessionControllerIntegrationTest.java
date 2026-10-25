@@ -66,10 +66,10 @@ import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionAttendance
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionAttendancesCommand;
 import tech.sangdang.lmscoreapi.generated.model.UpdateClassroomSessionAttendanceCommand;
 import tech.sangdang.lmscoreapi.generated.model.UpdateClassroomSessionCommand;
-import tech.sangdang.lmscoreapi.modules.management.app.ClassroomSessionGenerationService;
 import tech.sangdang.lmscoreapi.modules.management.app.impl.ClassroomSessionServiceImpl;
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomSessionAttendanceMapperImpl;
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomSessionMapperImpl;
+import tech.sangdang.lmscoreapi.modules.management.app.useCase.SessionGeneration.ClassroomSessionGenerationService;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomMemberStatus;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSession;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionAttendance;

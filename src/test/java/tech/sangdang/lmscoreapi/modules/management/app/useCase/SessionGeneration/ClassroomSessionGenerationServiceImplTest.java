@@ -1,4 +1,4 @@
-package tech.sangdang.lmscoreapi.modules.management.app.impl;
+package tech.sangdang.lmscoreapi.modules.management.app.useCase.SessionGeneration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -36,7 +36,6 @@ import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionStatus;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionType;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomRepository;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomScheduleRecurrenceRepository;
-import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomSessionRepository;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("Classroom session generation")
@@ -47,7 +46,7 @@ class ClassroomSessionGenerationServiceImplTest {
   private static final LocalDate NOV_30 = LocalDate.of(2026, 11, 30);
 
   @Mock private ClassroomRepository classroomRepository;
-  @Mock private ClassroomSessionRepository classroomSessionRepository;
+  @Mock private ClassroomSessionGenerationRepository classroomSessionGenerationRepository;
   @Mock private ClassroomScheduleRecurrenceRepository classroomScheduleRecurrenceRepository;
 
   private ClassroomSessionGenerationServiceImpl service;
@@ -56,7 +55,9 @@ class ClassroomSessionGenerationServiceImplTest {
   void setUp() {
     service =
         new ClassroomSessionGenerationServiceImpl(
-            classroomRepository, classroomSessionRepository, classroomScheduleRecurrenceRepository);
+            classroomRepository,
+            classroomSessionGenerationRepository,
+            classroomScheduleRecurrenceRepository);
   }
 
   @Test
@@ -209,7 +210,7 @@ class ClassroomSessionGenerationServiceImplTest {
     verify(classroomScheduleRecurrenceRepository, never())
         .findActiveByClassroomIdsAsOfDate(
             any(UUID[].class), any(LocalDate.class), any(LocalDate.class));
-    verify(classroomSessionRepository, never()).insertAllIgnoringDuplicates(any());
+    verify(classroomSessionGenerationRepository, never()).insertAllIgnoringDuplicates(any());
   }
 
   private void stubActiveClassroomAndRecurrence(ClassroomScheduleRecurrence recurrence) {
@@ -226,7 +227,7 @@ class ClassroomSessionGenerationServiceImplTest {
   @SuppressWarnings("unchecked")
   private List<ClassroomSession> capturedInserts() {
     ArgumentCaptor<List<ClassroomSession>> captor = ArgumentCaptor.forClass(List.class);
-    verify(classroomSessionRepository).insertAllIgnoringDuplicates(captor.capture());
+    verify(classroomSessionGenerationRepository).insertAllIgnoringDuplicates(captor.capture());
     return captor.getValue();
   }
 }

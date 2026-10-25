@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS classroom_member
     classroom_id       UUID         NOT NULL,
     role               VARCHAR(32),
     status             VARCHAR(32)  NOT NULL,
+    removed_date       TIMESTAMP,
     -- Denormalized fields from account/identity service
     email              VARCHAR(255) NOT NULL,
     name               VARCHAR(255) NOT NULL,
@@ -50,15 +51,16 @@ CREATE TABLE IF NOT EXISTS classroom_member_payment_plan
     type                VARCHAR(32) NOT NULL DEFAULT 'PER_SESSION',
     amount              BIGINT      NOT NULL,
     currency            VARCHAR(32) NOT NULL DEFAULT 'VND',
-    is_current          BOOLEAN     NOT NULL,
-    replaced_at         TIMESTAMP,
+    effective_from      TIMESTAMP   NOT NULL,
+    effective_to        TIMESTAMP,
 
     FOREIGN KEY (classroom_member_id) REFERENCES classroom_member (id)
 );
 
+-- One open-ended (current) plan per member. No future-dated plans.
 CREATE UNIQUE INDEX IF NOT EXISTS unique_current_payment_plan
     ON classroom_member_payment_plan (classroom_member_id)
-    WHERE is_current = true;
+    WHERE effective_to IS NULL;
 
 CREATE TABLE IF NOT EXISTS classroom_schedule_recurrence
 (
@@ -98,8 +100,8 @@ CREATE TABLE IF NOT EXISTS classroom_session
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS unique_generated_session_idx
-ON classroom_session (classroom_id, generated_by, session_date)
-WHERE generated_by IS NOT NULL;
+    ON classroom_session (classroom_id, generated_by, session_date)
+    WHERE generated_by IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS classroom_attendance
 (
@@ -127,4 +129,55 @@ CREATE TABLE IF NOT EXISTS storage_grants
 
     UNIQUE (owner_id, object_key),
     FOREIGN KEY (owner_id) REFERENCES account_profile (id)
-)
+);
+
+CREATE TABLE IF NOT EXISTS classroom_invoice
+(
+    id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    created_date       TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
+    last_modified_date TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
+    classroom_id       UUID        NOT NULL,
+    member_id          UUID        NOT NULL,
+    status             VARCHAR(64) NOT NULL,        -- DRAFT, APPROVED, COMPLETED
+    type               VARCHAR(64) NOT NULL,        -- GENERATED, ADHOC
+
+    period_start       DATE,
+    period_range       VARCHAR(64) DEFAULT 'MONTH', -- MONTH
+
+    total_amount       BIGINT      NOT NULL CHECK (total_amount >= 0),
+    note               TEXT,
+
+    approved_at        TIMESTAMP,
+    paid_at            TIMESTAMP,
+    paid_amount        BIGINT,
+    payment_method     VARCHAR(64),                 -- BANK, CASH, OTHER
+    payment_reference  TEXT,
+    payment_note       TEXT,
+
+    FOREIGN KEY (classroom_id) REFERENCES classroom (id),
+    FOREIGN KEY (member_id) REFERENCES classroom_member (id)
+);
+CREATE INDEX IF NOT EXISTS idx_classroom_invoice_classroom ON classroom_invoice (classroom_id);
+CREATE INDEX IF NOT EXISTS idx_classroom_invoice_member ON classroom_invoice (member_id);
+CREATE UNIQUE INDEX IF NOT EXISTS unique_generated_invoice_member_period
+    ON classroom_invoice (member_id, period_range, period_start) NULLS NOT DISTINCT
+WHERE type = 'GENERATED';
+
+-- Aggregate child of classroom_invoice.
+CREATE TABLE IF NOT EXISTS classroom_invoice_line
+(
+    id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    created_date       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_modified_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    invoice_id         UUID        NOT NULL,
+    kind               VARCHAR(64) NOT NULL, -- LESSON, OTHER
+    description        TEXT        NOT NULL,
+    unit_price         BIGINT      NOT NULL CHECK (unit_price >= 0),
+    quantity           INT         NOT NULL CHECK (quantity >= 0),
+
+    final_amount       BIGINT      NOT NULL,
+
+    CONSTRAINT chk_invoice_final_amount CHECK (final_amount = unit_price * quantity),
+    FOREIGN KEY (invoice_id) REFERENCES classroom_invoice (id)
+);
+CREATE INDEX IF NOT EXISTS idx_classroom_invoice_line_invoice ON classroom_invoice_line (invoice_id);

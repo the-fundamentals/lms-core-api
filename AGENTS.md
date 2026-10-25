@@ -16,6 +16,21 @@
 
 Build output (`build/`, including generated OpenAPI Java) is gitignored.
 
+## Cloud Agent environment
+
+Tool versions come from each repo’s **`mise.toml`** (API, web, terraform). The committed
+`.cursor/environment.json` runs `.cursor/cloud-agent-install.sh` on environment builds:
+mise install, then `./gradlew test`, then `terraform fmt -check` / `init -backend=false` /
+`validate`, then web `bun install` + `lint` when `GITHUB_TOKEN` is set.
+Sibling repos are listed under `repositoryDependencies`.
+
+**Default agent mode:** edit code and run tests/lint — no Postgres, Docker, or dev servers.
+**Full-stack local run:** only when the user asks or the task requires it; use
+`.cursor/cloud-agent-local-run.sh` once local-run steps are documented (not run on boot).
+
+Web install needs a **`GITHUB_TOKEN`** environment secret (GitHub Packages read) for
+`@the-fundamentals/core-openapi`.
+
 ## Build & Development Commands
 
 Requires **JDK 25**. CI uses Temurin 25. Gradle **9.5.1** via the wrapper.
