@@ -14,13 +14,16 @@ CREATE TABLE IF NOT EXISTS account_profile
 
 CREATE TABLE IF NOT EXISTS classroom
 (
-    id                 UUID PRIMARY KEY      DEFAULT gen_random_uuid(),
-    name               VARCHAR(255) NOT NULL,
-    banner_key         VARCHAR(255),
-    number_of_members  INTEGER      NOT NULL DEFAULT 0,
-    created_date       TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
-    last_modified_date TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
-    status             VARCHAR(64)           DEFAULT 'ACTIVE'
+    id                         UUID PRIMARY KEY      DEFAULT gen_random_uuid(),
+    name                       VARCHAR(255) NOT NULL,
+    banner_key                 VARCHAR(255),
+    number_of_members          INTEGER      NOT NULL DEFAULT 0,
+    created_date               TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
+    last_modified_date         TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
+    status                     VARCHAR(64)           DEFAULT 'ACTIVE',
+    base_payment_plan_type     VARCHAR(32)  NOT NULL DEFAULT 'PER_SESSION',
+    base_payment_plan_amount   BIGINT       NOT NULL DEFAULT 0,
+    base_payment_plan_currency VARCHAR(32)  NOT NULL DEFAULT 'VND'
 );
 
 CREATE TABLE IF NOT EXISTS classroom_member
@@ -53,6 +56,7 @@ CREATE TABLE IF NOT EXISTS classroom_member_payment_plan
     currency            VARCHAR(32) NOT NULL DEFAULT 'VND',
     effective_from      TIMESTAMP   NOT NULL,
     effective_to        TIMESTAMP,
+    from_classroom_base BOOLEAN     NOT NULL DEFAULT false,
 
     FOREIGN KEY (classroom_member_id) REFERENCES classroom_member (id)
 );

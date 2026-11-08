@@ -6,6 +6,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tech.sangdang.lmscoreapi.common.exception.GenericBadRequestException;
 import tech.sangdang.lmscoreapi.common.exception.ObjectNotFoundException;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomMemberPaymentPlanResponse;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomMemberPaymentPlanCommand;
@@ -14,6 +15,8 @@ import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomMemberPa
 import tech.sangdang.lmscoreapi.modules.management.dom.Classroom;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomMember;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomMemberPaymentPlan;
+import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomMemberRole;
+import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomMemberStatus;
 import tech.sangdang.lmscoreapi.modules.management.dom.PaymentPlanType;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomMemberPaymentPlanRepository;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomMemberRepository;
@@ -34,30 +37,33 @@ public class ClassroomMemberPaymentPlanServiceImpl implements ClassroomMemberPay
   @Transactional
   public ClassroomMemberPaymentPlanResponse createClassroomMemberPaymentPlan(
       UUID classroomId, UUID memberId, CreateClassroomMemberPaymentPlanCommand command) {
-    requireMemberInClassroom(classroomId, memberId);
-
-    LocalDateTime now = LocalDateTime.now();
-
-    // Close the open-ended plan (if any); new plan starts at the same time — no future scheduling
-    classroomMemberPaymentPlanRepository
-        .findCurrent(memberId)
-        .ifPresent(
-            current -> {
-              current.setEffectiveTo(now);
-              classroomMemberPaymentPlanRepository.update(current);
-            });
+    ClassroomMember member = requireMemberInClassroom(classroomId, memberId);
+    if (member.getRole() != ClassroomMemberRole.STUDENT
+        || member.getStatus() != ClassroomMemberStatus.ACTIVE) {
+      throw GenericBadRequestException.of(
+          "CLASSROOM_MEMBER_PAYMENT_PLAN_NOT_ALLOWED",
+          "Payment plans can only be created for an active student");
+    }
 
     ClassroomMemberPaymentPlan plan =
-        new ClassroomMemberPaymentPlan()
-            .setClassroomMemberId(memberId)
-            .setType(PaymentPlanType.valueOf(command.getType().getValue()))
-            .setAmount(command.getAmount())
-            .setCurrency(resolveCurrency(command.getCurrency()))
-            .setEffectiveFrom(now)
-            .setEffectiveTo(null);
+        replaceCurrent(
+            memberId,
+            PaymentPlanType.valueOf(command.getType().getValue()),
+            command.getAmount(),
+            resolveCurrency(command.getCurrency()),
+            false);
 
-    return classroomMemberPaymentPlanMapper.toResponse(
-        classroomMemberPaymentPlanRepository.insert(plan));
+    return classroomMemberPaymentPlanMapper.toResponse(plan);
+  }
+
+  @Override
+  @Transactional
+  public void applyClassroomBaseToActiveStudents(
+      UUID classroomId, PaymentPlanType type, long amount, String currency) {
+    for (ClassroomMemberPaymentPlan current :
+        classroomMemberPaymentPlanRepository.findCurrentBasePlansForActiveStudents(classroomId)) {
+      replaceCurrent(current.getClassroomMemberId(), type, amount, currency, true);
+    }
   }
 
   @Override
@@ -102,6 +108,34 @@ public class ClassroomMemberPaymentPlanServiceImpl implements ClassroomMemberPay
         .filter(plan -> plan != null && plan.getId() != null)
         .map(classroomMemberPaymentPlanMapper::toResponse)
         .toList();
+  }
+
+  /**
+   * Closes the member's open plan, if any, and inserts the next one at the same time.
+   */
+  private ClassroomMemberPaymentPlan replaceCurrent(
+      UUID memberId,
+      PaymentPlanType type,
+      Long amount,
+      String currency,
+      boolean fromClassroomBase) {
+    LocalDateTime now = LocalDateTime.now();
+    classroomMemberPaymentPlanRepository
+        .findCurrent(memberId)
+        .ifPresent(
+            current -> {
+              current.setEffectiveTo(now);
+              classroomMemberPaymentPlanRepository.update(current);
+            });
+    return classroomMemberPaymentPlanRepository.insert(
+        new ClassroomMemberPaymentPlan()
+            .setClassroomMemberId(memberId)
+            .setType(type)
+            .setAmount(amount)
+            .setCurrency(currency)
+            .setEffectiveFrom(now)
+            .setEffectiveTo(null)
+            .setFromClassroomBase(fromClassroomBase));
   }
 
   private static String resolveCurrency(String currency) {

@@ -34,4 +34,7 @@ public class ClassroomMemberPaymentPlan {
 
   /** Null while this is the member's current plan. */
   private LocalDateTime effectiveTo;
+
+  /** True when this row was copied from the classroom base and should follow later base changes. */
+  private boolean fromClassroomBase;
 }

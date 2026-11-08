@@ -88,4 +88,30 @@ public interface ClassroomMemberPaymentPlanRepository
       """)
   List<ClassroomMemberPaymentPlan> findCurrentByMembers(
       @NonNull @Param("memberIds") List<UUID> memberIds);
+
+  /**
+   * Returns open base-sourced plans for active students in the classroom.
+   *
+   * <ul>
+   *   <li>Role {@code STUDENT}, status {@code ACTIVE}, {@code effective_to} null, {@code
+   *       from_classroom_base} true.
+   *   <li>Teachers, removed members, individual plans, and members with no plan are omitted.
+   * </ul>
+   *
+   * @param classroomId classroom whose base-following student plans to load
+   */
+  @Query(
+      """
+      SELECT p.*
+      FROM classroom_member_payment_plan p
+      INNER JOIN classroom_member m
+        ON m.id = p.classroom_member_id
+      WHERE m.classroom_id = :classroomId
+        AND m.role = 'STUDENT'
+        AND m.status = 'ACTIVE'
+        AND p.effective_to IS NULL
+        AND p.from_classroom_base = true
+      """)
+  List<ClassroomMemberPaymentPlan> findCurrentBasePlansForActiveStudents(
+      @NonNull @Param("classroomId") UUID classroomId);
 }

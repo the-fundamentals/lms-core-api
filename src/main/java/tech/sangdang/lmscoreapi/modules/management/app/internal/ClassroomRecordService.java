@@ -6,26 +6,56 @@ import org.jspecify.annotations.NonNull;
 import org.springframework.transaction.annotation.Transactional;
 import tech.sangdang.lmscoreapi.common.InternalService;
 import tech.sangdang.lmscoreapi.common.exception.ObjectNotFoundException;
+import tech.sangdang.lmscoreapi.generated.model.ClassroomBasePaymentPlanInput;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomCommand;
 import tech.sangdang.lmscoreapi.generated.model.UpdateClassroomCommand;
 import tech.sangdang.lmscoreapi.modules.management.dom.Classroom;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomStatus;
+import tech.sangdang.lmscoreapi.modules.management.dom.PaymentPlanType;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomRepository;
 
 @RequiredArgsConstructor
 @InternalService
 public class ClassroomRecordService {
+  private static final String DEFAULT_CURRENCY = "VND";
+
   private final ClassroomRepository classroomRepository;
 
   @Transactional
   public Classroom createClassroom(@NonNull CreateClassroomCommand command) {
+    ClassroomBasePaymentPlanInput base = command.getBasePaymentPlan();
     Classroom classroom =
         new Classroom()
             .setName(command.getName())
             .setBannerKey(command.getBannerKey())
             .setNumberOfMembers(0)
-            .setStatus(ClassroomStatus.ACTIVE);
+            .setStatus(ClassroomStatus.ACTIVE)
+            .setBasePaymentPlanType(resolveType(base))
+            .setBasePaymentPlanAmount(resolveAmount(base))
+            .setBasePaymentPlanCurrency(resolveCurrency(base));
     return classroomRepository.insert(classroom);
+  }
+
+  private static PaymentPlanType resolveType(ClassroomBasePaymentPlanInput base) {
+    if (base == null) {
+      return PaymentPlanType.PER_SESSION;
+    }
+    // type defaults to PER_SESSION on the input when omitted
+    return PaymentPlanType.valueOf(base.getType().getValue());
+  }
+
+  private static long resolveAmount(ClassroomBasePaymentPlanInput base) {
+    if (base == null || base.getAmount() == null) {
+      return 0L;
+    }
+    return base.getAmount();
+  }
+
+  private static String resolveCurrency(ClassroomBasePaymentPlanInput base) {
+    if (base == null || base.getCurrency() == null || base.getCurrency().isBlank()) {
+      return DEFAULT_CURRENCY;
+    }
+    return base.getCurrency();
   }
 
   @Transactional

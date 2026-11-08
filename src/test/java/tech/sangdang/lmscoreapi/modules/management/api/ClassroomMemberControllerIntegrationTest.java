@@ -57,7 +57,9 @@ import tech.sangdang.lmscoreapi.modules.management.app.internal.ClassroomRecordS
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomMemberMapperImpl;
 import tech.sangdang.lmscoreapi.modules.management.dom.Classroom;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomMember;
+import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomMemberPaymentPlan;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomMemberStatus;
+import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomMemberPaymentPlanRepository;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomMemberRepository;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomRepository;
 import tools.jackson.databind.json.JsonMapper;
@@ -78,6 +80,7 @@ class ClassroomMemberControllerIntegrationTest {
 
   @MockitoBean private ClassroomRepository classroomRepository;
   @MockitoBean private ClassroomMemberRepository classroomMemberRepository;
+  @MockitoBean private ClassroomMemberPaymentPlanRepository classroomMemberPaymentPlanRepository;
   @MockitoBean private AccountProfileRepository accountProfileRepository;
 
   @Test
@@ -120,6 +123,43 @@ class ClassroomMemberControllerIntegrationTest {
     ArgumentCaptor<Classroom> classroomCaptor = ArgumentCaptor.forClass(Classroom.class);
     verify(classroomRepository).update(classroomCaptor.capture());
     assertThat(classroomCaptor.getValue().getNumberOfMembers()).isEqualTo(1);
+
+    ArgumentCaptor<ClassroomMemberPaymentPlan> planCaptor =
+        ArgumentCaptor.forClass(ClassroomMemberPaymentPlan.class);
+    verify(classroomMemberPaymentPlanRepository).insert(planCaptor.capture());
+    assertThat(planCaptor.getValue().getClassroomMemberId()).isEqualTo(MEMBER_ID);
+    assertThat(planCaptor.getValue().isFromClassroomBase()).isTrue();
+    assertThat(planCaptor.getValue().getAmount()).isZero();
+    assertThat(planCaptor.getValue().getCurrency()).isEqualTo("VND");
+  }
+
+  @Test
+  @DisplayName("does not copy the classroom base onto a new teacher")
+  void createClassroomMembers_teacher_doesNotCopyBasePlan() throws Exception {
+    when(classroomRepository.findById(CLASSROOM_ID)).thenReturn(Optional.of(classroom()));
+    when(accountProfileRepository.findAllById(any())).thenReturn(List.of(accountProfile()));
+    when(classroomMemberRepository.findByClassroomIdAndAccountIdIn(eq(CLASSROOM_ID), any()))
+        .thenReturn(List.of());
+    stubInsertAll();
+    when(classroomRepository.update(any(Classroom.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    mockMvc
+        .perform(
+            post("/admin/classrooms/{classroomId}/members", CLASSROOM_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    jsonMapper.writeValueAsString(
+                        membersCommand(
+                            CreateClassroomMemberCommand.builder()
+                                .accountId(ACCOUNT_PROFILE_ID)
+                                .role(ClassroomMemberRole.TEACHER)
+                                .build())))
+                .with(adminJwt()))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$[0].role").value("TEACHER"));
+
+    verify(classroomMemberPaymentPlanRepository, never()).insert(any());
   }
 
   @Test
@@ -274,6 +314,7 @@ class ClassroomMemberControllerIntegrationTest {
     assertThat(updated.getRole())
         .isEqualTo(tech.sangdang.lmscoreapi.modules.management.dom.ClassroomMemberRole.TEACHER);
     verify(classroomMemberRepository, never()).insertAll(any());
+    verify(classroomMemberPaymentPlanRepository, never()).insert(any());
 
     ArgumentCaptor<Classroom> classroomCaptor = ArgumentCaptor.forClass(Classroom.class);
     verify(classroomRepository).update(classroomCaptor.capture());

@@ -39,6 +39,7 @@ public final class ClassroomMemberPaymentPlanFixtures {
         .setCurrency(CURRENCY)
         .setEffectiveFrom(effectiveFrom)
         .setEffectiveTo(effectiveTo)
+        .setFromClassroomBase(false)
         .setCreatedDate(createdDate)
         .setLastModifiedDate(createdDate);
   }

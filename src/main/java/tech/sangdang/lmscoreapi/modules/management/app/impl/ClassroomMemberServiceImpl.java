@@ -25,8 +25,10 @@ import tech.sangdang.lmscoreapi.modules.management.app.internal.ClassroomRecordS
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomMemberMapper;
 import tech.sangdang.lmscoreapi.modules.management.dom.Classroom;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomMember;
+import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomMemberPaymentPlan;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomMemberRole;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomMemberStatus;
+import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomMemberPaymentPlanRepository;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomMemberRepository;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomRepository;
 
@@ -36,6 +38,7 @@ public class ClassroomMemberServiceImpl implements ClassroomMemberService {
 
   private final ClassroomRepository classroomRepository;
   private final ClassroomMemberRepository classroomMemberRepository;
+  private final ClassroomMemberPaymentPlanRepository classroomMemberPaymentPlanRepository;
   private final ClassroomMemberMapper classroomMemberMapper;
   private final AccountProfileRepository accountProfileRepository;
   private final ClassroomRecordService classroomRecordService;
@@ -45,10 +48,10 @@ public class ClassroomMemberServiceImpl implements ClassroomMemberService {
   public List<ClassroomMemberResponse> createClassroomMembers(
       UUID classroomId, CreateClassroomMembersCommand command) {
 
-    // check classroom exists
-    classroomRepository
-        .findById(classroomId)
-        .orElseThrow(() -> ObjectNotFoundException.of(Classroom.class, classroomId));
+    Classroom classroom =
+        classroomRepository
+            .findById(classroomId)
+            .orElseThrow(() -> ObjectNotFoundException.of(Classroom.class, classroomId));
 
     List<CreateClassroomMemberCommand> items = command.getMembers();
     Set<UUID> seenAccountIds = new HashSet<>();
@@ -130,6 +133,9 @@ public class ClassroomMemberServiceImpl implements ClassroomMemberService {
     if (!toInsert.isEmpty()) {
       for (ClassroomMember saved : classroomMemberRepository.insertAll(toInsert)) {
         savedByAccountId.put(saved.getAccountId(), saved);
+        if (saved.getRole() == ClassroomMemberRole.STUDENT) {
+          classroomMemberPaymentPlanRepository.insert(basePlan(saved, classroom));
+        }
       }
     }
     if (newActiveCount > 0) {
@@ -140,6 +146,17 @@ public class ClassroomMemberServiceImpl implements ClassroomMemberService {
         .map(item -> savedByAccountId.get(item.getAccountId().toString()))
         .map(classroomMemberMapper::toResponse)
         .toList();
+  }
+
+  private static ClassroomMemberPaymentPlan basePlan(ClassroomMember member, Classroom classroom) {
+    return new ClassroomMemberPaymentPlan()
+        .setClassroomMemberId(member.getId())
+        .setType(classroom.getBasePaymentPlanType())
+        .setAmount(classroom.getBasePaymentPlanAmount())
+        .setCurrency(classroom.getBasePaymentPlanCurrency())
+        .setEffectiveFrom(LocalDateTime.now())
+        .setEffectiveTo(null)
+        .setFromClassroomBase(true);
   }
 
   @Override

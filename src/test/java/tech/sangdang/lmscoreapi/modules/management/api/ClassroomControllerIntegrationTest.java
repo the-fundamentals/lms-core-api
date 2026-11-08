@@ -17,7 +17,10 @@ import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomFixtu
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomFixtures.CLASSROOM_NAME;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomFixtures.NEW_BANNER_KEY;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomFixtures.classroom;
+import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomMemberFixtures.MEMBER_ID;
+import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomMemberPaymentPlanFixtures.PAYMENT_PLAN_ID;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
@@ -36,14 +39,22 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import tech.sangdang.lmscoreapi.common.exception.GlobalExceptionHandler;
 import tech.sangdang.lmscoreapi.common.querying.BaseQuery;
 import tech.sangdang.lmscoreapi.config.SecurityConfig;
+import tech.sangdang.lmscoreapi.generated.model.ClassroomBasePaymentPlanInput;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomFilter;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomCommand;
+import tech.sangdang.lmscoreapi.generated.model.PaymentPlanType;
+import tech.sangdang.lmscoreapi.generated.model.SetClassroomBasePaymentPlanCommand;
 import tech.sangdang.lmscoreapi.generated.model.UpdateClassroomCommand;
 import tech.sangdang.lmscoreapi.modules.management.app.impl.ClassroomManagementServiceImpl;
+import tech.sangdang.lmscoreapi.modules.management.app.impl.ClassroomMemberPaymentPlanServiceImpl;
 import tech.sangdang.lmscoreapi.modules.management.app.internal.ClassroomRecordService;
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomMapperImpl;
+import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomMemberPaymentPlanMapperImpl;
 import tech.sangdang.lmscoreapi.modules.management.dom.Classroom;
+import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomMemberPaymentPlan;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomStatus;
+import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomMemberPaymentPlanRepository;
+import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomMemberRepository;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomRepository;
 import tech.sangdang.lmscoreapi.modules.utility.app.StorageService;
 import tech.sangdang.lmscoreapi.modules.utility.app.dto.ConfirmUploadPublicCommand;
@@ -53,8 +64,10 @@ import tools.jackson.databind.json.JsonMapper;
 @Import({
   GlobalExceptionHandler.class,
   ClassroomManagementServiceImpl.class,
+  ClassroomMemberPaymentPlanServiceImpl.class,
   ClassroomRecordService.class,
   ClassroomMapperImpl.class,
+  ClassroomMemberPaymentPlanMapperImpl.class,
   SecurityConfig.class,
 })
 @DisplayName("Classroom management")
@@ -64,6 +77,8 @@ class ClassroomControllerIntegrationTest {
   @Autowired private JsonMapper jsonMapper;
 
   @MockitoBean private ClassroomRepository classroomRepository;
+  @MockitoBean private ClassroomMemberRepository classroomMemberRepository;
+  @MockitoBean private ClassroomMemberPaymentPlanRepository classroomMemberPaymentPlanRepository;
   @MockitoBean private StorageService storageService;
 
   @Test
@@ -76,7 +91,10 @@ class ClassroomControllerIntegrationTest {
               return classroom(CLASSROOM_ID, incoming.getName())
                   .setBannerKey(incoming.getBannerKey())
                   .setNumberOfMembers(incoming.getNumberOfMembers())
-                  .setStatus(incoming.getStatus());
+                  .setStatus(incoming.getStatus())
+                  .setBasePaymentPlanType(incoming.getBasePaymentPlanType())
+                  .setBasePaymentPlanAmount(incoming.getBasePaymentPlanAmount())
+                  .setBasePaymentPlanCurrency(incoming.getBasePaymentPlanCurrency());
             });
 
     CreateClassroomCommand command =
@@ -94,6 +112,9 @@ class ClassroomControllerIntegrationTest {
         .andExpect(jsonPath("$.bannerKey").value(BANNER_KEY))
         .andExpect(jsonPath("$.numberOfMembers").value(0))
         .andExpect(jsonPath("$.status").value("ACTIVE"))
+        .andExpect(jsonPath("$.basePaymentPlanType").value("PER_SESSION"))
+        .andExpect(jsonPath("$.basePaymentPlanAmount").value(0))
+        .andExpect(jsonPath("$.basePaymentPlanCurrency").value("VND"))
         .andExpect(jsonPath("$.createdDate").exists())
         .andExpect(jsonPath("$.lastModifiedDate").exists());
 
@@ -107,6 +128,134 @@ class ClassroomControllerIntegrationTest {
     assertThat(captor.getValue().getBannerKey()).isEqualTo(BANNER_KEY);
     assertThat(captor.getValue().getNumberOfMembers()).isZero();
     assertThat(captor.getValue().getStatus()).isEqualTo(ClassroomStatus.ACTIVE);
+    assertThat(captor.getValue().getBasePaymentPlanAmount()).isZero();
+    assertThat(captor.getValue().getBasePaymentPlanType())
+        .isEqualTo(tech.sangdang.lmscoreapi.modules.management.dom.PaymentPlanType.PER_SESSION);
+    assertThat(captor.getValue().getBasePaymentPlanCurrency()).isEqualTo("VND");
+  }
+
+  @Test
+  @DisplayName("creates a classroom with the given base payment plan")
+  void createClassroom_withBasePaymentPlan_returns201() throws Exception {
+    when(classroomRepository.insert(any(Classroom.class)))
+        .thenAnswer(
+            invocation -> {
+              Classroom incoming = invocation.getArgument(0);
+              return classroom(CLASSROOM_ID, incoming.getName())
+                  .setBasePaymentPlanType(incoming.getBasePaymentPlanType())
+                  .setBasePaymentPlanAmount(incoming.getBasePaymentPlanAmount())
+                  .setBasePaymentPlanCurrency(incoming.getBasePaymentPlanCurrency());
+            });
+
+    CreateClassroomCommand command =
+        CreateClassroomCommand.builder()
+            .name(CLASSROOM_NAME)
+            .basePaymentPlan(
+                ClassroomBasePaymentPlanInput.builder().amount(150_000L).currency("VND").build())
+            .build();
+
+    mockMvc
+        .perform(
+            post("/admin/classrooms")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonMapper.writeValueAsString(command))
+                .with(adminJwt()))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.basePaymentPlanAmount").value(150_000))
+        .andExpect(jsonPath("$.basePaymentPlanType").value("PER_SESSION"))
+        .andExpect(jsonPath("$.basePaymentPlanCurrency").value("VND"));
+
+    verify(storageService, never()).confirmPublicFileUpload(any());
+  }
+
+  @Test
+  @DisplayName("replaces active students still on the classroom base when the base changes")
+  void setClassroomBasePaymentPlan_changed_replacesBasePlans() throws Exception {
+    when(classroomRepository.findById(CLASSROOM_ID)).thenReturn(Optional.of(classroom()));
+    when(classroomRepository.update(any(Classroom.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+    ClassroomMemberPaymentPlan current =
+        new ClassroomMemberPaymentPlan()
+            .setId(PAYMENT_PLAN_ID)
+            .setClassroomMemberId(MEMBER_ID)
+            .setType(tech.sangdang.lmscoreapi.modules.management.dom.PaymentPlanType.PER_SESSION)
+            .setAmount(0L)
+            .setCurrency("VND")
+            .setFromClassroomBase(true);
+    when(classroomMemberPaymentPlanRepository.findCurrentBasePlansForActiveStudents(CLASSROOM_ID))
+        .thenReturn(List.of(current));
+    when(classroomMemberPaymentPlanRepository.findCurrent(MEMBER_ID))
+        .thenReturn(Optional.of(current));
+    when(classroomMemberPaymentPlanRepository.update(any(ClassroomMemberPaymentPlan.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+    when(classroomMemberPaymentPlanRepository.insert(any(ClassroomMemberPaymentPlan.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    mockMvc
+        .perform(
+            put("/admin/classrooms/{classroomId}/base-payment-plan", CLASSROOM_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    jsonMapper.writeValueAsString(
+                        SetClassroomBasePaymentPlanCommand.builder()
+                            .amount(200_000L)
+                            .type(PaymentPlanType.PER_SESSION)
+                            .build()))
+                .with(adminJwt()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.basePaymentPlanAmount").value(200_000))
+        .andExpect(jsonPath("$.basePaymentPlanCurrency").value("VND"));
+
+    assertThat(current.getEffectiveTo()).isNotNull();
+    ArgumentCaptor<ClassroomMemberPaymentPlan> inserted =
+        ArgumentCaptor.forClass(ClassroomMemberPaymentPlan.class);
+    verify(classroomMemberPaymentPlanRepository).insert(inserted.capture());
+    assertThat(inserted.getValue().getAmount()).isEqualTo(200_000L);
+    assertThat(inserted.getValue().getClassroomMemberId()).isEqualTo(MEMBER_ID);
+    assertThat(inserted.getValue().isFromClassroomBase()).isTrue();
+    assertThat(inserted.getValue().getEffectiveTo()).isNull();
+  }
+
+  @Test
+  @DisplayName("does not rewrite member plans when the classroom base is unchanged")
+  void setClassroomBasePaymentPlan_unchanged_doesNotRewrite() throws Exception {
+    when(classroomRepository.findById(CLASSROOM_ID)).thenReturn(Optional.of(classroom()));
+    when(classroomRepository.update(any(Classroom.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    mockMvc
+        .perform(
+            put("/admin/classrooms/{classroomId}/base-payment-plan", CLASSROOM_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    jsonMapper.writeValueAsString(
+                        SetClassroomBasePaymentPlanCommand.builder().amount(0L).build()))
+                .with(adminJwt()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.basePaymentPlanAmount").value(0));
+
+    verify(classroomMemberPaymentPlanRepository, never())
+        .findCurrentBasePlansForActiveStudents(any());
+    verify(classroomMemberPaymentPlanRepository, never()).insert(any());
+  }
+
+  @Test
+  @DisplayName("fails to set a base payment plan when the classroom does not exist")
+  void setClassroomBasePaymentPlan_missing_returns404() throws Exception {
+    when(classroomRepository.findById(CLASSROOM_ID)).thenReturn(Optional.empty());
+
+    mockMvc
+        .perform(
+            put("/admin/classrooms/{classroomId}/base-payment-plan", CLASSROOM_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    jsonMapper.writeValueAsString(
+                        SetClassroomBasePaymentPlanCommand.builder().amount(1L).build()))
+                .with(adminJwt()))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value("CLASSROOM_NOT_FOUND"));
+
+    verify(classroomRepository, never()).update(any());
   }
 
   @Test

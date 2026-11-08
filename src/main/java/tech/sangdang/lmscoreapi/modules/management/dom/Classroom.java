@@ -30,6 +30,9 @@ public class Classroom {
   private String bannerKey;
   private Integer numberOfMembers;
   private ClassroomStatus status;
+  private PaymentPlanType basePaymentPlanType;
+  private Long basePaymentPlanAmount;
+  private String basePaymentPlanCurrency;
 
   public boolean isActive() {
     return this.status == ClassroomStatus.ACTIVE;

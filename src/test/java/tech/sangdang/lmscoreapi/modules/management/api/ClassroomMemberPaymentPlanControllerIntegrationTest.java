@@ -45,6 +45,8 @@ import tech.sangdang.lmscoreapi.generated.model.PaymentPlanType;
 import tech.sangdang.lmscoreapi.modules.management.app.impl.ClassroomMemberPaymentPlanServiceImpl;
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomMemberPaymentPlanMapperImpl;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomMemberPaymentPlan;
+import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomMemberRole;
+import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomMemberStatus;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomMemberPaymentPlanRepository;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomMemberRepository;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomRepository;
@@ -111,6 +113,49 @@ class ClassroomMemberPaymentPlanControllerIntegrationTest {
     assertThat(captor.getValue().getEffectiveFrom()).isNotNull();
     assertThat(captor.getValue().getEffectiveTo()).isNull();
     assertThat(captor.getValue().getCurrency()).isEqualTo(CURRENCY);
+    assertThat(captor.getValue().isFromClassroomBase()).isFalse();
+  }
+
+  @Test
+  @DisplayName("fails to create a payment plan for a teacher")
+  void createClassroomMemberPaymentPlan_teacher_returns400() throws Exception {
+    when(classroomMemberRepository.findById(MEMBER_ID))
+        .thenReturn(Optional.of(classroomMember().setRole(ClassroomMemberRole.TEACHER)));
+
+    mockMvc
+        .perform(
+            post(
+                    "/admin/classrooms/{classroomId}/members/{memberId}/payment-plans",
+                    CLASSROOM_ID,
+                    MEMBER_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonMapper.writeValueAsString(createCommand()))
+                .with(adminJwt()))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("CLASSROOM_MEMBER_PAYMENT_PLAN_NOT_ALLOWED"));
+
+    verify(classroomMemberPaymentPlanRepository, never()).insert(any());
+  }
+
+  @Test
+  @DisplayName("fails to create a payment plan for a removed student")
+  void createClassroomMemberPaymentPlan_removed_returns400() throws Exception {
+    when(classroomMemberRepository.findById(MEMBER_ID))
+        .thenReturn(Optional.of(classroomMember().setStatus(ClassroomMemberStatus.REMOVED)));
+
+    mockMvc
+        .perform(
+            post(
+                    "/admin/classrooms/{classroomId}/members/{memberId}/payment-plans",
+                    CLASSROOM_ID,
+                    MEMBER_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonMapper.writeValueAsString(createCommand()))
+                .with(adminJwt()))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("CLASSROOM_MEMBER_PAYMENT_PLAN_NOT_ALLOWED"));
+
+    verify(classroomMemberPaymentPlanRepository, never()).insert(any());
   }
 
   @Test

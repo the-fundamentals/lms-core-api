@@ -131,7 +131,8 @@ public class ClassroomInvoiceGenerationServiceImpl implements ClassroomInvoiceGe
                     .collect(Collectors.joining(", ")));
 
     // Intentional MVP: price from the member's *current* plan (effective_to null), not the plan
-    // that was effective on each attendance date. Historical plan-at-attendance pricing is deferred.
+    // that was effective on each attendance date. Historical plan-at-attendance pricing is
+    // deferred.
     Long unitPrice = currentPaymentPlan == null ? 0L : currentPaymentPlan.getAmount();
 
     ClassroomInvoiceLine generatedLessonsInvoice =
