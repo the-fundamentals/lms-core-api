@@ -1156,6 +1156,7 @@ paths:
         Triggers the same work as the monthly invoice job for an explicit attendance window.
         Creates GENERATED draft invoices for active STUDENT members (including zero attendances).
         Unit price comes from the member's current payment plan (`effectiveTo` null); 0 if none.
+        Does not use the plan that was effective on each attendance date (deferred).
         Existing GENERATED invoices for the same member/period are skipped. Local and test profiles only.
 
       security: []
@@ -2525,7 +2526,9 @@ components:
       type: object
       description: >
         Command to mark an APPROVED classroom invoice COMPLETED and record payment.
-        paidAt is set by the server.
+        paidAt is set by the server. paidAmount is not required to equal totalAmount
+        (partial payment is allowed); use paymentNote to explain shortfalls or other
+        payment details.
       additionalProperties: false
       required:
         - paidAmount
@@ -2534,7 +2537,9 @@ components:
         paidAmount:
           type: integer
           format: int64
-          description: Amount paid in the smallest currency unit
+          description: >
+            Amount paid in the smallest currency unit. May be less than (or differ from)
+            the invoice totalAmount; the server does not enforce equality.
           minimum: 0
           example: 1200000
         paymentMethod:
@@ -2547,10 +2552,11 @@ components:
           example: TXN-12345
         paymentNote:
           type: string
-          description: Optional payment note
+          description: >
+            Optional payment note — e.g. why paidAmount is less than totalAmount
           minLength: 1
           maxLength: 2000
-          example: Paid via bank transfer
+          example: Parent paid half now; remainder next week
     ClassroomInvoiceFilter:
       type: object
       description: Filter for querying classroom invoices

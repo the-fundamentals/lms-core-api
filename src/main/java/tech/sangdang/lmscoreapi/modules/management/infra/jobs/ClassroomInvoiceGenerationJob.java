@@ -25,9 +25,10 @@ public class ClassroomInvoiceGenerationJob {
    *       10k). No active classrooms or students: logs and returns.
    *   <li>Counts {@code ATTENDED} rows in the window ({@code hasAttended}). Zero attendances still
    *       get an invoice; quantity is 0.
-   *   <li>One {@code LESSON} line. Unit price is the member's current plan ({@code effective_to}
-   *       null), or 0 if none. {@code periodRange} MONTH; {@code periodStart} is the window start
-   *       date. Status stays {@code DRAFT}.
+   *   <li>One {@code LESSON} line. Unit price is the member's <em>current</em> plan ({@code
+   *       effective_to} null), or 0 if none — not the plan effective on each attendance date
+   *       (deferred). {@code periodRange} MONTH; {@code periodStart} is the window start date.
+   *       Status stays {@code DRAFT}.
    *   <li>Insert skips an existing GENERATED invoice for the same member and period (partial unique
    *       index). Does not create ad-hoc invoices, and does not approve or complete.
    * </ul>

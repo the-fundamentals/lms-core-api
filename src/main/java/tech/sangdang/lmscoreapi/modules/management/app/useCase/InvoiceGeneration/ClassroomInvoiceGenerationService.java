@@ -9,7 +9,8 @@ public interface ClassroomInvoiceGenerationService {
    *
    * <ul>
    *   <li>Includes members with zero attendances (qty 0).
-   *   <li>Unit price is the member's current plan ({@code effective_to} null); 0 if none.
+   *   <li>Unit price is the member's <em>current</em> plan ({@code effective_to} null); 0 if none.
+   *       Does not look up the plan that was effective on each attendance date (deferred).
    *   <li>Existing GENERATED invoices for the same member/period are skipped.
    *   <li>MVP: each load uses {@code fetchAll} (max 10k rows).
    * </ul>

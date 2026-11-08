@@ -83,6 +83,8 @@ public interface ClassroomInvoiceService {
    * <ul>
    *   <li>Non-APPROVED is 400.
    *   <li>{@code paidAt} is server time.
+   *   <li>{@code paidAmount} need not equal {@code totalAmount}; use {@code paymentNote} for
+   *       shortfalls or other payment context.
    * </ul>
    *
    * @param classroomId classroom the invoice belongs to
