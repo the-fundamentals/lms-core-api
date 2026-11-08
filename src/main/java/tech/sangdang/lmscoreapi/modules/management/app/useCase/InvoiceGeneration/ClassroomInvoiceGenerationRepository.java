@@ -46,8 +46,8 @@ public class ClassroomInvoiceGenerationRepository {
     }
 
     // Ad-hoc SQL: Criteria cannot express ON CONFLICT on partial unique index
-    // unique_generated_invoice_member_period (member_id, period_range, period_start) WHERE type =
-    // 'GENERATED'
+    // unique_generated_invoice_member_period (member_id, period_range, period_start)
+    // WHERE type = 'GENERATED' AND status <> 'CANCELLED'
     String invoiceSql =
         """
         INSERT INTO classroom_invoice (
@@ -57,7 +57,8 @@ public class ClassroomInvoiceGenerationRepository {
           :id, :classroomId, :memberId, :status, :type,
           :periodStart, :periodRange, :totalAmount, :note
         )
-        ON CONFLICT (member_id, period_range, period_start) WHERE type = 'GENERATED'
+        ON CONFLICT (member_id, period_range, period_start)
+          WHERE type = 'GENERATED' AND status <> 'CANCELLED'
         DO NOTHING
         """;
 

@@ -56,4 +56,10 @@ public class ClassroomInvoiceController implements ClassroomInvoicesApi {
         classroomInvoiceService.completeInvoice(
             classroomId, invoiceId, completeClassroomInvoiceCommand));
   }
+
+  @Override
+  public ResponseEntity<?> cancelClassroomInvoice(
+      @NonNull UUID classroomId, @NonNull UUID invoiceId) {
+    return ResponseEntity.ok(classroomInvoiceService.cancelInvoice(classroomId, invoiceId));
+  }
 }

@@ -17,6 +17,7 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.relational.core.mapping.MappedCollection;
 import org.springframework.data.relational.core.mapping.Table;
 import tech.sangdang.lmscoreapi.modules.management.dom.exception.ClassroomInvoiceCannotBeApprovedException;
+import tech.sangdang.lmscoreapi.modules.management.dom.exception.ClassroomInvoiceCannotBeCancelledException;
 import tech.sangdang.lmscoreapi.modules.management.dom.exception.ClassroomInvoiceCannotBeCompletedException;
 
 @Getter
@@ -141,6 +142,25 @@ public class ClassroomInvoice {
   public void requireCanBeCompleted() {
     if (!canBeCompleted()) {
       throw ClassroomInvoiceCannotBeCompletedException.of();
+    }
+  }
+
+  // ===============================
+  // Invoice Cancellation
+  // ===============================
+
+  public void cancel() {
+    requireCanBeCancelled();
+    status = ClassroomInvoiceStatus.CANCELLED;
+  }
+
+  public boolean canBeCancelled() {
+    return status == ClassroomInvoiceStatus.DRAFT || status == ClassroomInvoiceStatus.APPROVED;
+  }
+
+  public void requireCanBeCancelled() {
+    if (!canBeCancelled()) {
+      throw ClassroomInvoiceCannotBeCancelledException.of();
     }
   }
 

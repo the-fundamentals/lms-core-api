@@ -193,7 +193,8 @@ class ClassroomInvoiceControllerIntegrationTest {
   @ParameterizedTest(name = "{0}")
   @CsvSource({
     "fails to complete a DRAFT invoice, DRAFT",
-    "fails to complete an already COMPLETED invoice, COMPLETED"
+    "fails to complete an already COMPLETED invoice, COMPLETED",
+    "fails to complete a CANCELLED invoice, CANCELLED"
   })
   void completeClassroomInvoice_notApproved_returns400(
       String displayName, ClassroomInvoiceStatus status) throws Exception {
@@ -249,6 +250,67 @@ class ClassroomInvoiceControllerIntegrationTest {
                     INVOICE_ID)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(jsonMapper.writeValueAsString(completeCommand()))
+                .with(adminJwt()))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value("CLASSROOM_INVOICE_NOT_FOUND"));
+
+    verify(classroomInvoiceRepository, never()).update(any());
+  }
+
+  @ParameterizedTest(name = "cancels a {0} invoice")
+  @CsvSource({"DRAFT", "APPROVED"})
+  void cancelClassroomInvoice_draftOrApproved_returns200(ClassroomInvoiceStatus status)
+      throws Exception {
+    when(classroomInvoiceRepository.findById(INVOICE_ID)).thenReturn(Optional.of(invoice(status)));
+    when(classroomInvoiceRepository.update(any(ClassroomInvoice.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    mockMvc
+        .perform(
+            post(
+                    "/admin/classrooms/{classroomId}/invoices/{invoiceId}/cancel",
+                    CLASSROOM_ID,
+                    INVOICE_ID)
+                .with(adminJwt()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value(INVOICE_ID.toString()))
+        .andExpect(jsonPath("$.status").value("CANCELLED"));
+
+    ArgumentCaptor<ClassroomInvoice> captor = ArgumentCaptor.forClass(ClassroomInvoice.class);
+    verify(classroomInvoiceRepository).update(captor.capture());
+    assertThat(captor.getValue().getStatus()).isEqualTo(ClassroomInvoiceStatus.CANCELLED);
+  }
+
+  @ParameterizedTest(name = "fails to cancel a {0} invoice")
+  @CsvSource({"COMPLETED", "CANCELLED"})
+  void cancelClassroomInvoice_notCancellable_returns400(ClassroomInvoiceStatus status)
+      throws Exception {
+    when(classroomInvoiceRepository.findById(INVOICE_ID)).thenReturn(Optional.of(invoice(status)));
+
+    mockMvc
+        .perform(
+            post(
+                    "/admin/classrooms/{classroomId}/invoices/{invoiceId}/cancel",
+                    CLASSROOM_ID,
+                    INVOICE_ID)
+                .with(adminJwt()))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("CLASSROOM_INVOICE_NOT_CANCELLABLE"));
+
+    verify(classroomInvoiceRepository, never()).update(any());
+  }
+
+  @Test
+  @DisplayName("fails to cancel an invoice that does not exist")
+  void cancelClassroomInvoice_missing_returns404() throws Exception {
+    when(classroomInvoiceRepository.findById(INVOICE_ID)).thenReturn(Optional.empty());
+
+    mockMvc
+        .perform(
+            post(
+                    "/admin/classrooms/{classroomId}/invoices/{invoiceId}/cancel",
+                    CLASSROOM_ID,
+                    INVOICE_ID)
                 .with(adminJwt()))
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.code").value("CLASSROOM_INVOICE_NOT_FOUND"));

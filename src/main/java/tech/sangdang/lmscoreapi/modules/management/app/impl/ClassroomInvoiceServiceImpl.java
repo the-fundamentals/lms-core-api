@@ -103,6 +103,14 @@ public class ClassroomInvoiceServiceImpl implements ClassroomInvoiceService {
     return classroomInvoiceMapper.toResponse(classroomInvoiceRepository.update(invoice));
   }
 
+  @Override
+  @Transactional
+  public ClassroomInvoiceResponse cancelInvoice(UUID classroomId, UUID invoiceId) {
+    ClassroomInvoice invoice = requireInvoiceInClassroom(classroomId, invoiceId);
+    invoice.cancel();
+    return classroomInvoiceMapper.toResponse(classroomInvoiceRepository.update(invoice));
+  }
+
   private ClassroomMember requireMemberInClassroom(UUID classroomId, UUID memberId) {
     ClassroomMember member =
         classroomMemberRepository

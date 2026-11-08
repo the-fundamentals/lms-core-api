@@ -565,6 +565,38 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /admin/classrooms/{classroomId}/invoices/{invoiceId}/cancel:
+    post:
+      tags:
+        - ClassroomInvoices
+      operationId: cancelClassroomInvoice
+      summary: Cancel a classroom invoice
+      description: >
+        Moves the invoice status from DRAFT or APPROVED to CANCELLED.
+        COMPLETED and CANCELLED invoices are rejected.
+
+      parameters:
+        - $ref: "#/components/parameters/ClassroomIdPath"
+        - $ref: "#/components/parameters/InvoiceId"
+      responses:
+        "200":
+          description: Classroom invoice cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassroomInvoiceResponse"
+        "400":
+          description: Invoice is not DRAFT or APPROVED
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Classroom invoice not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /admin/classrooms/{classroomId}/members/{memberId}/attendances/query:
     post:
       tags:
@@ -2337,6 +2369,7 @@ components:
         - DRAFT
         - APPROVED
         - COMPLETED
+        - CANCELLED
       example: DRAFT
     ClassroomInvoiceType:
       type: string

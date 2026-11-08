@@ -138,7 +138,7 @@ CREATE TABLE IF NOT EXISTS classroom_invoice
     last_modified_date TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
     classroom_id       UUID        NOT NULL,
     member_id          UUID        NOT NULL,
-    status             VARCHAR(64) NOT NULL,        -- DRAFT, APPROVED, COMPLETED
+    status             VARCHAR(64) NOT NULL,        -- DRAFT, APPROVED, COMPLETED, CANCELLED
     type               VARCHAR(64) NOT NULL,        -- GENERATED, ADHOC
 
     period_start       DATE,
@@ -159,9 +159,10 @@ CREATE TABLE IF NOT EXISTS classroom_invoice
 );
 CREATE INDEX IF NOT EXISTS idx_classroom_invoice_classroom ON classroom_invoice (classroom_id);
 CREATE INDEX IF NOT EXISTS idx_classroom_invoice_member ON classroom_invoice (member_id);
+-- CANCELLED excluded so a new GENERATED draft can be created for the same member/period after cancel
 CREATE UNIQUE INDEX IF NOT EXISTS unique_generated_invoice_member_period
     ON classroom_invoice (member_id, period_range, period_start) NULLS NOT DISTINCT
-WHERE type = 'GENERATED';
+WHERE type = 'GENERATED' AND status <> 'CANCELLED';
 
 -- Aggregate child of classroom_invoice.
 CREATE TABLE IF NOT EXISTS classroom_invoice_line

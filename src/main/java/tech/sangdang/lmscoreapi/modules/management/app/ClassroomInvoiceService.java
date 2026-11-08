@@ -75,4 +75,18 @@ public interface ClassroomInvoiceService {
    */
   ClassroomInvoiceResponse completeInvoice(
       UUID classroomId, UUID invoiceId, CompleteClassroomInvoiceCommand command);
+
+  /**
+   * Marks a DRAFT or APPROVED invoice CANCELLED.
+   *
+   * <ul>
+   *   <li>COMPLETED or already CANCELLED is 400.
+   *   <li>Cancelling a GENERATED invoice frees the member/period slot for regen.
+   * </ul>
+   *
+   * @param classroomId classroom the invoice belongs to
+   * @param invoiceId invoice to cancel
+   * @return updated invoice
+   */
+  ClassroomInvoiceResponse cancelInvoice(UUID classroomId, UUID invoiceId);
 }
