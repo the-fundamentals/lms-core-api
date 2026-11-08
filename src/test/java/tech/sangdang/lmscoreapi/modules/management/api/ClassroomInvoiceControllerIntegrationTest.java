@@ -7,6 +7,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static tech.sangdang.lmscoreapi.helpers.SecurityTestSupport.adminJwt;
@@ -42,6 +43,7 @@ import tech.sangdang.lmscoreapi.generated.model.ClassroomInvoicePaymentMethod;
 import tech.sangdang.lmscoreapi.generated.model.CompleteClassroomInvoiceCommand;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomInvoiceAdhocCommand;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomInvoiceAdhocLineCommand;
+import tech.sangdang.lmscoreapi.generated.model.UpdateClassroomInvoiceCommand;
 import tech.sangdang.lmscoreapi.modules.management.app.impl.ClassroomInvoiceServiceImpl;
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomInvoiceMapperImpl;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomInvoice;
@@ -150,6 +152,94 @@ class ClassroomInvoiceControllerIntegrationTest {
         .andExpect(jsonPath("$.code").value("CLASSROOM_MEMBER_NOT_FOUND"));
 
     verify(classroomInvoiceRepository, never()).insert(any());
+  }
+
+  @Test
+  @DisplayName("updates draft invoice lines and recomputes totals")
+  void updateClassroomInvoice_draft_returns200() throws Exception {
+    when(classroomInvoiceRepository.findById(INVOICE_ID))
+        .thenReturn(Optional.of(invoice(ClassroomInvoiceStatus.DRAFT)));
+    when(classroomInvoiceRepository.update(any(ClassroomInvoice.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    mockMvc
+        .perform(
+            put("/admin/classrooms/{classroomId}/invoices/{invoiceId}", CLASSROOM_ID, INVOICE_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonMapper.writeValueAsString(updateCommand()))
+                .with(adminJwt()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value(INVOICE_ID.toString()))
+        .andExpect(jsonPath("$.status").value("DRAFT"))
+        .andExpect(jsonPath("$.totalAmount").value(100_000))
+        .andExpect(jsonPath("$.note").value("Adjusted lesson count for October"));
+
+    ArgumentCaptor<ClassroomInvoice> captor = ArgumentCaptor.forClass(ClassroomInvoice.class);
+    verify(classroomInvoiceRepository).update(captor.capture());
+    ClassroomInvoice saved = captor.getValue();
+    assertThat(saved.getStatus()).isEqualTo(ClassroomInvoiceStatus.DRAFT);
+    assertThat(saved.getTotalAmount()).isEqualTo(100_000L);
+    assertThat(saved.getNote()).isEqualTo("Adjusted lesson count for October");
+    assertThat(saved.getLines())
+        .extracting(ClassroomInvoiceLine::getKind, ClassroomInvoiceLine::getFinalAmount)
+        .containsExactly(
+            tuple(
+                tech.sangdang.lmscoreapi.modules.management.dom.ClassroomInvoiceLineKind.OTHER,
+                100_000L));
+  }
+
+  @ParameterizedTest(name = "fails to update a {0} invoice")
+  @CsvSource({"APPROVED", "COMPLETED", "CANCELLED"})
+  void updateClassroomInvoice_notDraft_returns400(ClassroomInvoiceStatus status) throws Exception {
+    when(classroomInvoiceRepository.findById(INVOICE_ID)).thenReturn(Optional.of(invoice(status)));
+
+    mockMvc
+        .perform(
+            put("/admin/classrooms/{classroomId}/invoices/{invoiceId}", CLASSROOM_ID, INVOICE_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonMapper.writeValueAsString(updateCommand()))
+                .with(adminJwt()))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("CLASSROOM_INVOICE_NOT_EDITABLE"));
+
+    verify(classroomInvoiceRepository, never()).update(any());
+  }
+
+  @Test
+  @DisplayName("fails to update an invoice that does not exist")
+  void updateClassroomInvoice_missing_returns404() throws Exception {
+    when(classroomInvoiceRepository.findById(INVOICE_ID)).thenReturn(Optional.empty());
+
+    mockMvc
+        .perform(
+            put("/admin/classrooms/{classroomId}/invoices/{invoiceId}", CLASSROOM_ID, INVOICE_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonMapper.writeValueAsString(updateCommand()))
+                .with(adminJwt()))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value("CLASSROOM_INVOICE_NOT_FOUND"));
+
+    verify(classroomInvoiceRepository, never()).update(any());
+  }
+
+  @Test
+  @DisplayName("fails to update an invoice that belongs to another classroom")
+  void updateClassroomInvoice_wrongClassroom_returns404() throws Exception {
+    UUID otherClassroomId = UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
+    when(classroomInvoiceRepository.findById(INVOICE_ID))
+        .thenReturn(
+            Optional.of(invoice(ClassroomInvoiceStatus.DRAFT).setClassroomId(otherClassroomId)));
+
+    mockMvc
+        .perform(
+            put("/admin/classrooms/{classroomId}/invoices/{invoiceId}", CLASSROOM_ID, INVOICE_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonMapper.writeValueAsString(updateCommand()))
+                .with(adminJwt()))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value("CLASSROOM_INVOICE_NOT_FOUND"));
+
+    verify(classroomInvoiceRepository, never()).update(any());
   }
 
   @Test
@@ -334,6 +424,20 @@ class ClassroomInvoiceControllerIntegrationTest {
                     .kind(ClassroomInvoiceLineKind.OTHER)
                     .description("Replacement workbook")
                     .unitPrice(50_000L)
+                    .quantity(1)
+                    .build()))
+        .build();
+  }
+
+  private static UpdateClassroomInvoiceCommand updateCommand() {
+    return UpdateClassroomInvoiceCommand.builder()
+        .note("Adjusted lesson count for October")
+        .lines(
+            List.of(
+                CreateClassroomInvoiceAdhocLineCommand.builder()
+                    .kind(ClassroomInvoiceLineKind.OTHER)
+                    .description("Adjusted materials fee")
+                    .unitPrice(100_000L)
                     .quantity(1)
                     .build()))
         .build();

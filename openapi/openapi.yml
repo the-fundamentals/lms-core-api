@@ -496,6 +496,45 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+    put:
+      tags:
+        - ClassroomInvoices
+      operationId: updateClassroomInvoice
+      summary: Update a draft classroom invoice
+      description: >
+        Replaces all lines on a DRAFT invoice and recomputes line and invoice totals on the server.
+        Optional note: omitted leaves the existing note unchanged. Member, type, period, payment
+        fields, and status are unchanged. APPROVED, COMPLETED, and CANCELLED invoices are rejected.
+        Applies to both ADHOC and GENERATED drafts. Line ids are not accepted; lines are replaced.
+
+      parameters:
+        - $ref: "#/components/parameters/ClassroomIdPath"
+        - $ref: "#/components/parameters/InvoiceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateClassroomInvoiceCommand"
+      responses:
+        "200":
+          description: Classroom invoice updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassroomInvoiceResponse"
+        "400":
+          description: Invoice is not DRAFT
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Classroom invoice not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /admin/classrooms/{classroomId}/invoices/{invoiceId}/approve:
     post:
       tags:
@@ -2459,6 +2498,29 @@ components:
           description: Quantity
           minimum: 0
           example: 1
+    UpdateClassroomInvoiceCommand:
+      type: object
+      description: >
+        Command to replace lines on a DRAFT classroom invoice. Totals are computed by the server.
+        Member, type, period, payment fields, and status cannot be changed. Omitted note leaves
+        the existing note unchanged.
+
+      additionalProperties: false
+      required:
+        - lines
+      properties:
+        note:
+          type: string
+          description: Optional invoice note; omit to keep the current note
+          minLength: 1
+          maxLength: 2000
+          example: Adjusted lesson count for October
+        lines:
+          type: array
+          description: Replacement invoice lines. At least one. Line ids are not accepted.
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/CreateClassroomInvoiceAdhocLineCommand"
     CompleteClassroomInvoiceCommand:
       type: object
       description: >

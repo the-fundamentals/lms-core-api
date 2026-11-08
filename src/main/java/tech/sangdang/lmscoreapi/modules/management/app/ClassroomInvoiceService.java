@@ -6,6 +6,7 @@ import tech.sangdang.lmscoreapi.generated.model.ClassroomInvoiceFilter;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomInvoiceResponse;
 import tech.sangdang.lmscoreapi.generated.model.CompleteClassroomInvoiceCommand;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomInvoiceAdhocCommand;
+import tech.sangdang.lmscoreapi.generated.model.UpdateClassroomInvoiceCommand;
 
 public interface ClassroomInvoiceService {
 
@@ -46,6 +47,22 @@ public interface ClassroomInvoiceService {
    * @return invoice
    */
   ClassroomInvoiceResponse getInvoiceById(UUID classroomId, UUID invoiceId);
+
+  /**
+   * Replaces lines on a DRAFT invoice and recomputes totals.
+   *
+   * <ul>
+   *   <li>Non-DRAFT is 400.
+   *   <li>Omitted note leaves the existing note unchanged.
+   * </ul>
+   *
+   * @param classroomId classroom the invoice belongs to
+   * @param invoiceId invoice to update
+   * @param command replacement lines; optional note
+   * @return updated invoice
+   */
+  ClassroomInvoiceResponse updateInvoice(
+      UUID classroomId, UUID invoiceId, UpdateClassroomInvoiceCommand command);
 
   /**
    * Marks a DRAFT invoice APPROVED.

@@ -16,6 +16,8 @@ import tech.sangdang.lmscoreapi.generated.model.ClassroomInvoiceFilter;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomInvoiceResponse;
 import tech.sangdang.lmscoreapi.generated.model.CompleteClassroomInvoiceCommand;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomInvoiceAdhocCommand;
+import tech.sangdang.lmscoreapi.generated.model.CreateClassroomInvoiceAdhocLineCommand;
+import tech.sangdang.lmscoreapi.generated.model.UpdateClassroomInvoiceCommand;
 import tech.sangdang.lmscoreapi.modules.management.app.ClassroomInvoiceService;
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomInvoiceMapper;
 import tech.sangdang.lmscoreapi.modules.management.dom.*;
@@ -38,16 +40,7 @@ public class ClassroomInvoiceServiceImpl implements ClassroomInvoiceService {
       UUID classroomId, CreateClassroomInvoiceAdhocCommand command) {
     requireMemberInClassroom(classroomId, command.getMemberId());
 
-    Set<ClassroomInvoiceLine> lines =
-        command.getLines().stream()
-            .map(
-                line ->
-                    ClassroomInvoiceLine.of(
-                        ClassroomInvoiceLineKind.valueOf(line.getKind().getValue()),
-                        line.getDescription(),
-                        line.getUnitPrice(),
-                        line.getQuantity()))
-            .collect(Collectors.toSet());
+    Set<ClassroomInvoiceLine> lines = mapLines(command.getLines());
 
     ClassroomInvoice invoice =
         ClassroomInvoice.ofAdhoc(classroomId, command.getMemberId(), lines, command.getNote());
@@ -83,6 +76,17 @@ public class ClassroomInvoiceServiceImpl implements ClassroomInvoiceService {
 
   @Override
   @Transactional
+  public ClassroomInvoiceResponse updateInvoice(
+      UUID classroomId, UUID invoiceId, UpdateClassroomInvoiceCommand command) {
+    ClassroomInvoice invoice = requireInvoiceInClassroom(classroomId, invoiceId);
+    Set<ClassroomInvoiceLine> lines = mapLines(command.getLines());
+    // null note from omitted property keeps existing note in domain
+    invoice.replaceDraftLines(lines, command.getNote());
+    return classroomInvoiceMapper.toResponse(classroomInvoiceRepository.update(invoice));
+  }
+
+  @Override
+  @Transactional
   public ClassroomInvoiceResponse approveInvoice(UUID classroomId, UUID invoiceId) {
     ClassroomInvoice invoice = requireInvoiceInClassroom(classroomId, invoiceId);
     invoice.approve();
@@ -109,6 +113,19 @@ public class ClassroomInvoiceServiceImpl implements ClassroomInvoiceService {
     ClassroomInvoice invoice = requireInvoiceInClassroom(classroomId, invoiceId);
     invoice.cancel();
     return classroomInvoiceMapper.toResponse(classroomInvoiceRepository.update(invoice));
+  }
+
+  private static Set<ClassroomInvoiceLine> mapLines(
+      List<CreateClassroomInvoiceAdhocLineCommand> lines) {
+    return lines.stream()
+        .map(
+            line ->
+                ClassroomInvoiceLine.of(
+                    ClassroomInvoiceLineKind.valueOf(line.getKind().getValue()),
+                    line.getDescription(),
+                    line.getUnitPrice(),
+                    line.getQuantity()))
+        .collect(Collectors.toSet());
   }
 
   private ClassroomMember requireMemberInClassroom(UUID classroomId, UUID memberId) {

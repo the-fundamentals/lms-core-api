@@ -10,6 +10,7 @@ import tech.sangdang.lmscoreapi.generated.api.ClassroomInvoicesApi;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomInvoiceFilter;
 import tech.sangdang.lmscoreapi.generated.model.CompleteClassroomInvoiceCommand;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomInvoiceAdhocCommand;
+import tech.sangdang.lmscoreapi.generated.model.UpdateClassroomInvoiceCommand;
 import tech.sangdang.lmscoreapi.modules.management.app.ClassroomInvoiceService;
 
 @RestController
@@ -39,6 +40,16 @@ public class ClassroomInvoiceController implements ClassroomInvoicesApi {
   public ResponseEntity<?> getClassroomInvoiceById(
       @NonNull UUID classroomId, @NonNull UUID invoiceId) {
     return ResponseEntity.ok(classroomInvoiceService.getInvoiceById(classroomId, invoiceId));
+  }
+
+  @Override
+  public ResponseEntity<?> updateClassroomInvoice(
+      @NonNull UUID classroomId,
+      @NonNull UUID invoiceId,
+      @NonNull UpdateClassroomInvoiceCommand updateClassroomInvoiceCommand) {
+    return ResponseEntity.ok(
+        classroomInvoiceService.updateInvoice(
+            classroomId, invoiceId, updateClassroomInvoiceCommand));
   }
 
   @Override

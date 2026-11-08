@@ -19,6 +19,7 @@ import org.springframework.data.relational.core.mapping.Table;
 import tech.sangdang.lmscoreapi.modules.management.dom.exception.ClassroomInvoiceCannotBeApprovedException;
 import tech.sangdang.lmscoreapi.modules.management.dom.exception.ClassroomInvoiceCannotBeCancelledException;
 import tech.sangdang.lmscoreapi.modules.management.dom.exception.ClassroomInvoiceCannotBeCompletedException;
+import tech.sangdang.lmscoreapi.modules.management.dom.exception.ClassroomInvoiceCannotBeUpdatedException;
 
 @Getter
 @Setter
@@ -95,6 +96,37 @@ public class ClassroomInvoice {
         .setNote(note)
         .setTotalAmount(ClassroomInvoice.calculateTotalAmount(invoiceLines))
         .setLines(invoiceLines);
+  }
+
+  // ===============================
+  // Invoice Draft Update
+  // ===============================
+
+  /**
+   * Replaces all lines on a DRAFT invoice and recomputes {@code totalAmount}.
+   *
+   * <ul>
+   *   <li>{@code note} null keeps the existing note; non-null replaces it.
+   * </ul>
+   */
+  public void replaceDraftLines(Set<ClassroomInvoiceLine> newLines, String note) {
+    requireCanBeUpdated();
+    Set<ClassroomInvoiceLine> invoiceLines = newLines == null ? new HashSet<>() : newLines;
+    this.lines = invoiceLines;
+    this.totalAmount = ClassroomInvoice.calculateTotalAmount(invoiceLines);
+    if (note != null) {
+      this.note = note;
+    }
+  }
+
+  public boolean canBeUpdated() {
+    return status == ClassroomInvoiceStatus.DRAFT;
+  }
+
+  public void requireCanBeUpdated() {
+    if (!canBeUpdated()) {
+      throw ClassroomInvoiceCannotBeUpdatedException.of();
+    }
   }
 
   // ===============================
