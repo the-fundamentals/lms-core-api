@@ -153,7 +153,6 @@ public class ClassroomMemberServiceImpl implements ClassroomMemberService {
         .setClassroomMemberId(member.getId())
         .setType(classroom.getBasePaymentPlanType())
         .setAmount(classroom.getBasePaymentPlanAmount())
-        .setCurrency(classroom.getBasePaymentPlanCurrency())
         .setEffectiveFrom(LocalDateTime.now())
         .setEffectiveTo(null)
         .setFromClassroomBase(true);

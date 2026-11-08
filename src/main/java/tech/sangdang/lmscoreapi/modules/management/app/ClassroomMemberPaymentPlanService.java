@@ -20,7 +20,7 @@ public interface ClassroomMemberPaymentPlanService {
    *
    * @param classroomId classroom the member belongs to
    * @param memberId member receiving the plan
-   * @param command type and amount; currency optional (defaults to VND)
+   * @param command type and amount
    */
   ClassroomMemberPaymentPlanResponse createClassroomMemberPaymentPlan(
       UUID classroomId, UUID memberId, CreateClassroomMemberPaymentPlanCommand command);
@@ -37,10 +37,8 @@ public interface ClassroomMemberPaymentPlanService {
    * @param classroomId classroom whose base followers to rewrite
    * @param type new base type
    * @param amount new base amount
-   * @param currency new base currency
    */
-  void applyClassroomBaseToActiveStudents(
-      UUID classroomId, PaymentPlanType type, long amount, String currency);
+  void applyClassroomBaseToActiveStudents(UUID classroomId, PaymentPlanType type, long amount);
 
   /**
    * Lists payment plans for the member.

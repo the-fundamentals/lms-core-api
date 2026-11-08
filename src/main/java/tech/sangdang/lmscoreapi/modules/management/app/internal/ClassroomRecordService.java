@@ -17,7 +17,6 @@ import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomRepos
 @RequiredArgsConstructor
 @InternalService
 public class ClassroomRecordService {
-  private static final String DEFAULT_CURRENCY = "VND";
 
   private final ClassroomRepository classroomRepository;
 
@@ -31,8 +30,7 @@ public class ClassroomRecordService {
             .setNumberOfMembers(0)
             .setStatus(ClassroomStatus.ACTIVE)
             .setBasePaymentPlanType(resolveType(base))
-            .setBasePaymentPlanAmount(resolveAmount(base))
-            .setBasePaymentPlanCurrency(resolveCurrency(base));
+            .setBasePaymentPlanAmount(resolveAmount(base));
     return classroomRepository.insert(classroom);
   }
 
@@ -49,13 +47,6 @@ public class ClassroomRecordService {
       return 0L;
     }
     return base.getAmount();
-  }
-
-  private static String resolveCurrency(ClassroomBasePaymentPlanInput base) {
-    if (base == null || base.getCurrency() == null || base.getCurrency().isBlank()) {
-      return DEFAULT_CURRENCY;
-    }
-    return base.getCurrency();
   }
 
   @Transactional

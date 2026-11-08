@@ -51,23 +51,20 @@ public class ClassroomManagementServiceImpl implements ClassroomManagementServic
             .findById(classroomId)
             .orElseThrow(() -> ObjectNotFoundException.of(Classroom.class, classroomId));
 
-    // type and currency default on the command (PER_SESSION, VND) when omitted
+    // type defaults to PER_SESSION on the command when omitted
     PaymentPlanType type = PaymentPlanType.valueOf(command.getType().getValue());
-    String currency = command.getCurrency();
     Long amount = command.getAmount();
     boolean changed =
         !Objects.equals(classroom.getBasePaymentPlanType(), type)
-            || !Objects.equals(classroom.getBasePaymentPlanAmount(), amount)
-            || !Objects.equals(classroom.getBasePaymentPlanCurrency(), currency);
+            || !Objects.equals(classroom.getBasePaymentPlanAmount(), amount);
 
     classroom.setBasePaymentPlanType(type);
     classroom.setBasePaymentPlanAmount(amount);
-    classroom.setBasePaymentPlanCurrency(currency);
     Classroom saved = classroomRepository.update(classroom);
 
     if (changed) {
       classroomMemberPaymentPlanService.applyClassroomBaseToActiveStudents(
-          classroomId, type, amount, currency);
+          classroomId, type, amount);
     }
 
     return classroomMapper.toResponse(saved);

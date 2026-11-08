@@ -130,7 +130,6 @@ class ClassroomMemberControllerIntegrationTest {
     assertThat(planCaptor.getValue().getClassroomMemberId()).isEqualTo(MEMBER_ID);
     assertThat(planCaptor.getValue().isFromClassroomBase()).isTrue();
     assertThat(planCaptor.getValue().getAmount()).isZero();
-    assertThat(planCaptor.getValue().getCurrency()).isEqualTo("VND");
   }
 
   @Test

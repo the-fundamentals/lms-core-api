@@ -29,7 +29,6 @@ public class ClassroomMemberPaymentPlan {
   private UUID classroomMemberId;
   private PaymentPlanType type;
   private Long amount;
-  private String currency;
   private LocalDateTime effectiveFrom;
 
   /** Null while this is the member's current plan. */

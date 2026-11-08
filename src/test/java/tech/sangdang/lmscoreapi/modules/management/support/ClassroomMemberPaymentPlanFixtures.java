@@ -14,7 +14,6 @@ public final class ClassroomMemberPaymentPlanFixtures {
   public static final UUID PREVIOUS_PAYMENT_PLAN_ID =
       UUID.fromString("6ba7b810-9dad-11d1-80b4-00c04fd430c8");
   public static final long AMOUNT = 150_000L;
-  public static final String CURRENCY = "VND";
   public static final LocalDateTime CREATED_AT = LocalDateTime.of(2026, 7, 14, 0, 0);
   public static final LocalDateTime MODIFIED_AT = LocalDateTime.of(2026, 7, 14, 0, 0);
 
@@ -36,7 +35,6 @@ public final class ClassroomMemberPaymentPlanFixtures {
         .setClassroomMemberId(classroomMemberId)
         .setType(PaymentPlanType.PER_SESSION)
         .setAmount(AMOUNT)
-        .setCurrency(CURRENCY)
         .setEffectiveFrom(effectiveFrom)
         .setEffectiveTo(effectiveTo)
         .setFromClassroomBase(false)

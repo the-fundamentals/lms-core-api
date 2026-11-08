@@ -93,8 +93,7 @@ class ClassroomControllerIntegrationTest {
                   .setNumberOfMembers(incoming.getNumberOfMembers())
                   .setStatus(incoming.getStatus())
                   .setBasePaymentPlanType(incoming.getBasePaymentPlanType())
-                  .setBasePaymentPlanAmount(incoming.getBasePaymentPlanAmount())
-                  .setBasePaymentPlanCurrency(incoming.getBasePaymentPlanCurrency());
+                  .setBasePaymentPlanAmount(incoming.getBasePaymentPlanAmount());
             });
 
     CreateClassroomCommand command =
@@ -114,7 +113,6 @@ class ClassroomControllerIntegrationTest {
         .andExpect(jsonPath("$.status").value("ACTIVE"))
         .andExpect(jsonPath("$.basePaymentPlanType").value("PER_SESSION"))
         .andExpect(jsonPath("$.basePaymentPlanAmount").value(0))
-        .andExpect(jsonPath("$.basePaymentPlanCurrency").value("VND"))
         .andExpect(jsonPath("$.createdDate").exists())
         .andExpect(jsonPath("$.lastModifiedDate").exists());
 
@@ -131,7 +129,6 @@ class ClassroomControllerIntegrationTest {
     assertThat(captor.getValue().getBasePaymentPlanAmount()).isZero();
     assertThat(captor.getValue().getBasePaymentPlanType())
         .isEqualTo(tech.sangdang.lmscoreapi.modules.management.dom.PaymentPlanType.PER_SESSION);
-    assertThat(captor.getValue().getBasePaymentPlanCurrency()).isEqualTo("VND");
   }
 
   @Test
@@ -143,15 +140,14 @@ class ClassroomControllerIntegrationTest {
               Classroom incoming = invocation.getArgument(0);
               return classroom(CLASSROOM_ID, incoming.getName())
                   .setBasePaymentPlanType(incoming.getBasePaymentPlanType())
-                  .setBasePaymentPlanAmount(incoming.getBasePaymentPlanAmount())
-                  .setBasePaymentPlanCurrency(incoming.getBasePaymentPlanCurrency());
+                  .setBasePaymentPlanAmount(incoming.getBasePaymentPlanAmount());
             });
 
     CreateClassroomCommand command =
         CreateClassroomCommand.builder()
             .name(CLASSROOM_NAME)
             .basePaymentPlan(
-                ClassroomBasePaymentPlanInput.builder().amount(150_000L).currency("VND").build())
+                ClassroomBasePaymentPlanInput.builder().amount(150_000L).build())
             .build();
 
     mockMvc
@@ -162,8 +158,7 @@ class ClassroomControllerIntegrationTest {
                 .with(adminJwt()))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.basePaymentPlanAmount").value(150_000))
-        .andExpect(jsonPath("$.basePaymentPlanType").value("PER_SESSION"))
-        .andExpect(jsonPath("$.basePaymentPlanCurrency").value("VND"));
+        .andExpect(jsonPath("$.basePaymentPlanType").value("PER_SESSION"));
 
     verify(storageService, never()).confirmPublicFileUpload(any());
   }
@@ -180,7 +175,6 @@ class ClassroomControllerIntegrationTest {
             .setClassroomMemberId(MEMBER_ID)
             .setType(tech.sangdang.lmscoreapi.modules.management.dom.PaymentPlanType.PER_SESSION)
             .setAmount(0L)
-            .setCurrency("VND")
             .setFromClassroomBase(true);
     when(classroomMemberPaymentPlanRepository.findCurrentBasePlansForActiveStudents(CLASSROOM_ID))
         .thenReturn(List.of(current));
@@ -203,8 +197,7 @@ class ClassroomControllerIntegrationTest {
                             .build()))
                 .with(adminJwt()))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.basePaymentPlanAmount").value(200_000))
-        .andExpect(jsonPath("$.basePaymentPlanCurrency").value("VND"));
+        .andExpect(jsonPath("$.basePaymentPlanAmount").value(200_000));
 
     assertThat(current.getEffectiveTo()).isNotNull();
     ArgumentCaptor<ClassroomMemberPaymentPlan> inserted =

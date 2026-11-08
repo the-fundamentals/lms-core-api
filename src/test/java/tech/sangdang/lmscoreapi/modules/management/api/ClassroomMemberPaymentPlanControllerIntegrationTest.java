@@ -15,7 +15,6 @@ import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomFixtu
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomMemberFixtures.MEMBER_ID;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomMemberFixtures.classroomMember;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomMemberPaymentPlanFixtures.AMOUNT;
-import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomMemberPaymentPlanFixtures.CURRENCY;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomMemberPaymentPlanFixtures.PAYMENT_PLAN_ID;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomMemberPaymentPlanFixtures.PREVIOUS_PAYMENT_PLAN_ID;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomMemberPaymentPlanFixtures.currentPaymentPlan;
@@ -100,7 +99,6 @@ class ClassroomMemberPaymentPlanControllerIntegrationTest {
         .andExpect(jsonPath("$.classroomMemberId").value(MEMBER_ID.toString()))
         .andExpect(jsonPath("$.type").value("PER_SESSION"))
         .andExpect(jsonPath("$.amount").value(AMOUNT))
-        .andExpect(jsonPath("$.currency").value(CURRENCY))
         .andExpect(jsonPath("$.effectiveFrom").exists())
         .andExpect(jsonPath("$.effectiveTo").doesNotExist());
 
@@ -112,7 +110,6 @@ class ClassroomMemberPaymentPlanControllerIntegrationTest {
     assertThat(captor.getValue().getClassroomMemberId()).isEqualTo(MEMBER_ID);
     assertThat(captor.getValue().getEffectiveFrom()).isNotNull();
     assertThat(captor.getValue().getEffectiveTo()).isNull();
-    assertThat(captor.getValue().getCurrency()).isEqualTo(CURRENCY);
     assertThat(captor.getValue().isFromClassroomBase()).isFalse();
   }
 
@@ -156,46 +153,6 @@ class ClassroomMemberPaymentPlanControllerIntegrationTest {
         .andExpect(jsonPath("$.code").value("CLASSROOM_MEMBER_PAYMENT_PLAN_NOT_ALLOWED"));
 
     verify(classroomMemberPaymentPlanRepository, never()).insert(any());
-  }
-
-  @Test
-  @DisplayName("defaults omitted currency to VND when creating a payment plan")
-  void createClassroomMemberPaymentPlan_omittedCurrency_defaultsToVnd() throws Exception {
-    when(classroomMemberRepository.findById(MEMBER_ID)).thenReturn(Optional.of(classroomMember()));
-    when(classroomMemberPaymentPlanRepository.findCurrent(MEMBER_ID)).thenReturn(Optional.empty());
-    when(classroomMemberPaymentPlanRepository.insert(any(ClassroomMemberPaymentPlan.class)))
-        .thenAnswer(
-            invocation -> {
-              ClassroomMemberPaymentPlan incoming = invocation.getArgument(0);
-              return paymentPlan(
-                  PAYMENT_PLAN_ID,
-                  incoming.getClassroomMemberId(),
-                  incoming.getEffectiveFrom(),
-                  incoming.getEffectiveTo(),
-                  LocalDateTime.now());
-            });
-
-    mockMvc
-        .perform(
-            post(
-                    "/admin/classrooms/{classroomId}/members/{memberId}/payment-plans",
-                    CLASSROOM_ID,
-                    MEMBER_ID)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(
-                    jsonMapper.writeValueAsString(
-                        CreateClassroomMemberPaymentPlanCommand.builder()
-                            .type(PaymentPlanType.PER_SESSION)
-                            .amount(AMOUNT)
-                            .build()))
-                .with(adminJwt()))
-        .andExpect(status().isCreated())
-        .andExpect(jsonPath("$.currency").value(CURRENCY));
-
-    ArgumentCaptor<ClassroomMemberPaymentPlan> captor =
-        ArgumentCaptor.forClass(ClassroomMemberPaymentPlan.class);
-    verify(classroomMemberPaymentPlanRepository).insert(captor.capture());
-    assertThat(captor.getValue().getCurrency()).isEqualTo(CURRENCY);
   }
 
   @Test
@@ -424,7 +381,6 @@ class ClassroomMemberPaymentPlanControllerIntegrationTest {
     return CreateClassroomMemberPaymentPlanCommand.builder()
         .type(PaymentPlanType.PER_SESSION)
         .amount(AMOUNT)
-        .currency(CURRENCY)
         .build();
   }
 }

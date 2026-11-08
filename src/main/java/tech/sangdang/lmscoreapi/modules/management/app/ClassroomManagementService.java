@@ -16,7 +16,7 @@ public interface ClassroomManagementService {
    * <ul>
    *   <li>Confirms {@code bannerKey} in public storage when present.
    *   <li>Status is always ACTIVE; not taken from the command.
-   *   <li>Omitted base payment plan is PER_SESSION, amount 0, currency VND.
+   *   <li>Omitted base payment plan is PER_SESSION, amount 0.
    * </ul>
    *
    * @param command name; optional banner key and base payment plan
@@ -28,14 +28,14 @@ public interface ClassroomManagementService {
    * Sets the classroom base payment plan.
    *
    * <ul>
-   *   <li>Omitted type is PER_SESSION; omitted currency is VND.
-   *   <li>When type, amount, or currency changes, replaces the current plan of each ACTIVE STUDENT
-   *       still copied from the classroom base.
+   *   <li>Omitted type is PER_SESSION.
+   *   <li>When type or amount changes, replaces the current plan of each ACTIVE STUDENT still
+   *       copied from the classroom base.
    *   <li>An unchanged base does not rewrite member plans.
    * </ul>
    *
    * @param classroomId classroom whose base to set
-   * @param command amount; optional type and currency
+   * @param command amount; optional type
    * @return updated classroom
    */
   ClassroomResponse setClassroomBasePaymentPlan(

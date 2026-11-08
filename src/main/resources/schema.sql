@@ -22,8 +22,7 @@ CREATE TABLE IF NOT EXISTS classroom
     last_modified_date         TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
     status                     VARCHAR(64)           DEFAULT 'ACTIVE',
     base_payment_plan_type     VARCHAR(32)  NOT NULL DEFAULT 'PER_SESSION',
-    base_payment_plan_amount   BIGINT       NOT NULL DEFAULT 0,
-    base_payment_plan_currency VARCHAR(32)  NOT NULL DEFAULT 'VND'
+    base_payment_plan_amount   BIGINT       NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS classroom_member
@@ -53,7 +52,6 @@ CREATE TABLE IF NOT EXISTS classroom_member_payment_plan
     classroom_member_id UUID        NOT NULL,
     type                VARCHAR(32) NOT NULL DEFAULT 'PER_SESSION',
     amount              BIGINT      NOT NULL,
-    currency            VARCHAR(32) NOT NULL DEFAULT 'VND',
     effective_from      TIMESTAMP   NOT NULL,
     effective_to        TIMESTAMP,
     from_classroom_base BOOLEAN     NOT NULL DEFAULT false,

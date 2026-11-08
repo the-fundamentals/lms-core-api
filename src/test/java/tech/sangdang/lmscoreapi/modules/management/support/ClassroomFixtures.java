@@ -30,7 +30,6 @@ public final class ClassroomFixtures {
         .setStatus(ClassroomStatus.ACTIVE)
         .setBasePaymentPlanType(PaymentPlanType.PER_SESSION)
         .setBasePaymentPlanAmount(0L)
-        .setBasePaymentPlanCurrency("VND")
         .setCreatedDate(CREATED_AT)
         .setLastModifiedDate(MODIFIED_AT);
   }

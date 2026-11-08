@@ -127,7 +127,7 @@ paths:
       summary: Create a classroom
       description: >
         Creates a new classroom and returns it. Base payment plan defaults to PER_SESSION, amount 0
-        (free), currency VND when omitted.
+        (free) when omitted.
       requestBody:
         required: true
         content:
@@ -229,8 +229,8 @@ paths:
       operationId: setClassroomBasePaymentPlan
       summary: Set the classroom base payment plan
       description: >
-        Sets the classroom base payment plan. Omitted type defaults to PER_SESSION and omitted
-        currency defaults to VND. When type, amount, or currency changes, each ACTIVE STUDENT whose
+        Sets the classroom base payment plan. Omitted type defaults to PER_SESSION. When type or
+        amount changes, each ACTIVE STUDENT whose
         current plan was copied from the classroom base is closed and replaced with the new base.
         REMOVED members, teachers, individual plans, and students with no current plan are left
         unchanged. An unchanged base does not rewrite member plans.
@@ -1490,7 +1490,6 @@ components:
         - lastModifiedDate
         - basePaymentPlanType
         - basePaymentPlanAmount
-        - basePaymentPlanCurrency
       properties:
         id:
           type: string
@@ -1535,12 +1534,6 @@ components:
           description: Classroom base amount in the smallest currency unit. 0 means the class is free.
           minimum: 0
           example: 0
-        basePaymentPlanCurrency:
-          type: string
-          description: ISO-style currency code for the classroom base payment plan
-          minLength: 1
-          maxLength: 32
-          example: VND
     GetAllClassroomsResponse:
       type: array
       description: Collection of classrooms
@@ -1562,7 +1555,7 @@ components:
       type: object
       description: >
         Optional base payment plan on classroom create. Omitted amount is 0 (free). Omitted type is
-        PER_SESSION. Omitted currency is VND.
+        PER_SESSION.
       additionalProperties: false
       properties:
         type:
@@ -1576,17 +1569,10 @@ components:
           description: Amount in the smallest currency unit. Omitted means 0.
           minimum: 0
           example: 150000
-        currency:
-          type: string
-          description: ISO-style currency code. Omitted means VND.
-          minLength: 1
-          maxLength: 32
-          example: VND
     SetClassroomBasePaymentPlanCommand:
       type: object
       description: >
-        Command to set the classroom base payment plan. Omitted type defaults to PER_SESSION and
-        omitted currency defaults to VND.
+        Command to set the classroom base payment plan. Omitted type defaults to PER_SESSION.
       additionalProperties: false
       required:
         - amount
@@ -1602,13 +1588,6 @@ components:
           description: Amount in the smallest currency unit. 0 means the class is free.
           minimum: 0
           example: 150000
-        currency:
-          type: string
-          description: ISO-style currency code. Defaults to VND when omitted.
-          minLength: 1
-          maxLength: 32
-          default: VND
-          example: VND
     PaymentPlanType:
       type: string
       description: How the member is billed
@@ -1633,13 +1612,6 @@ components:
           description: Amount in the smallest currency unit
           minimum: 0
           example: 150000
-        currency:
-          type: string
-          description: ISO-style currency code. Defaults to VND when omitted.
-          minLength: 1
-          maxLength: 32
-          default: VND
-          example: VND
     ClassroomMemberPaymentPlanResponse:
       type: object
       description: Classroom member payment plan returned by the API
@@ -1649,7 +1621,6 @@ components:
         - classroomMemberId
         - type
         - amount
-        - currency
         - effectiveFrom
         - createdDate
         - lastModifiedDate
@@ -1671,12 +1642,6 @@ components:
           format: int64
           description: Amount in the smallest currency unit
           example: 150000
-        currency:
-          type: string
-          description: Currency code
-          minLength: 1
-          maxLength: 32
-          example: VND
         effectiveFrom:
           type: string
           format: date-time

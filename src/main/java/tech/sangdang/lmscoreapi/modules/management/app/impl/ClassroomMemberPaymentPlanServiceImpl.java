@@ -26,8 +26,6 @@ import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomRepos
 @RequiredArgsConstructor
 public class ClassroomMemberPaymentPlanServiceImpl implements ClassroomMemberPaymentPlanService {
 
-  private static final String DEFAULT_CURRENCY = "VND";
-
   private final ClassroomRepository classroomRepository;
   private final ClassroomMemberRepository classroomMemberRepository;
   private final ClassroomMemberPaymentPlanRepository classroomMemberPaymentPlanRepository;
@@ -50,7 +48,6 @@ public class ClassroomMemberPaymentPlanServiceImpl implements ClassroomMemberPay
             memberId,
             PaymentPlanType.valueOf(command.getType().getValue()),
             command.getAmount(),
-            resolveCurrency(command.getCurrency()),
             false);
 
     return classroomMemberPaymentPlanMapper.toResponse(plan);
@@ -59,10 +56,10 @@ public class ClassroomMemberPaymentPlanServiceImpl implements ClassroomMemberPay
   @Override
   @Transactional
   public void applyClassroomBaseToActiveStudents(
-      UUID classroomId, PaymentPlanType type, long amount, String currency) {
+      UUID classroomId, PaymentPlanType type, long amount) {
     for (ClassroomMemberPaymentPlan current :
         classroomMemberPaymentPlanRepository.findCurrentBasePlansForActiveStudents(classroomId)) {
-      replaceCurrent(current.getClassroomMemberId(), type, amount, currency, true);
+      replaceCurrent(current.getClassroomMemberId(), type, amount, true);
     }
   }
 
@@ -114,11 +111,7 @@ public class ClassroomMemberPaymentPlanServiceImpl implements ClassroomMemberPay
    * Closes the member's open plan, if any, and inserts the next one at the same time.
    */
   private ClassroomMemberPaymentPlan replaceCurrent(
-      UUID memberId,
-      PaymentPlanType type,
-      Long amount,
-      String currency,
-      boolean fromClassroomBase) {
+      UUID memberId, PaymentPlanType type, Long amount, boolean fromClassroomBase) {
     LocalDateTime now = LocalDateTime.now();
     classroomMemberPaymentPlanRepository
         .findCurrent(memberId)
@@ -132,14 +125,9 @@ public class ClassroomMemberPaymentPlanServiceImpl implements ClassroomMemberPay
             .setClassroomMemberId(memberId)
             .setType(type)
             .setAmount(amount)
-            .setCurrency(currency)
             .setEffectiveFrom(now)
             .setEffectiveTo(null)
             .setFromClassroomBase(fromClassroomBase));
-  }
-
-  private static String resolveCurrency(String currency) {
-    return currency == null || currency.isBlank() ? DEFAULT_CURRENCY : currency;
   }
 
   private ClassroomMember requireMemberInClassroom(UUID classroomId, UUID memberId) {
