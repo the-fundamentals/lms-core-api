@@ -21,10 +21,10 @@ import tech.sangdang.lmscoreapi.common.querying.BaseQuery;
 import tech.sangdang.lmscoreapi.common.querying.Operators;
 import tech.sangdang.lmscoreapi.common.querying.QueryFilterConditions;
 import tech.sangdang.lmscoreapi.generated.model.*;
-import tech.sangdang.lmscoreapi.modules.management.app.ClassroomSessionGenerationService;
 import tech.sangdang.lmscoreapi.modules.management.app.ClassroomSessionService;
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomSessionAttendanceMapper;
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomSessionMapper;
+import tech.sangdang.lmscoreapi.modules.management.app.useCase.SessionGeneration.ClassroomSessionGenerationService;
 import tech.sangdang.lmscoreapi.modules.management.dom.*;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionAttendanceStatus;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.*;
@@ -110,7 +110,9 @@ public class ClassroomSessionServiceImpl implements ClassroomSessionService {
     maybeGenerateSessionsForDateWindow(classroomId, filter);
 
     // scope query to this classroom
-    filters.add(QueryFilterConditions.of("classroomId", "eq", classroomId.toString()));
+    filters.add(
+        QueryFilterConditions.of(
+            ClassroomSession.Fields.classroomId, Operators.EQUAL, classroomId.toString()));
     query.setFilters(filters);
 
     return classroomSessionRepository.query(query).map(classroomSessionMapper::toResponse).toList();
@@ -132,7 +134,11 @@ public class ClassroomSessionServiceImpl implements ClassroomSessionService {
         query.getFilters() == null ? new ArrayList<>() : new ArrayList<>(query.getFilters());
 
     // scope query to this member
-    filters.add(QueryFilterConditions.of("classroomMemberId", "eq", memberId.toString()));
+    filters.add(
+        QueryFilterConditions.of(
+            ClassroomSessionAttendance.Fields.classroomMemberId,
+            Operators.EQUAL,
+            memberId.toString()));
     query.setFilters(filters);
 
     return classroomSessionAttendanceRepository

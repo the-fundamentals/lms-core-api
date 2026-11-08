@@ -24,6 +24,7 @@ app:
   modules:
     management:
       session-generation-cron: "0 0 0 7 * *"
+      invoice-generation-cron: "0 0 0 1 * *"
 
 springdoc:
   api-docs:

@@ -1,0 +1,111 @@
+package tech.sangdang.lmscoreapi.modules.management.app;
+
+import java.util.List;
+import java.util.UUID;
+import tech.sangdang.lmscoreapi.generated.model.ClassroomInvoiceFilter;
+import tech.sangdang.lmscoreapi.generated.model.ClassroomInvoiceResponse;
+import tech.sangdang.lmscoreapi.generated.model.CompleteClassroomInvoiceCommand;
+import tech.sangdang.lmscoreapi.generated.model.CreateClassroomInvoiceAdhocCommand;
+import tech.sangdang.lmscoreapi.generated.model.UpdateClassroomInvoiceCommand;
+
+public interface ClassroomInvoiceService {
+
+  /**
+   * Queries invoices for a classroom.
+   *
+   * <ul>
+   *   <li>Always scoped to {@code classroomId} in addition to the filter.
+   *   <li>Optional {@code memberId} filter narrows to one member.
+   * </ul>
+   *
+   * @param classroomId classroom whose invoices to query
+   * @param filter paging, sort, and field filters
+   * @return matching invoices
+   */
+  List<ClassroomInvoiceResponse> queryInvoices(UUID classroomId, ClassroomInvoiceFilter filter);
+
+  /**
+   * Creates a DRAFT ADHOC invoice for a member of the classroom.
+   *
+   * <ul>
+   *   <li>Period is left unset.
+   *   <li>Line totals and the invoice total are computed here.
+   * </ul>
+   *
+   * @param classroomId classroom the member belongs to
+   * @param command member, optional note, and at least one line
+   * @return created invoice
+   */
+  ClassroomInvoiceResponse createAdhocInvoice(
+      UUID classroomId, CreateClassroomInvoiceAdhocCommand command);
+
+  /**
+   * Returns an invoice by id within the classroom.
+   *
+   * @param classroomId classroom the invoice belongs to
+   * @param invoiceId invoice to load
+   * @return invoice
+   */
+  ClassroomInvoiceResponse getInvoiceById(UUID classroomId, UUID invoiceId);
+
+  /**
+   * Replaces lines on a DRAFT invoice and recomputes totals.
+   *
+   * <ul>
+   *   <li>Non-DRAFT is 400.
+   *   <li>Omitted note leaves the existing note unchanged.
+   * </ul>
+   *
+   * @param classroomId classroom the invoice belongs to
+   * @param invoiceId invoice to update
+   * @param command replacement lines; optional note
+   * @return updated invoice
+   */
+  ClassroomInvoiceResponse updateInvoice(
+      UUID classroomId, UUID invoiceId, UpdateClassroomInvoiceCommand command);
+
+  /**
+   * Marks a DRAFT invoice APPROVED.
+   *
+   * <ul>
+   *   <li>Non-DRAFT is 400.
+   * </ul>
+   *
+   * @param classroomId classroom the invoice belongs to
+   * @param invoiceId invoice to approve
+   * @return updated invoice
+   */
+  ClassroomInvoiceResponse approveInvoice(UUID classroomId, UUID invoiceId);
+
+  /**
+   * Marks an APPROVED invoice COMPLETED and records payment.
+   *
+   * <ul>
+   *   <li>Non-APPROVED is 400.
+   *   <li>{@code paidAt} is server time.
+   *   <li>{@code paidAmount} need not equal {@code totalAmount}; use {@code paymentNote} for
+   *       shortfalls or other payment context.
+   * </ul>
+   *
+   * @param classroomId classroom the invoice belongs to
+   * @param invoiceId invoice to complete
+   * @param command paid amount and method; reference and note optional
+   * @return updated invoice
+   */
+  ClassroomInvoiceResponse completeInvoice(
+      UUID classroomId, UUID invoiceId, CompleteClassroomInvoiceCommand command);
+
+  /**
+   * Marks a DRAFT or APPROVED invoice CANCELLED.
+   *
+   * <ul>
+   *   <li>COMPLETED or already CANCELLED is 400.
+   *   <li>Cancelling a GENERATED invoice frees the member/period slot for regen.
+   * </ul>
+   *
+   * @param classroomId classroom the invoice belongs to
+   * @param invoiceId invoice to cancel
+   * @return updated invoice
+   */
+  ClassroomInvoiceResponse cancelInvoice(UUID classroomId, UUID invoiceId);
+}

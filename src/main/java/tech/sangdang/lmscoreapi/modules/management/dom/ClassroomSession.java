@@ -9,6 +9,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+import lombok.experimental.FieldNameConstants;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -20,6 +21,7 @@ import tech.sangdang.lmscoreapi.modules.management.dom.exception.ClassroomSessio
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
+@FieldNameConstants
 @Table(ClassroomSession.TABLE_NAME)
 public class ClassroomSession {
   public static final String TABLE_NAME = "classroom_session";

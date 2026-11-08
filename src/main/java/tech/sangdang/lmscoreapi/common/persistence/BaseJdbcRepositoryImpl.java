@@ -1,6 +1,7 @@
 package tech.sangdang.lmscoreapi.common.persistence;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -129,7 +130,8 @@ public class BaseJdbcRepositoryImpl<Entity, IdType>
               Operators.LESS_THAN,
               Operators.GREATER_OR_EQUAL,
               Operators.LESS_OR_EQUAL ->
-              coerceFilterValue(filter);
+              coerceFilterValue(filter.getField(), filter.getValue());
+          case Operators.IN -> coerceInFilterValue(filter);
           default ->
               throw new IllegalArgumentException("Unknown operator: " + filter.getOperator());
         };
@@ -141,34 +143,54 @@ public class BaseJdbcRepositoryImpl<Entity, IdType>
       case Operators.LESS_THAN -> Criteria.where(field).lessThan(value);
       case Operators.GREATER_OR_EQUAL -> Criteria.where(field).greaterThanOrEquals(value);
       case Operators.LESS_OR_EQUAL -> Criteria.where(field).lessThanOrEquals(value);
+      case Operators.IN -> Criteria.where(field).in((Collection<?>) value);
       default -> throw new IllegalArgumentException("Unknown operator: " + filter.getOperator());
     };
   }
 
-  private Object coerceFilterValue(QueryFilterConditions filter) {
-    String value = filter.getValue();
-
-    PersistentProperty<?> property = entity.getPersistentProperty(filter.getField());
-    if (property == null) {
+  private Collection<?> coerceInFilterValue(QueryFilterConditions filter) {
+    Object raw = filter.getValue();
+    if (!(raw instanceof Collection<?> values) || values.isEmpty()) {
       throw GenericBadRequestException.of(
-          "UNKNOWN_FILTER_FIELD", "Unknown filter field: " + filter.getField());
+          "INVALID_FILTER_VALUE",
+          "IN filter requires a non-empty collection for field: " + filter.getField());
+    }
+
+    List<Object> coerced = new ArrayList<>(values.size());
+    for (Object element : values) {
+      coerced.add(coerceFilterValue(filter.getField(), element));
+    }
+    return coerced;
+  }
+
+  private Object coerceFilterValue(String field, Object value) {
+    PersistentProperty<?> property = entity.getPersistentProperty(field);
+    if (property == null) {
+      throw GenericBadRequestException.of("UNKNOWN_FILTER_FIELD", "Unknown filter field: " + field);
     }
 
     Class<?> type = property.getType();
-    if (type == String.class) {
+    if (value == null) {
+      throw GenericBadRequestException.of(
+          "INVALID_FILTER_VALUE", "Invalid filter value for field: " + field);
+    }
+    if (type.isInstance(value)) {
       return value;
+    }
+    if (type == String.class) {
+      return value.toString();
     }
 
     try {
       Object converted = FILTER_VALUES.convert(value, type);
       if (converted == null) {
         throw GenericBadRequestException.of(
-            "INVALID_FILTER_VALUE", "Invalid filter value for field: " + filter.getField());
+            "INVALID_FILTER_VALUE", "Invalid filter value for field: " + field);
       }
       return converted;
     } catch (ConversionException ex) {
       throw GenericBadRequestException.of(
-          "INVALID_FILTER_VALUE", "Invalid filter value for field: " + filter.getField());
+          "INVALID_FILTER_VALUE", "Invalid filter value for field: " + field);
     }
   }
 

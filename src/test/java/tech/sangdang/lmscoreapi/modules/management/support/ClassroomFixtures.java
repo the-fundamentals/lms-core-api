@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 import tech.sangdang.lmscoreapi.modules.management.dom.Classroom;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomStatus;
+import tech.sangdang.lmscoreapi.modules.management.dom.PaymentPlanType;
 
 public final class ClassroomFixtures {
 
@@ -27,6 +28,8 @@ public final class ClassroomFixtures {
         .setBannerKey(BANNER_KEY)
         .setNumberOfMembers(0)
         .setStatus(ClassroomStatus.ACTIVE)
+        .setBasePaymentPlanType(PaymentPlanType.PER_SESSION)
+        .setBasePaymentPlanAmount(0L)
         .setCreatedDate(CREATED_AT)
         .setLastModifiedDate(MODIFIED_AT);
   }

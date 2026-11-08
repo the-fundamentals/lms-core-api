@@ -1,0 +1,19 @@
+---
+description: Do not add custom MapStruct mappings without asking first
+alwaysApply: true
+---
+
+# Mapper mappings
+
+Do not add custom MapStruct mappings (`@Mapping`, `@Mappings`, `@AfterMapping`, `expression`, `qualifiedBy`, or a hand-written mapping method) unless the user has agreed in this conversation.
+
+Name source and target properties the same so MapStruct maps them with a plain method (`toResponse(Source source)`). If that is not enough, stop and ask. Prefer a simpler model or API shape over a custom mapping.
+
+```java
+// ❌ BAD — custom mapping added without asking
+@Mapping(target = "basePaymentPlan.type", source = "basePaymentPlanType")
+ClassroomResponse toResponse(Classroom classroom);
+
+// ✅ GOOD — same property names, no @Mapping
+ClassroomResponse toResponse(Classroom classroom);
+```

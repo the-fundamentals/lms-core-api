@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -199,6 +200,61 @@ class BaseJdbcRepositoryImplTest {
     }
 
     @Test
+    @DisplayName("maps IN filter with typed collection to criteria")
+    void query_inOperator_typedCollection_mapsToCriteria() {
+      stubProperty("classroomId", UUID.class);
+      when(operations.streamAll(any(Query.class), eq(SampleEntity.class)))
+          .thenReturn(Stream.empty());
+
+      UUID id1 = UUID.fromString("3fa85f64-5717-4562-b3fc-2c963f66afa6");
+      UUID id2 = UUID.fromString("7c9e6679-7425-40de-944b-e07fc1f90ae7");
+      BaseQuery baseQuery =
+          BaseQuery.builder()
+              .fetchFirst()
+              .addFilter("classroomId", Operators.IN, List.of(id1, id2))
+              .build();
+
+      repository.query(baseQuery).toList();
+
+      CriteriaDefinition criteria = captureStreamedQuery().getCriteria().orElseThrow();
+      assertThat(criteria.toString()).contains("classroomId").contains("IN");
+      assertThat(leafValue(criteria)).isEqualTo(List.of(id1, id2));
+    }
+
+    @Test
+    @DisplayName("maps IN filter with string collection by coercing each element")
+    void query_inOperator_stringCollection_coercesElements() {
+      stubProperty("classroomId", UUID.class);
+      when(operations.streamAll(any(Query.class), eq(SampleEntity.class)))
+          .thenReturn(Stream.empty());
+
+      UUID id = UUID.fromString("3fa85f64-5717-4562-b3fc-2c963f66afa6");
+      BaseQuery baseQuery =
+          BaseQuery.builder()
+              .fetchFirst()
+              .addFilter("classroomId", Operators.IN, List.of(id.toString()))
+              .build();
+
+      repository.query(baseQuery).toList();
+
+      assertThat(leafValue(captureStreamedQuery().getCriteria().orElseThrow()))
+          .isEqualTo(List.of(id));
+    }
+
+    @Test
+    @DisplayName("rejects empty IN collection on the builder")
+    void query_inOperator_emptyCollection_throws() {
+      assertThatThrownBy(
+              () ->
+                  BaseQuery.builder()
+                      .fetchFirst()
+                      .addFilter("classroomId", Operators.IN, List.of())
+                      .build())
+          .isInstanceOf(GenericBadRequestException.class)
+          .hasMessageContaining("must not be empty");
+    }
+
+    @Test
     @DisplayName("ands multiple filters")
     void query_multipleFilters_andsCriteria() {
       stubProperty("name", String.class);
@@ -277,6 +333,26 @@ class BaseJdbcRepositoryImplTest {
 
       CriteriaDefinition criteria = captureStreamedQuery().getCriteria().orElseThrow();
       assertThat(leafValue(criteria)).isEqualTo(LocalDate.of(2026, 11, 1));
+    }
+
+    @Test
+    @DisplayName("binds typed LocalDateTime filters for range operators")
+    void query_localDateTimeFilter_passThrough() {
+      stubProperty("createdDate", LocalDateTime.class);
+      when(operations.streamAll(any(Query.class), eq(SampleEntity.class)))
+          .thenReturn(Stream.empty());
+
+      LocalDateTime createdFrom = LocalDateTime.of(2026, 10, 1, 0, 0);
+      BaseQuery baseQuery =
+          BaseQuery.builder()
+              .fetchFirst()
+              .addFilter("createdDate", Operators.GREATER_OR_EQUAL, createdFrom)
+              .build();
+
+      repository.query(baseQuery).toList();
+
+      CriteriaDefinition criteria = captureStreamedQuery().getCriteria().orElseThrow();
+      assertThat(leafValue(criteria)).isEqualTo(createdFrom);
     }
 
     @Test

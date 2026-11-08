@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 import tech.sangdang.lmscoreapi.generated.api.ClassroomApi;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomFilter;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomCommand;
+import tech.sangdang.lmscoreapi.generated.model.SetClassroomBasePaymentPlanCommand;
 import tech.sangdang.lmscoreapi.generated.model.UpdateClassroomCommand;
 import tech.sangdang.lmscoreapi.modules.management.app.ClassroomManagementService;
 
@@ -27,6 +28,15 @@ public class ClassroomController implements ClassroomApi {
   @Override
   public ResponseEntity<?> getClassroomById(@NonNull UUID id) {
     return ResponseEntity.ok(classroomManagementService.getClassroomById(id));
+  }
+
+  @Override
+  public ResponseEntity<?> setClassroomBasePaymentPlan(
+      @NonNull UUID classroomId,
+      @NonNull SetClassroomBasePaymentPlanCommand setClassroomBasePaymentPlanCommand) {
+    return ResponseEntity.ok(
+        classroomManagementService.setClassroomBasePaymentPlan(
+            classroomId, setClassroomBasePaymentPlanCommand));
   }
 
   @Override

@@ -1,4 +1,4 @@
-package tech.sangdang.lmscoreapi.modules.management.dom.repository.fragments;
+package tech.sangdang.lmscoreapi.modules.management.app.useCase.SessionGeneration;
 
 import java.util.List;
 import java.util.Objects;
@@ -6,15 +6,24 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+import org.springframework.stereotype.Repository;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSession;
 
-// Must live in this package: Spring Data only loads fragment *Impl from the repository interface
-// package
+@Repository
 @RequiredArgsConstructor
-public class ClassroomSessionRepositoryFragmentImpl implements ClassroomSessionRepositoryFragment {
+public class ClassroomSessionGenerationRepository {
   private final NamedParameterJdbcTemplate template;
 
-  @Override
+  /**
+   * Inserts sessions; skips existing rows for the same classroom, recurrence, and date.
+   *
+   * <ul>
+   *   <li>Conflict target: partial unique index on {@code (classroom_id, generated_by,
+   *       session_date)} where {@code generated_by} is not null.
+   * </ul>
+   *
+   * @param sessions sessions to insert (null/empty is a no-op)
+   */
   public void insertAllIgnoringDuplicates(List<ClassroomSession> sessions) {
     if (sessions == null) {
       return;
@@ -25,13 +34,16 @@ public class ClassroomSessionRepositoryFragmentImpl implements ClassroomSessionR
     }
 
     // Ad-hoc SQL: Criteria cannot express ON CONFLICT on partial unique index
-    // unique_generated_session_idx (classroom_id, generated_by, session_date) WHERE generated_by IS
-    // NOT NULL
     String sql =
-        "INSERT INTO classroom_session (session_date, start_time, end_time, classroom_id, name, description, status, type, generated_by) "
-            + "VALUES (:sessionDate, :startTime, :endTime, :classroomId, :name, :description, :status, :type, :generatedBy) "
-            + "ON CONFLICT (classroom_id, generated_by, session_date) WHERE generated_by IS NOT NULL "
-            + "DO NOTHING";
+        """
+        INSERT INTO classroom_session (
+          session_date, start_time, end_time, classroom_id, name, description, status, type, generated_by
+        ) VALUES (
+          :sessionDate, :startTime, :endTime, :classroomId, :name, :description, :status, :type, :generatedBy
+        )
+        ON CONFLICT (classroom_id, generated_by, session_date) WHERE generated_by IS NOT NULL
+        DO NOTHING
+        """;
 
     SqlParameterSource[] batchArgs =
         sessions.stream()
