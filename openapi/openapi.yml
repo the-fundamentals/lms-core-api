@@ -24,7 +24,12 @@ tags:
   - name: ClassroomSessions
     description: Admin-only classroom session and attendance management (`/admin/classrooms/.../sessions` and member attendance history)
   - name: Storage
-    description: Private endpoints to upload files to the system
+    description: >
+      Authenticated file upload (`POST /private/storage`). Files always go to a temporary
+      **landing zone** first. For public files (`isPublic: true`), the returned `objectKey`
+      (`public/{uuid}`) stays in the landing zone until a domain write submits it
+      (profile `avatarKey`, classroom `bannerKey`). That write copies the object to the
+      permanent public store and best-effort deletes it from the landing zone.
   - name: _Test
     description: >
       Test endpoints
@@ -94,7 +99,15 @@ paths:
       operationId: updateMyAccountProfile
       summary: Update the current user's account profile
       description: >
-        Upserts the account profile for the authenticated user (JWT `sub`). Request body updates `firstName` and `lastName` only. Email is taken from the Cognito ID token supplied in `X-ID-Token` (must be `token_use=id` and the same `sub` as the access token). Creates the profile when none exists yet (onboarding).
+        Upserts the account profile for the authenticated user (JWT `sub`). Request body
+        updates `firstName`, `lastName`, and `avatarKey`. Email is taken from the Cognito
+        ID token supplied in `X-ID-Token` (must be `token_use=id` and the same `sub` as the
+        access token). Creates the profile when none exists yet (onboarding).
+
+        `avatarKey` must be a public landing-zone key from `POST /private/storage` with
+        `isPublic: true`. On success the server confirms the upload: copies the object from
+        the landing zone to the permanent public store (idempotent if already there), then
+        best-effort deletes the landing-zone copy.
 
       parameters:
         - $ref: "#/components/parameters/IdToken"
@@ -126,8 +139,14 @@ paths:
       operationId: createClassroom
       summary: Create a classroom
       description: >
-        Creates a new classroom and returns it. Base payment plan defaults to PER_SESSION, amount 0
-        (free) when omitted.
+        Creates a new classroom and returns it. Base payment plan defaults to PER_SESSION,
+        amount 0 (free) when omitted.
+
+        When `bannerKey` is present it must be a public landing-zone key from
+        `POST /private/storage` with `isPublic: true`. Create confirms that upload: copies
+        the object from the landing zone to the permanent public store (idempotent if already
+        there), then best-effort deletes the landing-zone copy. Omitting `bannerKey` skips
+        storage confirmation.
       requestBody:
         required: true
         content:
@@ -194,7 +213,14 @@ paths:
         - Classroom
       operationId: updateClassroom
       summary: Update a classroom
-      description: Updates an existing classroom and returns the updated resource.
+      description: >
+        Updates an existing classroom and returns the updated resource.
+
+        When `bannerKey` is present it must be a public landing-zone key from
+        `POST /private/storage` with `isPublic: true`. Update confirms that upload: copies
+        the object from the landing zone to the permanent public store (idempotent if already
+        there), then best-effort deletes the landing-zone copy. Omitting `bannerKey` leaves
+        the existing banner and skips storage confirmation.
       parameters:
         - $ref: "#/components/parameters/ClassroomId"
       requestBody:
@@ -1023,8 +1049,24 @@ paths:
       tags:
         - Storage
       operationId: uploadToStorage
-      summary: Upload a file to the landing zone storage bucket
-      description: Get a presigned URL to upload a file to the landing zone bucket. Form must be submitted to be moved to public (permanent) bucket
+      summary: Get presigned URLs for landing-zone upload
+      description: >
+        Issues presigned URLs that target the temporary **landing zone** bucket. Nothing is
+        written to the permanent public store by this call.
+
+        **Public file client flow**
+        1. Call with `isPublic: true`. Response `objectKey` is `public/{uuid}`.
+        2. HTTP PUT the file bytes to `uploadUrl` (landing zone; expires in 5 minutes).
+        3. Optionally GET `downloadUrl` to preview from the landing zone (expires in 15 minutes).
+        4. Submit that `objectKey` on a domain write (`avatarKey` on profile update,
+           `bannerKey` on classroom create/update). The server then confirms: copy landing
+           zone → permanent public store (same key), then best-effort delete from the landing
+           zone. Confirm is idempotent when the object is already in the public store; missing
+           landing-zone object yields not found.
+
+        Private uploads (`isPublic: false` or omitted body) return `private/{uuid}` keys still
+        aimed at the landing zone; permanent private transfer is not exposed on production
+        domain writes yet.
       requestBody:
         required: false
         content:
@@ -1033,7 +1075,9 @@ paths:
               $ref: "#/components/schemas/UploadToStorageCommand"
       responses:
         "200":
-          description: URL Created. Use the URL to upload file
+          description: >
+            Presigned landing-zone URLs and the assigned `objectKey`. PUT to `uploadUrl`, then
+            submit the key on a domain write to move public objects into the permanent store.
           content:
             application/json:
               schema:
@@ -1045,7 +1089,12 @@ paths:
       operationId: confirmPublicFileUpload
       summary: Confirm a public file upload (local only)
       description: >
-        Moves an object from the landing zone to the public store after upload. Local profile only — this endpoint is registered only when the Spring profile `local` is active.
+        Same transfer used by domain writes that accept a public `objectKey` (`avatarKey`,
+        `bannerKey`): validates the key starts with `public/`, copies landing zone → permanent
+        public store (no-op if already in the public store), then best-effort deletes the
+        landing-zone object. Local/test profile only — registered when Spring profile `local`
+        or `test` is active. Production clients should not call this; submit the key via the
+        relevant domain endpoint instead.
 
       security: []
       requestBody:
@@ -1417,15 +1466,27 @@ components:
         description: ID Token JWT
   schemas:
     UploadToStorageCommand:
-      description: A command to generate presigned URLs to upload an item to storage
+      type: object
+      description: >
+        Requests presigned URLs for uploading into the landing zone. Public vs private only
+        chooses the `objectKey` prefix; both still target the landing zone until a later
+        confirm/transfer.
+      additionalProperties: false
       properties:
         isPublic:
           type: boolean
           default: false
-          description: Set to true if this is a public resource to be stored in the public bucket
-          example: false
+          description: >
+            When true, assigns a `public/{uuid}` key intended for the permanent public store
+            after a domain write submits that key. When false or omitted, assigns
+            `private/{uuid}`. Does not upload to the permanent public store by itself.
+          example: true
     UploadToStorageResponse:
-      description: Response containing the presigned URL for uploading files
+      type: object
+      description: >
+        Presigned landing-zone URLs and the assigned object key. The file is not in the
+        permanent public store until a domain write confirms a public key.
+      additionalProperties: false
       required:
         - uploadUrl
         - objectKey
@@ -1433,15 +1494,22 @@ components:
         uploadUrl:
           type: string
           example: http://localhost:8080/upload
-          description: Presigned URL to upload the file
+          description: >
+            Presigned PUT URL for the landing zone (expires in 5 minutes). Upload file bytes
+            here before submitting the `objectKey` on a domain write.
         downloadUrl:
           type: string
           example: http://localhost:8080/download
-          description: Presigned URL to download the file
+          description: >
+            Presigned GET URL for the same landing-zone object (expires in 15 minutes). Useful
+            for preview before confirm/transfer.
         objectKey:
           type: string
-          example: 540ba3e4-8026-45e9-9834-54aa0eb1a17a
-          description: The key of the object saved in S3
+          example: public/540ba3e4-8026-45e9-9834-54aa0eb1a17a
+          description: >
+            Assigned storage key (`public/{uuid}` or `private/{uuid}`). For public files, pass
+            this value as `avatarKey` / `bannerKey` (etc.) on the domain write that should
+            move the object from the landing zone into the permanent public store.
     ClassroomFilter:
       type: object
       description: Student filter
@@ -1504,7 +1572,9 @@ components:
           example: Algebra I
         bannerKey:
           type: string
-          description: Key to the stored classroom banner image in the Public S3 Bucket
+          description: >
+            Classroom banner object key in the permanent public store (`public/{uuid}`), after
+            create/update confirmed the landing-zone upload.
           minLength: 1
           maxLength: 64
           example: public/3e4ef8d1-9581-402f-9e27-fec209aeb2d8
@@ -1622,6 +1692,7 @@ components:
         - type
         - amount
         - effectiveFrom
+        - fromClassroomBase
         - createdDate
         - lastModifiedDate
       properties:
@@ -1652,6 +1723,12 @@ components:
           format: date-time
           description: When this plan stopped being current. Null while current.
           example: 2026-07-14T00:05:00Z
+        fromClassroomBase:
+          type: boolean
+          description: >
+            True when this plan was copied from the classroom base and should follow later
+            base changes.
+          example: true
         createdDate:
           type: string
           format: date-time
@@ -1699,7 +1776,10 @@ components:
           example: Algebra I
         bannerKey:
           type: string
-          description: Key to the stored classroom banner image in the Public S3 Bucket
+          description: >
+            Optional public landing-zone key from `POST /private/storage` with `isPublic: true`
+            (`public/{uuid}`). When present, create confirms the upload (landing zone →
+            permanent public store). Omit to create without a banner.
           minLength: 1
           maxLength: 64
           example: public/3e4ef8d1-9581-402f-9e27-fec209aeb2d8
@@ -1721,7 +1801,10 @@ components:
           example: Algebra II
         bannerKey:
           type: string
-          description: Key to the stored classroom banner image in the Public S3 Bucket
+          description: >
+            Optional public landing-zone key from `POST /private/storage` with `isPublic: true`
+            (`public/{uuid}`). When present, update confirms the upload (landing zone →
+            permanent public store). Omit to leave the existing banner unchanged.
           minLength: 1
           maxLength: 64
           example: public/3e4ef8d1-9581-402f-9e27-fec209aeb2d8
@@ -2428,7 +2511,9 @@ components:
           example: Doe
         avatarKey:
           type: string
-          description: Key to the stored avatar image in the Public S3 Bucket
+          description: >
+            Avatar object key in the permanent public store (`public/{uuid}`), after profile
+            update confirmed the landing-zone upload.
           minLength: 1
           maxLength: 64
           example: public/3e4ef8d1-9581-402f-9e27-fec209aeb2d8
@@ -2446,7 +2531,9 @@ components:
     UpdateAccountProfileCommand:
       type: object
       description: >
-        Command to update the authenticated user's account profile. Only first and last name are accepted here; email is taken from `X-ID-Token`.
+        Command to upsert the authenticated user's account profile. Updates `firstName`,
+        `lastName`, and `avatarKey`. Email is taken from `X-ID-Token`. Submitting `avatarKey`
+        confirms the public landing-zone upload into the permanent public store.
 
       additionalProperties: false
       required:
@@ -2468,7 +2555,11 @@ components:
           example: Doe
         avatarKey:
           type: string
-          description: Key to the stored avatar image in the Public S3 Bucket
+          description: >
+            Public landing-zone key from `POST /private/storage` with `isPublic: true`
+            (`public/{uuid}`). Profile update confirms the upload (landing zone → permanent
+            public store; idempotent if already confirmed). Re-submit the current key when the
+            avatar is unchanged.
           minLength: 1
           maxLength: 64
           example: public/3e4ef8d1-9581-402f-9e27-fec209aeb2d8

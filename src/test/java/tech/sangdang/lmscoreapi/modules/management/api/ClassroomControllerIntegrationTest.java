@@ -146,8 +146,7 @@ class ClassroomControllerIntegrationTest {
     CreateClassroomCommand command =
         CreateClassroomCommand.builder()
             .name(CLASSROOM_NAME)
-            .basePaymentPlan(
-                ClassroomBasePaymentPlanInput.builder().amount(150_000L).build())
+            .basePaymentPlan(ClassroomBasePaymentPlanInput.builder().amount(150_000L).build())
             .build();
 
     mockMvc

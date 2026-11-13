@@ -107,9 +107,7 @@ public class ClassroomMemberPaymentPlanServiceImpl implements ClassroomMemberPay
         .toList();
   }
 
-  /**
-   * Closes the member's open plan, if any, and inserts the next one at the same time.
-   */
+  /** Closes the member's open plan, if any, and inserts the next one at the same time. */
   private ClassroomMemberPaymentPlan replaceCurrent(
       UUID memberId, PaymentPlanType type, Long amount, boolean fromClassroomBase) {
     LocalDateTime now = LocalDateTime.now();

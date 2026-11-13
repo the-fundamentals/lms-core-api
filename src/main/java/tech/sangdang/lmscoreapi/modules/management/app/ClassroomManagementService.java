@@ -14,7 +14,10 @@ public interface ClassroomManagementService {
    * Creates a classroom.
    *
    * <ul>
-   *   <li>Confirms {@code bannerKey} in public storage when present.
+   *   <li>When {@code bannerKey} is present: prerequisite is {@code
+   *       StorageService#getPresignedUploadUrl} ({@code isPublic: true}) + client PUT to landing
+   *       zone; then this calls {@code StorageService#confirmPublicFileUpload}.
+   *   <li>Omitting {@code bannerKey} skips storage confirmation.
    *   <li>Status is always ACTIVE; not taken from the command.
    *   <li>Omitted base payment plan is PER_SESSION, amount 0.
    * </ul>
@@ -45,8 +48,10 @@ public interface ClassroomManagementService {
    * Updates a classroom's name and optional banner.
    *
    * <ul>
-   *   <li>Omitting {@code bannerKey} leaves the existing banner.
-   *   <li>Confirms a new {@code bannerKey} in public storage when present.
+   *   <li>When {@code bannerKey} is present: prerequisite is {@code
+   *       StorageService#getPresignedUploadUrl} ({@code isPublic: true}) + client PUT to landing
+   *       zone; then this calls {@code StorageService#confirmPublicFileUpload}.
+   *   <li>Omitting {@code bannerKey} leaves the existing banner and skips storage confirmation.
    * </ul>
    *
    * @param id classroom to update

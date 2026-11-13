@@ -100,7 +100,8 @@ class ClassroomMemberPaymentPlanControllerIntegrationTest {
         .andExpect(jsonPath("$.type").value("PER_SESSION"))
         .andExpect(jsonPath("$.amount").value(AMOUNT))
         .andExpect(jsonPath("$.effectiveFrom").exists())
-        .andExpect(jsonPath("$.effectiveTo").doesNotExist());
+        .andExpect(jsonPath("$.effectiveTo").doesNotExist())
+        .andExpect(jsonPath("$.fromClassroomBase").value(false));
 
     verify(classroomMemberPaymentPlanRepository, never())
         .update(any(ClassroomMemberPaymentPlan.class));
