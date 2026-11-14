@@ -2649,12 +2649,6 @@ components:
         - GENERATED
         - ADHOC
       example: GENERATED
-    ClassroomInvoicePeriodRange:
-      type: string
-      description: Billing period range for a generated invoice
-      enum:
-        - MONTH
-      example: MONTH
     ClassroomInvoicePaymentMethod:
       type: string
       description: How the invoice was paid
@@ -2804,7 +2798,7 @@ components:
           maximum: 50
         sortBy:
           type: string
-          pattern: '^(createdDate|periodStart|totalAmount|status|type|memberId)$'
+          pattern: '^(createdDate|billingStart|billingEnd|totalAmount|status|type|memberId)$'
         sortDirection:
           type: string
           enum: [ASC, DESC]
@@ -2817,7 +2811,7 @@ components:
             properties:
               field:
                 type: string
-                pattern: '^(memberId|status|type|periodStart|periodRange|createdDate|totalAmount)$'
+                pattern: '^(memberId|status|type|billingStart|billingEnd|createdDate|totalAmount)$'
               operator:
                 type: string
                 pattern: '^(eq|like|gt|lt|gte|lte)$'
@@ -2909,13 +2903,22 @@ components:
           $ref: "#/components/schemas/ClassroomInvoiceStatus"
         type:
           $ref: "#/components/schemas/ClassroomInvoiceType"
-        periodStart:
+        billingStart:
           type: string
           format: date
-          description: Period start date (generated invoices)
+          description: >
+            Inclusive start of the GENERATED billing window (same date as the generation job
+            window start). Omitted on ADHOC invoices.
           example: "2026-10-01"
-        periodRange:
-          $ref: "#/components/schemas/ClassroomInvoicePeriodRange"
+        billingEnd:
+          type: string
+          format: date
+          description: >
+            End of the GENERATED billing window (same date as the generation job window end —
+            for the monthly job, the first day of the following month). Omitted on ADHOC
+            invoices. Together with billingStart this is the GENERATED uniqueness / idempotency
+            key per member.
+          example: "2026-11-01"
         totalAmount:
           type: integer
           format: int64

@@ -93,16 +93,16 @@ class ClassroomInvoiceControllerIntegrationTest {
         .andExpect(jsonPath("$.type").value("ADHOC"))
         .andExpect(jsonPath("$.totalAmount").value(350_000))
         .andExpect(jsonPath("$.note").value("Makeup fee for missed materials"))
-        .andExpect(jsonPath("$.periodStart").doesNotExist())
-        .andExpect(jsonPath("$.periodRange").doesNotExist());
+        .andExpect(jsonPath("$.billingStart").doesNotExist())
+        .andExpect(jsonPath("$.billingEnd").doesNotExist());
 
     ArgumentCaptor<ClassroomInvoice> captor = ArgumentCaptor.forClass(ClassroomInvoice.class);
     verify(classroomInvoiceRepository).insert(captor.capture());
     ClassroomInvoice saved = captor.getValue();
     assertThat(saved.getStatus()).isEqualTo(ClassroomInvoiceStatus.DRAFT);
     assertThat(saved.getType()).isEqualTo(ClassroomInvoiceType.ADHOC);
-    assertThat(saved.getPeriodStart()).isNull();
-    assertThat(saved.getPeriodRange()).isNull();
+    assertThat(saved.getBillingStart()).isNull();
+    assertThat(saved.getBillingEnd()).isNull();
     assertThat(saved.getTotalAmount()).isEqualTo(350_000L);
     assertThat(saved.getLines())
         .extracting(ClassroomInvoiceLine::getKind, ClassroomInvoiceLine::getFinalAmount)

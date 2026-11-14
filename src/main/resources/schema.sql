@@ -144,8 +144,9 @@ CREATE TABLE IF NOT EXISTS classroom_invoice
     status             VARCHAR(64) NOT NULL,        -- DRAFT, APPROVED, COMPLETED, CANCELLED
     type               VARCHAR(64) NOT NULL,        -- GENERATED, ADHOC
 
-    period_start       DATE,
-    period_range       VARCHAR(64) DEFAULT 'MONTH', -- MONTH
+    -- GENERATED: billing window (same bounds as the generation job). ADHOC: both null.
+    billing_start      DATE,
+    billing_end        DATE,
 
     total_amount       BIGINT      NOT NULL CHECK (total_amount >= 0),
     note               TEXT,
@@ -162,9 +163,9 @@ CREATE TABLE IF NOT EXISTS classroom_invoice
 );
 CREATE INDEX IF NOT EXISTS idx_classroom_invoice_classroom ON classroom_invoice (classroom_id);
 CREATE INDEX IF NOT EXISTS idx_classroom_invoice_member ON classroom_invoice (member_id);
--- CANCELLED excluded so a new GENERATED draft can be created for the same member/period after cancel
-CREATE UNIQUE INDEX IF NOT EXISTS unique_generated_invoice_member_period
-    ON classroom_invoice (member_id, period_range, period_start) NULLS NOT DISTINCT
+-- CANCELLED excluded so a new GENERATED draft can be created for the same member/window after cancel
+CREATE UNIQUE INDEX IF NOT EXISTS unique_generated_invoice_member_billing_window
+    ON classroom_invoice (member_id, billing_start, billing_end) NULLS NOT DISTINCT
 WHERE type = 'GENERATED' AND status <> 'CANCELLED';
 
 -- Aggregate child of classroom_invoice.

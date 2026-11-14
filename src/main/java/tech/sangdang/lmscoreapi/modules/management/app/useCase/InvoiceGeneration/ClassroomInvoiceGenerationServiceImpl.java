@@ -111,7 +111,8 @@ public class ClassroomInvoiceGenerationServiceImpl implements ClassroomInvoiceGe
                     member,
                     memberToAttendance.getOrDefault(member.getId(), List.of()),
                     memberToCurrentPaymentPlan.get(member.getId()),
-                    startDateTime)));
+                    startDateTime,
+                    endDateTime)));
 
     classroomInvoiceGenerationRepository.insertAllIgnoringDuplicates(invoices);
   }
@@ -120,7 +121,8 @@ public class ClassroomInvoiceGenerationServiceImpl implements ClassroomInvoiceGe
       @NonNull ClassroomMember member,
       @NonNull List<ClassroomSessionAttendance> attendances,
       ClassroomMemberPaymentPlan currentPaymentPlan,
-      @NonNull LocalDateTime startDateTime) {
+      @NonNull LocalDateTime startDateTime,
+      @NonNull LocalDateTime endDateTime) {
     String description =
         String.format(
             "Attended dates: %s",
@@ -138,12 +140,13 @@ public class ClassroomInvoiceGenerationServiceImpl implements ClassroomInvoiceGe
     ClassroomInvoiceLine generatedLessonsInvoice =
         ClassroomInvoiceLine.ofLesson(description, unitPrice, attendances.size());
 
+    // billingStart/End = generation window dates — uniqueness key for GENERATED idempotency.
     return ClassroomInvoice.ofGenerated(
         member.getClassroomId(),
         member.getId(),
         Set.of(generatedLessonsInvoice),
         startDateTime.toLocalDate(),
-        ClassroomInvoicePeriodRange.MONTH,
+        endDateTime.toLocalDate(),
         String.format(
             "Automatically-generated invoice for student %s during month %s",
             member.getName(), startDateTime.getMonth().toString()));

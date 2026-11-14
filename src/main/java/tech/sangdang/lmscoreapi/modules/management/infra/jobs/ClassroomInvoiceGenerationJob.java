@@ -27,10 +27,11 @@ public class ClassroomInvoiceGenerationJob {
    *       get an invoice; quantity is 0.
    *   <li>One {@code LESSON} line. Unit price is the member's <em>current</em> plan ({@code
    *       effective_to} null), or 0 if none — not the plan effective on each attendance date
-   *       (deferred). {@code periodRange} MONTH; {@code periodStart} is the window start date.
-   *       Status stays {@code DRAFT}.
-   *   <li>Insert skips an existing GENERATED invoice for the same member and period (partial unique
-   *       index). Does not create ad-hoc invoices, and does not approve or complete.
+   *       (deferred). {@code billingStart}/{@code billingEnd} copy the attendance window dates
+   *       (previous-month start through first day of this month). Status stays {@code DRAFT}.
+   *   <li>Insert skips an existing GENERATED invoice for the same member and billing window
+   *       (partial unique index). Does not create ad-hoc invoices, and does not approve or
+   *       complete.
    * </ul>
    */
   @Scheduled(cron = "${app.modules.management.invoice-generation-cron:0 0 0 1 * *}")

@@ -43,8 +43,19 @@ public class ClassroomInvoice {
 
   private ClassroomInvoiceStatus status;
   private ClassroomInvoiceType type;
-  private LocalDate periodStart;
-  private ClassroomInvoicePeriodRange periodRange;
+
+  /**
+   * Inclusive start of the GENERATED billing window (same date as the generation job window
+   * start). Null on ADHOC.
+   */
+  private LocalDate billingStart;
+
+  /**
+   * End of the GENERATED billing window (same date as the generation job window end — for the
+   * monthly job, first day of the following month). Null on ADHOC.
+   */
+  private LocalDate billingEnd;
+
   private Long totalAmount;
   private String note;
   private LocalDateTime approvedAt;
@@ -66,8 +77,8 @@ public class ClassroomInvoice {
       UUID classroomId,
       UUID memberId,
       Set<ClassroomInvoiceLine> lines,
-      LocalDate periodStart,
-      ClassroomInvoicePeriodRange periodRange,
+      LocalDate billingStart,
+      LocalDate billingEnd,
       String note) {
     Set<ClassroomInvoiceLine> invoiceLines = lines == null ? new HashSet<>() : lines;
     return new ClassroomInvoice()
@@ -75,8 +86,8 @@ public class ClassroomInvoice {
         .setMemberId(memberId)
         .setStatus(ClassroomInvoiceStatus.DRAFT)
         .setType(ClassroomInvoiceType.GENERATED)
-        .setPeriodStart(periodStart)
-        .setPeriodRange(periodRange)
+        .setBillingStart(billingStart)
+        .setBillingEnd(billingEnd)
         .setNote(note)
         .setTotalAmount(ClassroomInvoice.calculateTotalAmount(invoiceLines))
         .setLines(invoiceLines);
@@ -90,9 +101,8 @@ public class ClassroomInvoice {
         .setMemberId(memberId)
         .setStatus(ClassroomInvoiceStatus.DRAFT)
         .setType(ClassroomInvoiceType.ADHOC)
-        // Explicit nulls: column default period_range 'MONTH' must not apply to adhoc rows.
-        .setPeriodStart(null)
-        .setPeriodRange(null)
+        .setBillingStart(null)
+        .setBillingEnd(null)
         .setNote(note)
         .setTotalAmount(ClassroomInvoice.calculateTotalAmount(invoiceLines))
         .setLines(invoiceLines);

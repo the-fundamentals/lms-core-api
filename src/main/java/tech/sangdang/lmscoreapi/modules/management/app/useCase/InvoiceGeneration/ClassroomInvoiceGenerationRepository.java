@@ -19,10 +19,10 @@ public class ClassroomInvoiceGenerationRepository {
   private final NamedParameterJdbcTemplate template;
 
   /**
-   * Inserts GENERATED invoices and their lines; skips existing member/period rows.
+   * Inserts GENERATED invoices and their lines; skips existing member/billing-window rows.
    *
    * <ul>
-   *   <li>Conflict target: {@code unique_generated_invoice_member_period}.
+   *   <li>Conflict target: {@code unique_generated_invoice_member_billing_window}.
    *   <li>Lines are written only for newly inserted invoices.
    * </ul>
    *
@@ -46,18 +46,18 @@ public class ClassroomInvoiceGenerationRepository {
     }
 
     // Ad-hoc SQL: Criteria cannot express ON CONFLICT on partial unique index
-    // unique_generated_invoice_member_period (member_id, period_range, period_start)
+    // unique_generated_invoice_member_billing_window (member_id, billing_start, billing_end)
     // WHERE type = 'GENERATED' AND status <> 'CANCELLED'
     String invoiceSql =
         """
         INSERT INTO classroom_invoice (
           id, classroom_id, member_id, status, type,
-          period_start, period_range, total_amount, note
+          billing_start, billing_end, total_amount, note
         ) VALUES (
           :id, :classroomId, :memberId, :status, :type,
-          :periodStart, :periodRange, :totalAmount, :note
+          :billingStart, :billingEnd, :totalAmount, :note
         )
-        ON CONFLICT (member_id, period_range, period_start)
+        ON CONFLICT (member_id, billing_start, billing_end)
           WHERE type = 'GENERATED' AND status <> 'CANCELLED'
         DO NOTHING
         """;
@@ -72,12 +72,8 @@ public class ClassroomInvoiceGenerationRepository {
                         .addValue("memberId", invoice.getMemberId())
                         .addValue("status", invoice.getStatus().name())
                         .addValue("type", invoice.getType().name())
-                        .addValue("periodStart", invoice.getPeriodStart())
-                        .addValue(
-                            "periodRange",
-                            invoice.getPeriodRange() == null
-                                ? null
-                                : invoice.getPeriodRange().name())
+                        .addValue("billingStart", invoice.getBillingStart())
+                        .addValue("billingEnd", invoice.getBillingEnd())
                         .addValue("totalAmount", invoice.getTotalAmount())
                         .addValue("note", invoice.getNote()))
             .toArray(SqlParameterSource[]::new);

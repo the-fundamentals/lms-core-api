@@ -38,7 +38,6 @@ import tech.sangdang.lmscoreapi.common.querying.BaseQuery;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomInvoice;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomInvoiceLine;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomInvoiceLineKind;
-import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomInvoicePeriodRange;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomInvoiceStatus;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomInvoiceType;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomMember;
@@ -127,8 +126,8 @@ class ClassroomInvoiceGenerationServiceImplTest {
     assertThat(invoice.getMemberId()).isEqualTo(MEMBER_ID);
     assertThat(invoice.getStatus()).isEqualTo(ClassroomInvoiceStatus.DRAFT);
     assertThat(invoice.getType()).isEqualTo(ClassroomInvoiceType.GENERATED);
-    assertThat(invoice.getPeriodStart()).isEqualTo(LocalDate.of(2026, 9, 1));
-    assertThat(invoice.getPeriodRange()).isEqualTo(ClassroomInvoicePeriodRange.MONTH);
+    assertThat(invoice.getBillingStart()).isEqualTo(LocalDate.of(2026, 9, 1));
+    assertThat(invoice.getBillingEnd()).isEqualTo(LocalDate.of(2026, 10, 1));
     assertThat(invoice.getTotalAmount()).isEqualTo(expectedTotal);
     assertThat(invoice.getNote()).contains(MEMBER_NAME).contains("SEPTEMBER");
 

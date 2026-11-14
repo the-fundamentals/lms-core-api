@@ -11,7 +11,6 @@ import java.util.Set;
 import java.util.UUID;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomInvoice;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomInvoiceLine;
-import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomInvoicePeriodRange;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomInvoiceStatus;
 
 public final class ClassroomInvoiceFixtures {
@@ -35,7 +34,7 @@ public final class ClassroomInvoiceFixtures {
             MEMBER_ID,
             Set.of(ClassroomInvoiceLine.ofLesson("8 lessons in October", 150_000L, 8)),
             LocalDate.of(2026, 10, 1),
-            ClassroomInvoicePeriodRange.MONTH,
+            LocalDate.of(2026, 11, 1),
             "October tuition")
         .setId(INVOICE_ID)
         .setStatus(status)
