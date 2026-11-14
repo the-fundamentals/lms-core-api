@@ -27,6 +27,7 @@ import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomSessionM
 import tech.sangdang.lmscoreapi.modules.management.app.useCase.SessionGeneration.ClassroomSessionGenerationService;
 import tech.sangdang.lmscoreapi.modules.management.dom.*;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionAttendanceStatus;
+import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionCancelCause;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.*;
 
 @Service
@@ -72,7 +73,12 @@ public class ClassroomSessionServiceImpl implements ClassroomSessionService {
   public ClassroomSessionResponse updateClassroomSession(
       UUID classroomId, UUID sessionId, UpdateClassroomSessionCommand command) {
     ClassroomSession session = requireSessionInClassroom(classroomId, sessionId);
-    session.updateDetails(command.getName(), command.getDescription());
+    session.updateDetails(
+        command.getName(),
+        command.getDescription(),
+        command.getSessionDate(),
+        command.getStartTime(),
+        command.getEndTime());
     return classroomSessionMapper.toResponse(classroomSessionRepository.update(session));
   }
 
@@ -86,9 +92,10 @@ public class ClassroomSessionServiceImpl implements ClassroomSessionService {
 
   @Override
   @Transactional
-  public ClassroomSessionResponse cancelClassroomSession(UUID classroomId, UUID sessionId) {
+  public ClassroomSessionResponse manuallyCancelClassroomSession(UUID classroomId, UUID sessionId) {
     ClassroomSession session = requireSessionInClassroom(classroomId, sessionId);
-    session.cancel();
+    // Domain enum — generated.model.* also has ClassroomSessionCancelCause
+    session.cancel(ClassroomSessionCancelCause.MANUAL);
     return classroomSessionMapper.toResponse(classroomSessionRepository.update(session));
   }
 

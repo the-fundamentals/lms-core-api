@@ -30,16 +30,17 @@ public interface ClassroomSessionService {
   ClassroomSessionResponse getClassroomSessionById(UUID classroomId, UUID sessionId);
 
   /**
-   * Updates an OPEN session's name and description.
+   * Updates an OPEN session's name and description; ADHOC may also change date/times.
    *
    * <ul>
-   *   <li>Date, times, status, and type are unchanged.
-   *   <li>COMPLETED and CANCELLED are 400; omitted fields clear.
+   *   <li>SCHEDULE rejects date/time changes; status and type are never changed.
+   *   <li>COMPLETED and CANCELLED are 400; omitted name/description clear; omitted date/time
+   *       leave current values.
    * </ul>
    *
    * @param classroomId classroom the session belongs to
    * @param sessionId session to update
-   * @param command name and description
+   * @param command name, description, and optional ADHOC date/times
    * @return updated session
    */
   ClassroomSessionResponse updateClassroomSession(
@@ -85,7 +86,7 @@ public interface ClassroomSessionService {
    * @param sessionId session to cancel
    * @return updated session
    */
-  ClassroomSessionResponse cancelClassroomSession(UUID classroomId, UUID sessionId);
+  ClassroomSessionResponse manuallyCancelClassroomSession(UUID classroomId, UUID sessionId);
 
   /**
    * Queries attendance history for a classroom member.

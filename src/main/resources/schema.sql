@@ -97,6 +97,7 @@ CREATE TABLE IF NOT EXISTS classroom_session
     status             VARCHAR(64)      DEFAULT 'OPEN',
     type               VARCHAR(64)      DEFAULT 'SCHEDULE',
     generated_by       UUID,
+    cancel_cause       VARCHAR(64),
     FOREIGN KEY (classroom_id) REFERENCES classroom (id),
     FOREIGN KEY (generated_by) REFERENCES classroom_schedule_recurrence (id)
 );

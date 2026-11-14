@@ -1,24 +1,29 @@
 package tech.sangdang.lmscoreapi.modules.management.app.impl;
 
 import java.time.DayOfWeek;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tech.sangdang.lmscoreapi.common.exception.GenericBadRequestException;
 import tech.sangdang.lmscoreapi.common.exception.ObjectNotFoundException;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomScheduleRecurrenceResponse;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomScheduleRecurrenceCommand;
+import tech.sangdang.lmscoreapi.generated.model.DeleteClassroomScheduleRecurrenceCommand;
 import tech.sangdang.lmscoreapi.generated.model.RecurrenceByDay;
 import tech.sangdang.lmscoreapi.modules.management.app.ClassroomScheduleRecurrenceService;
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomScheduleRecurrenceMapper;
 import tech.sangdang.lmscoreapi.modules.management.dom.Classroom;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomScheduleRecurrence;
+import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSession;
+import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionCancelCause;
 import tech.sangdang.lmscoreapi.modules.management.dom.RecurrenceFrequency;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomRepository;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomScheduleRecurrenceRepository;
+import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomSessionRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +31,7 @@ public class ClassroomScheduleRecurrenceServiceImpl implements ClassroomSchedule
 
   private final ClassroomRepository classroomRepository;
   private final ClassroomScheduleRecurrenceRepository classroomScheduleRecurrenceRepository;
+  private final ClassroomSessionRepository classroomSessionRepository;
   private final ClassroomScheduleRecurrenceMapper classroomScheduleRecurrenceMapper;
 
   @Override
@@ -82,10 +88,30 @@ public class ClassroomScheduleRecurrenceServiceImpl implements ClassroomSchedule
 
   @Override
   @Transactional
-  public void deleteClassroomScheduleRecurrence(UUID classroomId, UUID scheduleId) {
+  public void deleteClassroomScheduleRecurrence(
+      UUID classroomId, UUID scheduleId, DeleteClassroomScheduleRecurrenceCommand command) {
     ClassroomScheduleRecurrence recurrence = requireRecurrenceInClassroom(classroomId, scheduleId);
-    recurrence.setDeletedDate(LocalDateTime.now());
+    LocalDate cutoffDate = command.getCutoffDate();
+    LocalDate newRecurUntil = cutoffDate.minusDays(1);
+    // Reject cutoffs that would extend or no-op when recurUntil is already set.
+    LocalDate currentRecurUntil = recurrence.getRecurUntil();
+    if (currentRecurUntil != null && !newRecurUntil.isBefore(currentRecurUntil)) {
+      throw GenericBadRequestException.of(
+          "CLASSROOM_SCHEDULE_RECURRENCE_CUTOFF_INVALID",
+          "cutoffDate must shorten the recurrence (on or before the current recurUntil)");
+    }
+
+    // Truncate (not soft-delete): keep the row so pre-cutoff dates still belong to an active rule.
+    recurrence.setRecurUntil(newRecurUntil);
     classroomScheduleRecurrenceRepository.update(recurrence);
+
+    List<ClassroomSession> toCancel =
+        classroomSessionRepository.findOpenByGeneratedByAndSessionDateGreaterThanEqual(
+            scheduleId, cutoffDate);
+    toCancel.forEach(session -> session.cancel(ClassroomSessionCancelCause.REMOVED_FROM_SERIES));
+    if (!toCancel.isEmpty()) {
+      classroomSessionRepository.updateAll(toCancel);
+    }
   }
 
   // Same classroom scoping as requireSessionInClassroom: missing or wrong classroom → 404

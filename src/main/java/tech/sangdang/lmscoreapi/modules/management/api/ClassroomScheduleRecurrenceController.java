@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import tech.sangdang.lmscoreapi.generated.api.ClassroomScheduleRecurrenceApi;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomScheduleRecurrenceCommand;
+import tech.sangdang.lmscoreapi.generated.model.DeleteClassroomScheduleRecurrenceCommand;
 import tech.sangdang.lmscoreapi.modules.management.app.ClassroomScheduleRecurrenceService;
 
 @RestController
@@ -42,8 +43,11 @@ public class ClassroomScheduleRecurrenceController implements ClassroomScheduleR
 
   @Override
   public ResponseEntity<?> deleteClassroomScheduleRecurrence(
-      @NonNull UUID classroomId, @NonNull UUID scheduleId) {
-    classroomScheduleRecurrenceService.deleteClassroomScheduleRecurrence(classroomId, scheduleId);
+      @NonNull UUID classroomId,
+      @NonNull UUID scheduleId,
+      @NonNull DeleteClassroomScheduleRecurrenceCommand deleteClassroomScheduleRecurrenceCommand) {
+    classroomScheduleRecurrenceService.deleteClassroomScheduleRecurrence(
+        classroomId, scheduleId, deleteClassroomScheduleRecurrenceCommand);
     return ResponseEntity.noContent().build();
   }
 }

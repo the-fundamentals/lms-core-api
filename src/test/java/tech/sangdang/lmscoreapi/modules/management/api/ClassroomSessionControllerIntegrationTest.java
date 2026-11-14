@@ -35,6 +35,7 @@ import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomSessi
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomSessionFixtures.classroomSessionAttendance;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -73,6 +74,7 @@ import tech.sangdang.lmscoreapi.modules.management.app.useCase.SessionGeneration
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomMemberStatus;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSession;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionAttendance;
+import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionType;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomMemberRepository;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomRepository;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomSessionAttendanceRepository;
@@ -325,6 +327,70 @@ class ClassroomSessionControllerIntegrationTest {
     assertThat(captor.getValue().getDescription()).isNull();
   }
 
+  @Test
+  @DisplayName("reschedules date and time on an OPEN ADHOC session")
+  void updateClassroomSession_adhoc_reschedule_returns200() throws Exception {
+    when(classroomSessionRepository.findById(SESSION_ID))
+        .thenReturn(Optional.of(classroomSession().setType(ClassroomSessionType.ADHOC)));
+    when(classroomSessionRepository.update(any(ClassroomSession.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    LocalDate newDate = LocalDate.of(2026, 7, 20);
+    LocalTime newStart = LocalTime.of(10, 0, 0);
+    LocalTime newEnd = LocalTime.of(11, 30, 0);
+    UpdateClassroomSessionCommand command =
+        UpdateClassroomSessionCommand.builder()
+            .sessionDate(newDate)
+            .startTime(newStart)
+            .endTime(newEnd)
+            .name("Moved makeup")
+            .build();
+
+    mockMvc
+        .perform(
+            put("/admin/classrooms/{classroomId}/sessions/{sessionId}", CLASSROOM_ID, SESSION_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonMapper.writeValueAsString(command))
+                .with(adminJwt()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.sessionDate").value("2026-07-20"))
+        .andExpect(jsonPath("$.startTime").value("10:00:00"))
+        .andExpect(jsonPath("$.endTime").value("11:30:00"))
+        .andExpect(jsonPath("$.name").value("Moved makeup"))
+        .andExpect(jsonPath("$.type").value("ADHOC"));
+
+    ArgumentCaptor<ClassroomSession> captor = ArgumentCaptor.forClass(ClassroomSession.class);
+    verify(classroomSessionRepository).update(captor.capture());
+    assertThat(captor.getValue().getSessionDate()).isEqualTo(newDate);
+    assertThat(captor.getValue().getStartTime()).isEqualTo(newStart);
+    assertThat(captor.getValue().getEndTime()).isEqualTo(newEnd);
+  }
+
+  @Test
+  @DisplayName("rejects date/time change on a SCHEDULE session")
+  void updateClassroomSession_schedule_withTimes_returns400() throws Exception {
+    when(classroomSessionRepository.findById(SESSION_ID))
+        .thenReturn(Optional.of(classroomSession()));
+
+    UpdateClassroomSessionCommand command =
+        UpdateClassroomSessionCommand.builder()
+            .sessionDate(LocalDate.of(2026, 7, 20))
+            .startTime(LocalTime.of(10, 0, 0))
+            .endTime(LocalTime.of(11, 30, 0))
+            .build();
+
+    mockMvc
+        .perform(
+            put("/admin/classrooms/{classroomId}/sessions/{sessionId}", CLASSROOM_ID, SESSION_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonMapper.writeValueAsString(command))
+                .with(adminJwt()))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("CLASSROOM_SESSION_NOT_ADHOC"));
+
+    verify(classroomSessionRepository, never()).update(any());
+  }
+
   @ParameterizedTest(name = "fails to update a {0} session")
   @CsvSource({"COMPLETED", "CANCELLED"})
   void updateClassroomSession_notOpen_returns400(String statusName) throws Exception {
@@ -456,13 +522,17 @@ class ClassroomSessionControllerIntegrationTest {
                 .with(adminJwt()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value(SESSION_ID.toString()))
-        .andExpect(jsonPath("$.status").value("CANCELLED"));
+        .andExpect(jsonPath("$.status").value("CANCELLED"))
+        .andExpect(jsonPath("$.cancelCause").value("MANUAL"));
 
     ArgumentCaptor<ClassroomSession> captor = ArgumentCaptor.forClass(ClassroomSession.class);
     verify(classroomSessionRepository).update(captor.capture());
     assertThat(captor.getValue().getStatus())
         .isEqualTo(
             tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionStatus.CANCELLED);
+    assertThat(captor.getValue().getCancelCause())
+        .isEqualTo(
+            tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionCancelCause.MANUAL);
   }
 
   @ParameterizedTest(name = "fails to cancel a {0} session")
