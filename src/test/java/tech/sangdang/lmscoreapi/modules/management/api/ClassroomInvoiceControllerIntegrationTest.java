@@ -11,6 +11,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static tech.sangdang.lmscoreapi.helpers.SecurityTestSupport.adminJwt;
+import static tech.sangdang.lmscoreapi.modules.account.support.AccountProfileFixtures.AVATAR_KEY;
+import static tech.sangdang.lmscoreapi.modules.account.support.AccountProfileFixtures.COGNITO_SUB;
+import static tech.sangdang.lmscoreapi.modules.account.support.AccountProfileFixtures.EMAIL;
+import static tech.sangdang.lmscoreapi.modules.account.support.AccountProfileFixtures.FIRST_NAME;
+import static tech.sangdang.lmscoreapi.modules.account.support.AccountProfileFixtures.LAST_NAME;
+import static tech.sangdang.lmscoreapi.modules.account.support.AccountProfileFixtures.PROFILE_ID;
+import static tech.sangdang.lmscoreapi.modules.account.support.AccountProfileFixtures.accountProfile;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomFixtures.CLASSROOM_ID;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomInvoiceFixtures.INVOICE_ID;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomInvoiceFixtures.PAID_AMOUNT;
@@ -44,6 +51,7 @@ import tech.sangdang.lmscoreapi.generated.model.CompleteClassroomInvoiceCommand;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomInvoiceAdhocCommand;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomInvoiceAdhocLineCommand;
 import tech.sangdang.lmscoreapi.generated.model.UpdateClassroomInvoiceCommand;
+import tech.sangdang.lmscoreapi.modules.account.dom.repository.AccountProfileRepository;
 import tech.sangdang.lmscoreapi.modules.management.app.impl.ClassroomInvoiceServiceImpl;
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomInvoiceMapperImpl;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomInvoice;
@@ -51,6 +59,7 @@ import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomInvoiceLine;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomInvoiceStatus;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomInvoiceType;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomMemberStatus;
+import tech.sangdang.lmscoreapi.modules.management.dom.CreatorDetails;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomInvoiceRepository;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomMemberRepository;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomRepository;
@@ -72,11 +81,14 @@ class ClassroomInvoiceControllerIntegrationTest {
   @MockitoBean private ClassroomRepository classroomRepository;
   @MockitoBean private ClassroomMemberRepository classroomMemberRepository;
   @MockitoBean private ClassroomInvoiceRepository classroomInvoiceRepository;
+  @MockitoBean private AccountProfileRepository accountProfileRepository;
 
   @Test
   @DisplayName("creates an adhoc draft invoice and computes line totals")
   void createClassroomInvoiceAdhoc_valid_returns201() throws Exception {
     when(classroomMemberRepository.findById(MEMBER_ID)).thenReturn(Optional.of(classroomMember()));
+    when(accountProfileRepository.findByCognitoSub(COGNITO_SUB))
+        .thenReturn(Optional.of(accountProfile()));
     when(classroomInvoiceRepository.insert(any(ClassroomInvoice.class)))
         .thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -94,7 +106,11 @@ class ClassroomInvoiceControllerIntegrationTest {
         .andExpect(jsonPath("$.totalAmount").value(350_000))
         .andExpect(jsonPath("$.note").value("Makeup fee for missed materials"))
         .andExpect(jsonPath("$.billingStart").doesNotExist())
-        .andExpect(jsonPath("$.billingEnd").doesNotExist());
+        .andExpect(jsonPath("$.billingEnd").doesNotExist())
+        .andExpect(jsonPath("$.createdBy").value(PROFILE_ID.toString()))
+        .andExpect(jsonPath("$.createdByDetails.name").value(FIRST_NAME + " " + LAST_NAME))
+        .andExpect(jsonPath("$.createdByDetails.email").value(EMAIL))
+        .andExpect(jsonPath("$.createdByDetails.avatar").value(AVATAR_KEY));
 
     ArgumentCaptor<ClassroomInvoice> captor = ArgumentCaptor.forClass(ClassroomInvoice.class);
     verify(classroomInvoiceRepository).insert(captor.capture());
@@ -103,6 +119,9 @@ class ClassroomInvoiceControllerIntegrationTest {
     assertThat(saved.getType()).isEqualTo(ClassroomInvoiceType.ADHOC);
     assertThat(saved.getBillingStart()).isNull();
     assertThat(saved.getBillingEnd()).isNull();
+    assertThat(saved.getCreatedBy()).isEqualTo(PROFILE_ID);
+    assertThat(saved.getCreatedByDetails())
+        .isEqualTo(new CreatorDetails(FIRST_NAME + " " + LAST_NAME, EMAIL, AVATAR_KEY));
     assertThat(saved.getTotalAmount()).isEqualTo(350_000L);
     assertThat(saved.getLines())
         .extracting(ClassroomInvoiceLine::getKind, ClassroomInvoiceLine::getFinalAmount)

@@ -20,7 +20,10 @@ import tech.sangdang.lmscoreapi.common.exception.ObjectNotFoundException;
 import tech.sangdang.lmscoreapi.common.querying.BaseQuery;
 import tech.sangdang.lmscoreapi.common.querying.Operators;
 import tech.sangdang.lmscoreapi.common.querying.QueryFilterConditions;
+import tech.sangdang.lmscoreapi.common.security.CurrentUser;
 import tech.sangdang.lmscoreapi.generated.model.*;
+import tech.sangdang.lmscoreapi.modules.account.dom.AccountProfile;
+import tech.sangdang.lmscoreapi.modules.account.dom.repository.AccountProfileRepository;
 import tech.sangdang.lmscoreapi.modules.management.app.ClassroomSessionService;
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomSessionAttendanceMapper;
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomSessionMapper;
@@ -38,6 +41,7 @@ public class ClassroomSessionServiceImpl implements ClassroomSessionService {
   private final ClassroomSessionRepository classroomSessionRepository;
   private final ClassroomMemberRepository classroomMemberRepository;
   private final ClassroomSessionAttendanceRepository classroomSessionAttendanceRepository;
+  private final AccountProfileRepository accountProfileRepository;
   private final ClassroomSessionMapper classroomSessionMapper;
   private final ClassroomSessionAttendanceMapper classroomSessionAttendanceMapper;
   private final ClassroomSessionGenerationService classroomSessionGenerationService;
@@ -51,6 +55,13 @@ public class ClassroomSessionServiceImpl implements ClassroomSessionService {
         .findById(classroomId)
         .orElseThrow(() -> ObjectNotFoundException.of(Classroom.class, classroomId));
 
+    // Cross-aggregate denorm: snapshot creator from account profile (not @CreatedBy — ADHOC only).
+    String cognitoSub = CurrentUser.requireCognitoSub();
+    AccountProfile creator =
+        accountProfileRepository
+            .findByCognitoSub(cognitoSub)
+            .orElseThrow(() -> ObjectNotFoundException.of(AccountProfile.class, cognitoSub));
+
     ClassroomSession session =
         ClassroomSession.fromAdhoc(
             command.getSessionDate(),
@@ -58,7 +69,10 @@ public class ClassroomSessionServiceImpl implements ClassroomSessionService {
             command.getEndTime(),
             classroomId,
             command.getName(),
-            command.getDescription());
+            command.getDescription(),
+            creator.getId(),
+            // FQCN: generated.model also has CreatorDetails
+            tech.sangdang.lmscoreapi.modules.management.dom.CreatorDetails.from(creator));
     return classroomSessionMapper.toResponse(classroomSessionRepository.insert(session));
   }
 

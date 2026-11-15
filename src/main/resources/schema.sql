@@ -98,8 +98,12 @@ CREATE TABLE IF NOT EXISTS classroom_session
     type               VARCHAR(64)      DEFAULT 'SCHEDULE',
     generated_by       UUID,
     cancel_cause       VARCHAR(64),
+    -- ADHOC only: creator account_profile id + denormalized snapshot (name/email/avatar)
+    created_by         UUID,
+    created_by_details JSONB,
     FOREIGN KEY (classroom_id) REFERENCES classroom (id),
-    FOREIGN KEY (generated_by) REFERENCES classroom_schedule_recurrence (id)
+    FOREIGN KEY (generated_by) REFERENCES classroom_schedule_recurrence (id),
+    FOREIGN KEY (created_by) REFERENCES account_profile (id)
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS unique_generated_session_idx
@@ -158,8 +162,13 @@ CREATE TABLE IF NOT EXISTS classroom_invoice
     payment_reference  TEXT,
     payment_note       TEXT,
 
+    -- ADHOC only: creator account_profile id + denormalized snapshot (name/email/avatar)
+    created_by         UUID,
+    created_by_details JSONB,
+
     FOREIGN KEY (classroom_id) REFERENCES classroom (id),
-    FOREIGN KEY (member_id) REFERENCES classroom_member (id)
+    FOREIGN KEY (member_id) REFERENCES classroom_member (id),
+    FOREIGN KEY (created_by) REFERENCES account_profile (id)
 );
 CREATE INDEX IF NOT EXISTS idx_classroom_invoice_classroom ON classroom_invoice (classroom_id);
 CREATE INDEX IF NOT EXISTS idx_classroom_invoice_member ON classroom_invoice (member_id);

@@ -7,10 +7,12 @@ import tech.sangdang.lmscoreapi.generated.model.*;
 public interface ClassroomSessionService {
 
   /**
-   * Creates an adhoc session in the classroom.
+   * Creates an adhoc session in the classroom for the authenticated user.
    *
    * <ul>
    *   <li>Status is always OPEN; type is always ADHOC.
+   *   <li>Sets {@code createdBy} + denormalized {@code createdByDetails} from their account
+   *       profile.
    * </ul>
    *
    * @param classroomId classroom the session belongs to

@@ -1947,12 +1947,13 @@ components:
           example: 2026-07-14T00:00:00
     ClassroomSessionAttendanceStatus:
       type: string
-      description: Attendance status for a classroom session
+      description: >
+        Attendance status for a classroom session. Unmarked members have no attendance row
+        (do not use a placeholder status).
       enum:
         - ATTENDED
         - ABSENT
-        - UNSET
-      example: UNSET
+      example: ATTENDED
     ClassroomSessionStatus:
       type: string
       description: Lifecycle status of a classroom session
@@ -2179,6 +2180,15 @@ components:
           $ref: "#/components/schemas/ClassroomSessionType"
         cancelCause:
           $ref: "#/components/schemas/ClassroomSessionCancelCause"
+        createdBy:
+          type: string
+          format: uuid
+          description: >
+            Account profile id of the user who created this session. Set on ADHOC create;
+            omitted on SCHEDULE (generated) sessions.
+          example: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+        createdByDetails:
+          $ref: "#/components/schemas/CreatorDetails"
         createdDate:
           type: string
           format: date-time
@@ -2189,6 +2199,29 @@ components:
           format: date-time
           description: When the session was last modified
           example: 2026-07-14T00:00:00Z
+    CreatorDetails:
+      type: object
+      description: >
+        Denormalized creator snapshot stored on ADHOC resources at create time (accounts are a
+        separate aggregate). Not kept in sync if the profile later changes.
+      additionalProperties: false
+      required:
+        - name
+        - email
+      properties:
+        name:
+          type: string
+          description: Display name at create time
+          example: Jane Doe
+        email:
+          type: string
+          format: email
+          description: Email at create time
+          example: jane.doe@example.com
+        avatar:
+          type: string
+          description: Avatar object key at create time; omitted when the profile had none
+          example: public/3e4ef8d1-9581-402f-9e27-fec209aeb2d8
     GetAllClassroomSessionsResponse:
       type: array
       description: Collection of classroom sessions
@@ -2919,6 +2952,15 @@ components:
             invoices. Together with billingStart this is the GENERATED uniqueness / idempotency
             key per member.
           example: "2026-11-01"
+        createdBy:
+          type: string
+          format: uuid
+          description: >
+            Account profile id of the user who created this invoice. Set on ADHOC create;
+            omitted on GENERATED invoices.
+          example: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+        createdByDetails:
+          $ref: "#/components/schemas/CreatorDetails"
         totalAmount:
           type: integer
           format: int64

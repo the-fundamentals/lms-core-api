@@ -12,12 +12,15 @@ import tech.sangdang.lmscoreapi.common.exception.ObjectNotFoundException;
 import tech.sangdang.lmscoreapi.common.querying.BaseQuery;
 import tech.sangdang.lmscoreapi.common.querying.Operators;
 import tech.sangdang.lmscoreapi.common.querying.QueryFilterConditions;
+import tech.sangdang.lmscoreapi.common.security.CurrentUser;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomInvoiceFilter;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomInvoiceResponse;
 import tech.sangdang.lmscoreapi.generated.model.CompleteClassroomInvoiceCommand;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomInvoiceAdhocCommand;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomInvoiceAdhocLineCommand;
 import tech.sangdang.lmscoreapi.generated.model.UpdateClassroomInvoiceCommand;
+import tech.sangdang.lmscoreapi.modules.account.dom.AccountProfile;
+import tech.sangdang.lmscoreapi.modules.account.dom.repository.AccountProfileRepository;
 import tech.sangdang.lmscoreapi.modules.management.app.ClassroomInvoiceService;
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomInvoiceMapper;
 import tech.sangdang.lmscoreapi.modules.management.dom.*;
@@ -32,6 +35,7 @@ public class ClassroomInvoiceServiceImpl implements ClassroomInvoiceService {
   private final ClassroomRepository classroomRepository;
   private final ClassroomMemberRepository classroomMemberRepository;
   private final ClassroomInvoiceRepository classroomInvoiceRepository;
+  private final AccountProfileRepository accountProfileRepository;
   private final ClassroomInvoiceMapper classroomInvoiceMapper;
 
   @Override
@@ -40,10 +44,24 @@ public class ClassroomInvoiceServiceImpl implements ClassroomInvoiceService {
       UUID classroomId, CreateClassroomInvoiceAdhocCommand command) {
     requireMemberInClassroom(classroomId, command.getMemberId());
 
+    // Cross-aggregate denorm: snapshot creator from account profile (ADHOC only).
+    String cognitoSub = CurrentUser.requireCognitoSub();
+    AccountProfile creator =
+        accountProfileRepository
+            .findByCognitoSub(cognitoSub)
+            .orElseThrow(() -> ObjectNotFoundException.of(AccountProfile.class, cognitoSub));
+
     Set<ClassroomInvoiceLine> lines = mapLines(command.getLines());
 
     ClassroomInvoice invoice =
-        ClassroomInvoice.ofAdhoc(classroomId, command.getMemberId(), lines, command.getNote());
+        ClassroomInvoice.ofAdhoc(
+            classroomId,
+            command.getMemberId(),
+            lines,
+            command.getNote(),
+            creator.getId(),
+            // FQCN: generated.model also has CreatorDetails
+            tech.sangdang.lmscoreapi.modules.management.dom.CreatorDetails.from(creator));
     return classroomInvoiceMapper.toResponse(classroomInvoiceRepository.insert(invoice));
   }
 

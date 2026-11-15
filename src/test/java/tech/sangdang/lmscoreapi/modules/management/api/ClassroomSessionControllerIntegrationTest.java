@@ -12,7 +12,15 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static tech.sangdang.lmscoreapi.helpers.SecurityTestSupport.ADMIN_JWT_SUB;
 import static tech.sangdang.lmscoreapi.helpers.SecurityTestSupport.adminJwt;
+import static tech.sangdang.lmscoreapi.modules.account.support.AccountProfileFixtures.AVATAR_KEY;
+import static tech.sangdang.lmscoreapi.modules.account.support.AccountProfileFixtures.COGNITO_SUB;
+import static tech.sangdang.lmscoreapi.modules.account.support.AccountProfileFixtures.EMAIL;
+import static tech.sangdang.lmscoreapi.modules.account.support.AccountProfileFixtures.FIRST_NAME;
+import static tech.sangdang.lmscoreapi.modules.account.support.AccountProfileFixtures.LAST_NAME;
+import static tech.sangdang.lmscoreapi.modules.account.support.AccountProfileFixtures.PROFILE_ID;
+import static tech.sangdang.lmscoreapi.modules.account.support.AccountProfileFixtures.accountProfile;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomFixtures.CLASSROOM_ID;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomFixtures.classroom;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomMemberFixtures.ACCOUNT_ID;
@@ -67,6 +75,7 @@ import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionAttendance
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionAttendancesCommand;
 import tech.sangdang.lmscoreapi.generated.model.UpdateClassroomSessionAttendanceCommand;
 import tech.sangdang.lmscoreapi.generated.model.UpdateClassroomSessionCommand;
+import tech.sangdang.lmscoreapi.modules.account.dom.repository.AccountProfileRepository;
 import tech.sangdang.lmscoreapi.modules.management.app.impl.ClassroomSessionServiceImpl;
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomSessionAttendanceMapperImpl;
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomSessionMapperImpl;
@@ -74,6 +83,7 @@ import tech.sangdang.lmscoreapi.modules.management.app.useCase.SessionGeneration
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomMemberStatus;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSession;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionAttendance;
+import tech.sangdang.lmscoreapi.modules.management.dom.CreatorDetails;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionType;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomMemberRepository;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomRepository;
@@ -102,12 +112,16 @@ class ClassroomSessionControllerIntegrationTest {
   @MockitoBean private ClassroomSessionRepository classroomSessionRepository;
   @MockitoBean private ClassroomMemberRepository classroomMemberRepository;
   @MockitoBean private ClassroomSessionAttendanceRepository classroomSessionAttendanceRepository;
+  @MockitoBean private AccountProfileRepository accountProfileRepository;
   @MockitoBean private ClassroomSessionGenerationService classroomSessionGenerationService;
 
   @Test
   @DisplayName("creates a classroom session")
   void createClassroomSession_valid_returns201() throws Exception {
+    assertThat(ADMIN_JWT_SUB).isEqualTo(COGNITO_SUB);
     when(classroomRepository.findById(CLASSROOM_ID)).thenReturn(Optional.of(classroom()));
+    when(accountProfileRepository.findByCognitoSub(COGNITO_SUB))
+        .thenReturn(Optional.of(accountProfile()));
     when(classroomSessionRepository.insert(any(ClassroomSession.class)))
         .thenAnswer(
             invocation -> {
@@ -119,7 +133,9 @@ class ClassroomSessionControllerIntegrationTest {
                   .setName(incoming.getName())
                   .setDescription(incoming.getDescription())
                   .setStatus(incoming.getStatus())
-                  .setType(incoming.getType());
+                  .setType(incoming.getType())
+                  .setCreatedBy(incoming.getCreatedBy())
+                  .setCreatedByDetails(incoming.getCreatedByDetails());
             });
 
     CreateClassroomSessionAdhocCommand command =
@@ -147,6 +163,10 @@ class ClassroomSessionControllerIntegrationTest {
         .andExpect(jsonPath("$.description").value(SESSION_DESCRIPTION))
         .andExpect(jsonPath("$.status").value("OPEN"))
         .andExpect(jsonPath("$.type").value("ADHOC"))
+        .andExpect(jsonPath("$.createdBy").value(PROFILE_ID.toString()))
+        .andExpect(jsonPath("$.createdByDetails.name").value(FIRST_NAME + " " + LAST_NAME))
+        .andExpect(jsonPath("$.createdByDetails.email").value(EMAIL))
+        .andExpect(jsonPath("$.createdByDetails.avatar").value(AVATAR_KEY))
         .andExpect(jsonPath("$.createdDate").exists())
         .andExpect(jsonPath("$.lastModifiedDate").exists());
 
@@ -162,12 +182,18 @@ class ClassroomSessionControllerIntegrationTest {
         .isEqualTo(tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionStatus.OPEN);
     assertThat(captor.getValue().getType())
         .isEqualTo(tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionType.ADHOC);
+    assertThat(captor.getValue().getCreatedBy()).isEqualTo(PROFILE_ID);
+    assertThat(captor.getValue().getCreatedByDetails())
+        .isEqualTo(
+            new CreatorDetails(FIRST_NAME + " " + LAST_NAME, EMAIL, AVATAR_KEY));
   }
 
   @Test
   @DisplayName("creates a classroom session without a name or description")
   void createClassroomSession_withoutOptionalFields_returns201() throws Exception {
     when(classroomRepository.findById(CLASSROOM_ID)).thenReturn(Optional.of(classroom()));
+    when(accountProfileRepository.findByCognitoSub(COGNITO_SUB))
+        .thenReturn(Optional.of(accountProfile()));
     when(classroomSessionRepository.insert(any(ClassroomSession.class)))
         .thenAnswer(
             invocation -> {
@@ -179,7 +205,9 @@ class ClassroomSessionControllerIntegrationTest {
                   .setName(incoming.getName())
                   .setDescription(incoming.getDescription())
                   .setStatus(incoming.getStatus())
-                  .setType(incoming.getType());
+                  .setType(incoming.getType())
+                  .setCreatedBy(incoming.getCreatedBy())
+                  .setCreatedByDetails(incoming.getCreatedByDetails());
             });
 
     CreateClassroomSessionAdhocCommand command =

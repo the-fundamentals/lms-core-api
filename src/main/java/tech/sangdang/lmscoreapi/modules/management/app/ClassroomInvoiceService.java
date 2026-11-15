@@ -28,8 +28,10 @@ public interface ClassroomInvoiceService {
    * Creates a DRAFT ADHOC invoice for a member of the classroom.
    *
    * <ul>
-   *   <li>Period is left unset.
+   *   <li>Billing window is left unset.
    *   <li>Line totals and the invoice total are computed here.
+   *   <li>Sets {@code createdBy} + denormalized {@code createdByDetails} from the authenticated
+   *       user's account profile.
    * </ul>
    *
    * @param classroomId classroom the member belongs to

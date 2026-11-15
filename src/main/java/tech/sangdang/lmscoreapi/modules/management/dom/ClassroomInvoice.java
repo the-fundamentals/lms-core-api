@@ -65,6 +65,14 @@ public class ClassroomInvoice {
   private String paymentReference;
   private String paymentNote;
 
+  /**
+   * ADHOC only — FK to {@code account_profile.id}. Null on GENERATED (job has no actor).
+   */
+  private UUID createdBy;
+
+  /** ADHOC only — denormalized creator snapshot at create time. Null on GENERATED. */
+  private CreatorDetails createdByDetails;
+
   /** Aggregate children. {@code invoice_id} is owned by SD JDBC (not a field on the line). */
   @MappedCollection(idColumn = "invoice_id")
   private Set<ClassroomInvoiceLine> lines = new HashSet<>();
@@ -94,7 +102,12 @@ public class ClassroomInvoice {
   }
 
   public static ClassroomInvoice ofAdhoc(
-      UUID classroomId, UUID memberId, Set<ClassroomInvoiceLine> lines, String note) {
+      UUID classroomId,
+      UUID memberId,
+      Set<ClassroomInvoiceLine> lines,
+      String note,
+      UUID createdBy,
+      CreatorDetails createdByDetails) {
     Set<ClassroomInvoiceLine> invoiceLines = lines == null ? new HashSet<>() : lines;
     return new ClassroomInvoice()
         .setClassroomId(classroomId)
@@ -104,6 +117,8 @@ public class ClassroomInvoice {
         .setBillingStart(null)
         .setBillingEnd(null)
         .setNote(note)
+        .setCreatedBy(createdBy)
+        .setCreatedByDetails(createdByDetails)
         .setTotalAmount(ClassroomInvoice.calculateTotalAmount(invoiceLines))
         .setLines(invoiceLines);
   }

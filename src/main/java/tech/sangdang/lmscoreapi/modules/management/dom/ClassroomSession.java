@@ -44,6 +44,16 @@ public class ClassroomSession {
   private ClassroomSessionCancelCause cancelCause;
 
   /**
+   * ADHOC only — FK to {@code account_profile.id}. Null on SCHEDULE (job has no actor).
+   */
+  private UUID createdBy;
+
+  /**
+   * ADHOC only — denormalized creator snapshot at create time. Null on SCHEDULE.
+   */
+  private CreatorDetails createdByDetails;
+
+  /**
    * Builds an adhoc session: status OPEN, type ADHOC.
    *
    * @param sessionDate calendar date
@@ -52,6 +62,8 @@ public class ClassroomSession {
    * @param classroomId classroom the session belongs to
    * @param name optional display name
    * @param description optional description
+   * @param createdBy account profile id of the authenticated creator
+   * @param createdByDetails denormalized creator name/email/avatar at create time
    */
   public static ClassroomSession fromAdhoc(
       LocalDate sessionDate,
@@ -59,7 +71,9 @@ public class ClassroomSession {
       LocalTime endTime,
       UUID classroomId,
       String name,
-      String description) {
+      String description,
+      UUID createdBy,
+      CreatorDetails createdByDetails) {
     return new ClassroomSession()
         .setSessionDate(sessionDate)
         .setStartTime(startTime)
@@ -68,7 +82,9 @@ public class ClassroomSession {
         .setName(name)
         .setDescription(description)
         .setStatus(ClassroomSessionStatus.OPEN)
-        .setType(ClassroomSessionType.ADHOC);
+        .setType(ClassroomSessionType.ADHOC)
+        .setCreatedBy(createdBy)
+        .setCreatedByDetails(createdByDetails);
   }
 
   /**
