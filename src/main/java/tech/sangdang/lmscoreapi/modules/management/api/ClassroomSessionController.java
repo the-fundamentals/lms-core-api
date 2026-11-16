@@ -71,7 +71,7 @@ public class ClassroomSessionController implements ClassroomSessionsApi {
   public ResponseEntity<?> cancelClassroomSession(
       @NonNull UUID classroomId, @NonNull UUID sessionId) {
     return ResponseEntity.ok(
-        classroomSessionService.cancelClassroomSession(classroomId, sessionId));
+        classroomSessionService.manuallyCancelClassroomSession(classroomId, sessionId));
   }
 
   @Override

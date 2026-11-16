@@ -96,10 +96,10 @@ dependencies {
     annotationProcessor("org.mapstruct:mapstruct-processor:$mapstructVersion")
 
 	// Dev tools
-    developmentOnly("org.springframework.boot:spring-boot-devtools")
+    //    developmentOnly("org.springframework.boot:spring-boot-devtools")
 
-	// Database (runtime)
-    runtimeOnly("org.postgresql:postgresql")
+	// Database
+    implementation("org.postgresql:postgresql")
 
 	// Test
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")

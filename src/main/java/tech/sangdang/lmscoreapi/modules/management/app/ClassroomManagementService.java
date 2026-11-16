@@ -5,6 +5,7 @@ import java.util.UUID;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomFilter;
 import tech.sangdang.lmscoreapi.generated.model.ClassroomResponse;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomCommand;
+import tech.sangdang.lmscoreapi.generated.model.SetClassroomBasePaymentPlanCommand;
 import tech.sangdang.lmscoreapi.generated.model.UpdateClassroomCommand;
 
 public interface ClassroomManagementService {
@@ -13,21 +14,44 @@ public interface ClassroomManagementService {
    * Creates a classroom.
    *
    * <ul>
-   *   <li>Confirms {@code bannerKey} in public storage when present.
+   *   <li>When {@code bannerKey} is present: prerequisite is {@code
+   *       StorageService#getPresignedUploadUrl} ({@code isPublic: true}) + client PUT to landing
+   *       zone; then this calls {@code StorageService#confirmPublicFileUpload}.
+   *   <li>Omitting {@code bannerKey} skips storage confirmation.
    *   <li>Status is always ACTIVE; not taken from the command.
+   *   <li>Omitted base payment plan is PER_SESSION, amount 0.
    * </ul>
    *
-   * @param command name; optional banner key
+   * @param command name; optional banner key and base payment plan
    * @return created classroom
    */
   ClassroomResponse createClassroom(CreateClassroomCommand command);
 
   /**
+   * Sets the classroom base payment plan.
+   *
+   * <ul>
+   *   <li>Omitted type is PER_SESSION.
+   *   <li>When type or amount changes, replaces the current plan of each ACTIVE STUDENT still
+   *       copied from the classroom base.
+   *   <li>An unchanged base does not rewrite member plans.
+   * </ul>
+   *
+   * @param classroomId classroom whose base to set
+   * @param command amount; optional type
+   * @return updated classroom
+   */
+  ClassroomResponse setClassroomBasePaymentPlan(
+      UUID classroomId, SetClassroomBasePaymentPlanCommand command);
+
+  /**
    * Updates a classroom's name and optional banner.
    *
    * <ul>
-   *   <li>Omitting {@code bannerKey} leaves the existing banner.
-   *   <li>Confirms a new {@code bannerKey} in public storage when present.
+   *   <li>When {@code bannerKey} is present: prerequisite is {@code
+   *       StorageService#getPresignedUploadUrl} ({@code isPublic: true}) + client PUT to landing
+   *       zone; then this calls {@code StorageService#confirmPublicFileUpload}.
+   *   <li>Omitting {@code bannerKey} leaves the existing banner and skips storage confirmation.
    * </ul>
    *
    * @param id classroom to update

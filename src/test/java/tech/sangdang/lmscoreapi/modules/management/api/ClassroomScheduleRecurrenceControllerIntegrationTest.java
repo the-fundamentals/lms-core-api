@@ -27,8 +27,10 @@ import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomSched
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomScheduleRecurrenceFixtures.START_TIME;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomScheduleRecurrenceFixtures.START_TIME_VALUE;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomScheduleRecurrenceFixtures.classroomScheduleRecurrence;
+import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomSessionFixtures.classroomSession;
 
 import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
@@ -50,13 +52,18 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import tech.sangdang.lmscoreapi.common.exception.GlobalExceptionHandler;
 import tech.sangdang.lmscoreapi.config.SecurityConfig;
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomScheduleRecurrenceCommand;
+import tech.sangdang.lmscoreapi.generated.model.DeleteClassroomScheduleRecurrenceCommand;
 import tech.sangdang.lmscoreapi.generated.model.RecurrenceByDay;
 import tech.sangdang.lmscoreapi.generated.model.RecurrenceFrequency;
 import tech.sangdang.lmscoreapi.modules.management.app.impl.ClassroomScheduleRecurrenceServiceImpl;
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomScheduleRecurrenceMapperImpl;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomScheduleRecurrence;
+import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSession;
+import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionCancelCause;
+import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionStatus;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomRepository;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomScheduleRecurrenceRepository;
+import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomSessionRepository;
 import tools.jackson.databind.json.JsonMapper;
 
 @WebMvcTest(controllers = ClassroomScheduleRecurrenceController.class)
@@ -77,8 +84,11 @@ class ClassroomScheduleRecurrenceControllerIntegrationTest {
   @Autowired private MockMvc mockMvc;
   @Autowired private JsonMapper jsonMapper;
 
+  private static final LocalDate CUTOFF_DATE = LocalDate.of(2026, 8, 1);
+
   @MockitoBean private ClassroomRepository classroomRepository;
   @MockitoBean private ClassroomScheduleRecurrenceRepository classroomScheduleRecurrenceRepository;
+  @MockitoBean private ClassroomSessionRepository classroomSessionRepository;
 
   @Test
   @DisplayName("creates classroom schedule recurrences for each weekday")
@@ -207,13 +217,20 @@ class ClassroomScheduleRecurrenceControllerIntegrationTest {
   }
 
   @Test
-  @DisplayName("soft-deletes a classroom schedule recurrence")
+  @DisplayName("truncates a recurrence and cancels OPEN generated sessions on or after cutoff")
   void deleteClassroomScheduleRecurrence_valid_returns204() throws Exception {
     ClassroomScheduleRecurrence recurrence = classroomScheduleRecurrence();
+    ClassroomSession openAfterCutoff =
+        classroomSession().setGeneratedBy(SCHEDULE_ID).setSessionDate(CUTOFF_DATE);
     when(classroomScheduleRecurrenceRepository.findById(SCHEDULE_ID))
         .thenReturn(Optional.of(recurrence));
     when(classroomScheduleRecurrenceRepository.update(any(ClassroomScheduleRecurrence.class)))
         .thenAnswer(invocation -> invocation.getArgument(0));
+    when(classroomSessionRepository.findOpenByGeneratedByAndSessionDateGreaterThanEqual(
+            SCHEDULE_ID, CUTOFF_DATE))
+        .thenReturn(List.of(openAfterCutoff));
+    when(classroomSessionRepository.updateAll(any()))
+        .thenAnswer(invocation -> toSessionList(invocation.getArgument(0)));
 
     mockMvc
         .perform(
@@ -221,13 +238,66 @@ class ClassroomScheduleRecurrenceControllerIntegrationTest {
                     "/admin/classrooms/{classroomId}/schedule/{scheduleId}",
                     CLASSROOM_ID,
                     SCHEDULE_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonMapper.writeValueAsString(deleteCommand(CUTOFF_DATE)))
                 .with(adminJwt()))
         .andExpect(status().isNoContent());
 
-    ArgumentCaptor<ClassroomScheduleRecurrence> captor =
+    ArgumentCaptor<ClassroomScheduleRecurrence> recurrenceCaptor =
         ArgumentCaptor.forClass(ClassroomScheduleRecurrence.class);
-    verify(classroomScheduleRecurrenceRepository).update(captor.capture());
-    assertThat(captor.getValue().getDeletedDate()).isNotNull();
+    verify(classroomScheduleRecurrenceRepository).update(recurrenceCaptor.capture());
+    assertThat(recurrenceCaptor.getValue().getDeletedDate()).isNull();
+    assertThat(recurrenceCaptor.getValue().getRecurUntil()).isEqualTo(CUTOFF_DATE.minusDays(1));
+
+    @SuppressWarnings("unchecked")
+    ArgumentCaptor<Iterable<ClassroomSession>> sessionsCaptor =
+        ArgumentCaptor.forClass(Iterable.class);
+    verify(classroomSessionRepository).updateAll(sessionsCaptor.capture());
+    List<ClassroomSession> cancelled = toSessionList(sessionsCaptor.getValue());
+    assertThat(cancelled).hasSize(1);
+    assertThat(cancelled.getFirst().getStatus()).isEqualTo(ClassroomSessionStatus.CANCELLED);
+    assertThat(cancelled.getFirst().getCancelCause())
+        .isEqualTo(ClassroomSessionCancelCause.REMOVED_FROM_SERIES);
+  }
+
+  @Test
+  @DisplayName("fails to truncate a recurrence when cutoffDate is missing")
+  void deleteClassroomScheduleRecurrence_missingCutoff_returns400() throws Exception {
+    mockMvc
+        .perform(
+            delete(
+                    "/admin/classrooms/{classroomId}/schedule/{scheduleId}",
+                    CLASSROOM_ID,
+                    SCHEDULE_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}")
+                .with(adminJwt()))
+        .andExpect(status().isBadRequest());
+
+    verify(classroomScheduleRecurrenceRepository, never()).update(any());
+    verify(classroomSessionRepository, never()).updateAll(any());
+  }
+
+  @Test
+  @DisplayName("fails to truncate when cutoffDate would not shorten recurUntil")
+  void deleteClassroomScheduleRecurrence_cutoffDoesNotShorten_returns400() throws Exception {
+    when(classroomScheduleRecurrenceRepository.findById(SCHEDULE_ID))
+        .thenReturn(Optional.of(classroomScheduleRecurrence()));
+
+    mockMvc
+        .perform(
+            delete(
+                    "/admin/classrooms/{classroomId}/schedule/{scheduleId}",
+                    CLASSROOM_ID,
+                    SCHEDULE_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonMapper.writeValueAsString(deleteCommand(RECUR_UNTIL.plusDays(1))))
+                .with(adminJwt()))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("CLASSROOM_SCHEDULE_RECURRENCE_CUTOFF_INVALID"));
+
+    verify(classroomScheduleRecurrenceRepository, never()).update(any());
+    verify(classroomSessionRepository, never()).updateAll(any());
   }
 
   @ParameterizedTest(name = "{0}")
@@ -287,9 +357,11 @@ class ClassroomScheduleRecurrenceControllerIntegrationTest {
                   SCHEDULE_ID);
           case "DELETE" ->
               delete(
-                  "/admin/classrooms/{classroomId}/schedule/{scheduleId}",
-                  CLASSROOM_ID,
-                  SCHEDULE_ID);
+                      "/admin/classrooms/{classroomId}/schedule/{scheduleId}",
+                      CLASSROOM_ID,
+                      SCHEDULE_ID)
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(jsonMapper.writeValueAsString(deleteCommand(CUTOFF_DATE)));
           default -> throw new IllegalArgumentException("Unsupported method: " + httpMethod);
         };
 
@@ -300,6 +372,7 @@ class ClassroomScheduleRecurrenceControllerIntegrationTest {
         .andExpect(jsonPath("$.status").value(404));
 
     verify(classroomScheduleRecurrenceRepository, never()).update(any());
+    verify(classroomSessionRepository, never()).updateAll(any());
   }
 
   private void stubInsertAll() {
@@ -338,6 +411,16 @@ class ClassroomScheduleRecurrenceControllerIntegrationTest {
         .name(NAME)
         .description(DESCRIPTION)
         .build();
+  }
+
+  private static DeleteClassroomScheduleRecurrenceCommand deleteCommand(LocalDate cutoffDate) {
+    return DeleteClassroomScheduleRecurrenceCommand.builder().cutoffDate(cutoffDate).build();
+  }
+
+  private static List<ClassroomSession> toSessionList(Iterable<ClassroomSession> iterable) {
+    List<ClassroomSession> list = new ArrayList<>();
+    iterable.forEach(list::add);
+    return list;
   }
 
   @SuppressWarnings("unchecked")

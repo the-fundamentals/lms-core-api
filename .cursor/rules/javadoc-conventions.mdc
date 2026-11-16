@@ -26,7 +26,7 @@ Write for a glance, not a spec dump. Put this on **contracted service interfaces
  *
  * @param classroomId classroom the member belongs to
  * @param memberId member receiving the plan
- * @param command type and amount; currency optional (defaults to VND)
+ * @param command type and amount
  */
 ```
 

@@ -12,7 +12,15 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static tech.sangdang.lmscoreapi.helpers.SecurityTestSupport.ADMIN_JWT_SUB;
 import static tech.sangdang.lmscoreapi.helpers.SecurityTestSupport.adminJwt;
+import static tech.sangdang.lmscoreapi.modules.account.support.AccountProfileFixtures.AVATAR_KEY;
+import static tech.sangdang.lmscoreapi.modules.account.support.AccountProfileFixtures.COGNITO_SUB;
+import static tech.sangdang.lmscoreapi.modules.account.support.AccountProfileFixtures.EMAIL;
+import static tech.sangdang.lmscoreapi.modules.account.support.AccountProfileFixtures.FIRST_NAME;
+import static tech.sangdang.lmscoreapi.modules.account.support.AccountProfileFixtures.LAST_NAME;
+import static tech.sangdang.lmscoreapi.modules.account.support.AccountProfileFixtures.PROFILE_ID;
+import static tech.sangdang.lmscoreapi.modules.account.support.AccountProfileFixtures.accountProfile;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomFixtures.CLASSROOM_ID;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomFixtures.classroom;
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomMemberFixtures.ACCOUNT_ID;
@@ -35,6 +43,7 @@ import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomSessi
 import static tech.sangdang.lmscoreapi.modules.management.support.ClassroomSessionFixtures.classroomSessionAttendance;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -66,13 +75,16 @@ import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionAttendance
 import tech.sangdang.lmscoreapi.generated.model.CreateClassroomSessionAttendancesCommand;
 import tech.sangdang.lmscoreapi.generated.model.UpdateClassroomSessionAttendanceCommand;
 import tech.sangdang.lmscoreapi.generated.model.UpdateClassroomSessionCommand;
-import tech.sangdang.lmscoreapi.modules.management.app.ClassroomSessionGenerationService;
+import tech.sangdang.lmscoreapi.modules.account.dom.repository.AccountProfileRepository;
 import tech.sangdang.lmscoreapi.modules.management.app.impl.ClassroomSessionServiceImpl;
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomSessionAttendanceMapperImpl;
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomSessionMapperImpl;
+import tech.sangdang.lmscoreapi.modules.management.app.useCase.SessionGeneration.ClassroomSessionGenerationService;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomMemberStatus;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSession;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionAttendance;
+import tech.sangdang.lmscoreapi.modules.management.dom.CreatorDetails;
+import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionType;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomMemberRepository;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomRepository;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomSessionAttendanceRepository;
@@ -100,12 +112,16 @@ class ClassroomSessionControllerIntegrationTest {
   @MockitoBean private ClassroomSessionRepository classroomSessionRepository;
   @MockitoBean private ClassroomMemberRepository classroomMemberRepository;
   @MockitoBean private ClassroomSessionAttendanceRepository classroomSessionAttendanceRepository;
+  @MockitoBean private AccountProfileRepository accountProfileRepository;
   @MockitoBean private ClassroomSessionGenerationService classroomSessionGenerationService;
 
   @Test
   @DisplayName("creates a classroom session")
   void createClassroomSession_valid_returns201() throws Exception {
+    assertThat(ADMIN_JWT_SUB).isEqualTo(COGNITO_SUB);
     when(classroomRepository.findById(CLASSROOM_ID)).thenReturn(Optional.of(classroom()));
+    when(accountProfileRepository.findByCognitoSub(COGNITO_SUB))
+        .thenReturn(Optional.of(accountProfile()));
     when(classroomSessionRepository.insert(any(ClassroomSession.class)))
         .thenAnswer(
             invocation -> {
@@ -117,7 +133,9 @@ class ClassroomSessionControllerIntegrationTest {
                   .setName(incoming.getName())
                   .setDescription(incoming.getDescription())
                   .setStatus(incoming.getStatus())
-                  .setType(incoming.getType());
+                  .setType(incoming.getType())
+                  .setCreatedBy(incoming.getCreatedBy())
+                  .setCreatedByDetails(incoming.getCreatedByDetails());
             });
 
     CreateClassroomSessionAdhocCommand command =
@@ -145,6 +163,10 @@ class ClassroomSessionControllerIntegrationTest {
         .andExpect(jsonPath("$.description").value(SESSION_DESCRIPTION))
         .andExpect(jsonPath("$.status").value("OPEN"))
         .andExpect(jsonPath("$.type").value("ADHOC"))
+        .andExpect(jsonPath("$.createdBy").value(PROFILE_ID.toString()))
+        .andExpect(jsonPath("$.createdByDetails.name").value(FIRST_NAME + " " + LAST_NAME))
+        .andExpect(jsonPath("$.createdByDetails.email").value(EMAIL))
+        .andExpect(jsonPath("$.createdByDetails.avatar").value(AVATAR_KEY))
         .andExpect(jsonPath("$.createdDate").exists())
         .andExpect(jsonPath("$.lastModifiedDate").exists());
 
@@ -160,12 +182,18 @@ class ClassroomSessionControllerIntegrationTest {
         .isEqualTo(tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionStatus.OPEN);
     assertThat(captor.getValue().getType())
         .isEqualTo(tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionType.ADHOC);
+    assertThat(captor.getValue().getCreatedBy()).isEqualTo(PROFILE_ID);
+    assertThat(captor.getValue().getCreatedByDetails())
+        .isEqualTo(
+            new CreatorDetails(FIRST_NAME + " " + LAST_NAME, EMAIL, AVATAR_KEY));
   }
 
   @Test
   @DisplayName("creates a classroom session without a name or description")
   void createClassroomSession_withoutOptionalFields_returns201() throws Exception {
     when(classroomRepository.findById(CLASSROOM_ID)).thenReturn(Optional.of(classroom()));
+    when(accountProfileRepository.findByCognitoSub(COGNITO_SUB))
+        .thenReturn(Optional.of(accountProfile()));
     when(classroomSessionRepository.insert(any(ClassroomSession.class)))
         .thenAnswer(
             invocation -> {
@@ -177,7 +205,9 @@ class ClassroomSessionControllerIntegrationTest {
                   .setName(incoming.getName())
                   .setDescription(incoming.getDescription())
                   .setStatus(incoming.getStatus())
-                  .setType(incoming.getType());
+                  .setType(incoming.getType())
+                  .setCreatedBy(incoming.getCreatedBy())
+                  .setCreatedByDetails(incoming.getCreatedByDetails());
             });
 
     CreateClassroomSessionAdhocCommand command =
@@ -325,6 +355,70 @@ class ClassroomSessionControllerIntegrationTest {
     assertThat(captor.getValue().getDescription()).isNull();
   }
 
+  @Test
+  @DisplayName("reschedules date and time on an OPEN ADHOC session")
+  void updateClassroomSession_adhoc_reschedule_returns200() throws Exception {
+    when(classroomSessionRepository.findById(SESSION_ID))
+        .thenReturn(Optional.of(classroomSession().setType(ClassroomSessionType.ADHOC)));
+    when(classroomSessionRepository.update(any(ClassroomSession.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    LocalDate newDate = LocalDate.of(2026, 7, 20);
+    LocalTime newStart = LocalTime.of(10, 0, 0);
+    LocalTime newEnd = LocalTime.of(11, 30, 0);
+    UpdateClassroomSessionCommand command =
+        UpdateClassroomSessionCommand.builder()
+            .sessionDate(newDate)
+            .startTime(newStart)
+            .endTime(newEnd)
+            .name("Moved makeup")
+            .build();
+
+    mockMvc
+        .perform(
+            put("/admin/classrooms/{classroomId}/sessions/{sessionId}", CLASSROOM_ID, SESSION_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonMapper.writeValueAsString(command))
+                .with(adminJwt()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.sessionDate").value("2026-07-20"))
+        .andExpect(jsonPath("$.startTime").value("10:00:00"))
+        .andExpect(jsonPath("$.endTime").value("11:30:00"))
+        .andExpect(jsonPath("$.name").value("Moved makeup"))
+        .andExpect(jsonPath("$.type").value("ADHOC"));
+
+    ArgumentCaptor<ClassroomSession> captor = ArgumentCaptor.forClass(ClassroomSession.class);
+    verify(classroomSessionRepository).update(captor.capture());
+    assertThat(captor.getValue().getSessionDate()).isEqualTo(newDate);
+    assertThat(captor.getValue().getStartTime()).isEqualTo(newStart);
+    assertThat(captor.getValue().getEndTime()).isEqualTo(newEnd);
+  }
+
+  @Test
+  @DisplayName("rejects date/time change on a SCHEDULE session")
+  void updateClassroomSession_schedule_withTimes_returns400() throws Exception {
+    when(classroomSessionRepository.findById(SESSION_ID))
+        .thenReturn(Optional.of(classroomSession()));
+
+    UpdateClassroomSessionCommand command =
+        UpdateClassroomSessionCommand.builder()
+            .sessionDate(LocalDate.of(2026, 7, 20))
+            .startTime(LocalTime.of(10, 0, 0))
+            .endTime(LocalTime.of(11, 30, 0))
+            .build();
+
+    mockMvc
+        .perform(
+            put("/admin/classrooms/{classroomId}/sessions/{sessionId}", CLASSROOM_ID, SESSION_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonMapper.writeValueAsString(command))
+                .with(adminJwt()))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("CLASSROOM_SESSION_NOT_ADHOC"));
+
+    verify(classroomSessionRepository, never()).update(any());
+  }
+
   @ParameterizedTest(name = "fails to update a {0} session")
   @CsvSource({"COMPLETED", "CANCELLED"})
   void updateClassroomSession_notOpen_returns400(String statusName) throws Exception {
@@ -456,13 +550,17 @@ class ClassroomSessionControllerIntegrationTest {
                 .with(adminJwt()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value(SESSION_ID.toString()))
-        .andExpect(jsonPath("$.status").value("CANCELLED"));
+        .andExpect(jsonPath("$.status").value("CANCELLED"))
+        .andExpect(jsonPath("$.cancelCause").value("MANUAL"));
 
     ArgumentCaptor<ClassroomSession> captor = ArgumentCaptor.forClass(ClassroomSession.class);
     verify(classroomSessionRepository).update(captor.capture());
     assertThat(captor.getValue().getStatus())
         .isEqualTo(
             tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionStatus.CANCELLED);
+    assertThat(captor.getValue().getCancelCause())
+        .isEqualTo(
+            tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionCancelCause.MANUAL);
   }
 
   @ParameterizedTest(name = "fails to cancel a {0} session")
