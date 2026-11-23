@@ -23,7 +23,7 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/postgres
     username: postgres
-    password: postgres
+    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
   sql:
     init:
@@ -33,7 +33,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          jwk-set-uri: ${COGNITO_BASE_DOMAIN}/${COGNITO_USER_POOL_ID}/.well-known/jwks.json
+          jwk-set-uri: ${COGNITO_JWT_DOMAIN}/${COGNITO_USER_POOL_ID}/.well-known/jwks.json
   config:
     import: optional:classpath:.env.local[.properties] # This is for the infrastructure env
 

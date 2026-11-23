@@ -37,3 +37,4 @@ out/
 
 openapi/node_modules
 **/*/.env.local
+**/*/.env.dev

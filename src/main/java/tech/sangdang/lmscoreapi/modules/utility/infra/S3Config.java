@@ -13,41 +13,26 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3ClientBuilder;
 import software.amazon.awssdk.services.s3.S3Configuration;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import tech.sangdang.lmscoreapi.common.CloudMode;
 
 @RequiredArgsConstructor
 @Configuration
 public class S3Config {
 
-  private final StorageConfigurationProperties storageConfigurationProperties;
   private static final String LOCALSTACK_ENDPOINT = "http://localhost:4566";
+  private static final Region DEFAULT_REGION = Region.AP_SOUTHEAST_1;
+
+  private final StorageConfigurationProperties storage;
 
   @Bean
   @Qualifier("storage")
   public S3Client s3Client() {
-    S3ClientBuilder builder = S3Client.builder();
+    S3ClientBuilder builder = S3Client.builder().region(region());
 
-    builder.region(
-        StringUtils.hasText(storageConfigurationProperties.region())
-            ? Region.of(storageConfigurationProperties.region())
-            : Region.AP_SOUTHEAST_1);
-
-    switch (storageConfigurationProperties.cloudMode()) {
-      case LOCALSTACK ->
-          builder
-              .endpointOverride(URI.create(LOCALSTACK_ENDPOINT))
-              .credentialsProvider(
-                  StaticCredentialsProvider.create(AwsBasicCredentials.create("dummy", "dummy")))
-              /*
-               This is needed in the localstack environment so the OS knows where localstack is.
-               - If it's off, the SDK uses a virtual hosted URL: https://[bucket].localhost:4566 -> OS cannot route this
-               - If it's on, the SDK uses a path style URL: https://localhost:4566
-              */
-              .serviceConfiguration(S3Configuration.builder().pathStyleAccessEnabled(true).build());
-      case AWS -> {
-        if (StringUtils.hasText(storageConfigurationProperties.endpointOverride())) {
-          builder.endpointOverride(URI.create(storageConfigurationProperties.endpointOverride()));
-        }
-      }
+    if (storage.cloudMode() == CloudMode.LOCALSTACK) {
+      applyEmulator(builder);
+    } else if (StringUtils.hasText(storage.endpointOverride())) {
+      builder.endpointOverride(URI.create(storage.endpointOverride()));
     }
 
     return builder.build();
@@ -56,32 +41,24 @@ public class S3Config {
   @Bean
   @Qualifier("storage")
   public S3Presigner s3Presigner(@Qualifier("storage") S3Client s3Client) {
-    S3Presigner.Builder builder = S3Presigner.builder().s3Client(s3Client);
+    // Same client = same region/endpoint/creds; avoids duplicating LOCALSTACK vs AWS setup.
+    return S3Presigner.builder().s3Client(s3Client).build();
+  }
 
-    builder.region(
-        StringUtils.hasText(storageConfigurationProperties.region())
-            ? Region.of(storageConfigurationProperties.region())
-            : Region.AP_SOUTHEAST_1);
+  private Region region() {
+    return StringUtils.hasText(storage.region()) ? Region.of(storage.region()) : DEFAULT_REGION;
+  }
 
-    switch (storageConfigurationProperties.cloudMode()) {
-      case LOCALSTACK ->
-          builder
-              .endpointOverride(URI.create(LOCALSTACK_ENDPOINT))
-              .credentialsProvider(
-                  StaticCredentialsProvider.create(AwsBasicCredentials.create("dummy", "dummy")))
-              /*
-               This is needed in the localstack environment so the OS knows where localstack is.
-               - If it's off, the SDK uses a virtual hosted URL: https://[bucket].localhost:4566 -> OS cannot route this
-               - If it's on, the SDK uses a path style URL: https://localhost:4566
-              */
-              .serviceConfiguration(S3Configuration.builder().pathStyleAccessEnabled(true).build());
-      case AWS -> {
-        if (StringUtils.hasText(storageConfigurationProperties.endpointOverride())) {
-          builder.endpointOverride(URI.create(storageConfigurationProperties.endpointOverride()));
-        }
-      }
-    }
-
-    return builder.build();
+  private void applyEmulator(S3ClientBuilder builder) {
+    String endpoint =
+        StringUtils.hasText(storage.endpointOverride())
+            ? storage.endpointOverride()
+            : LOCALSTACK_ENDPOINT;
+    // Path-style: virtual-hosted http://bucket.localhost:4566 does not resolve on the host OS.
+    builder
+        .endpointOverride(URI.create(endpoint))
+        .credentialsProvider(
+            StaticCredentialsProvider.create(AwsBasicCredentials.create("dummy", "dummy")))
+        .serviceConfiguration(S3Configuration.builder().pathStyleAccessEnabled(true).build());
   }
 }

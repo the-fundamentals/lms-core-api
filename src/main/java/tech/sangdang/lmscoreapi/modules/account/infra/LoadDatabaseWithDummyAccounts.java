@@ -14,7 +14,6 @@ import tech.sangdang.lmscoreapi.common.GeneralConfigProperties;
 import tech.sangdang.lmscoreapi.modules.account.dom.AccountProfile;
 import tech.sangdang.lmscoreapi.modules.account.dom.repository.AccountProfileRepository;
 
-@Profile("local")
 @Slf4j
 @RequiredArgsConstructor
 @Component

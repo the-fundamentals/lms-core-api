@@ -82,7 +82,9 @@ dependencies {
     implementation("org.openapitools:jackson-databind-nullable:$openapiJacksonNullableVersion")
 
 	// AWS
-    implementation("software.amazon.awssdk:s3:$awsSdkVersion")
+    implementation(platform("software.amazon.awssdk:bom:$awsSdkVersion"))
+    implementation("software.amazon.awssdk:s3")
+    implementation("software.amazon.awssdk:signin")
 
 	// Misc libs
     implementation("org.mnode.ical4j:ical4j:$iCal4jVersion")
