@@ -43,14 +43,10 @@ public class ClassroomSession {
   /** Set when status is CANCELLED; null otherwise. */
   private ClassroomSessionCancelCause cancelCause;
 
-  /**
-   * ADHOC only — FK to {@code account_profile.id}. Null on SCHEDULE (job has no actor).
-   */
+  /** ADHOC only — FK to {@code account_profile.id}. Null on SCHEDULE (job has no actor). */
   private UUID createdBy;
 
-  /**
-   * ADHOC only — denormalized creator snapshot at create time. Null on SCHEDULE.
-   */
+  /** ADHOC only — denormalized creator snapshot at create time. Null on SCHEDULE. */
   private CreatorDetails createdByDetails;
 
   /**

@@ -36,8 +36,8 @@ public interface ClassroomSessionService {
    *
    * <ul>
    *   <li>SCHEDULE rejects date/time changes; status and type are never changed.
-   *   <li>COMPLETED and CANCELLED are 400; omitted name/description clear; omitted date/time
-   *       leave current values.
+   *   <li>COMPLETED and CANCELLED are 400; omitted name/description clear; omitted date/time leave
+   *       current values.
    * </ul>
    *
    * @param classroomId classroom the session belongs to

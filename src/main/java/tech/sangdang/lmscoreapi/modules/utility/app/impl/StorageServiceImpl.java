@@ -33,7 +33,8 @@ public class StorageServiceImpl implements StorageService {
     String objectKey =
         resolveObjectAccess(
             UUID.randomUUID().toString(),
-            uploadToStorageCommand != null && Boolean.TRUE.equals(uploadToStorageCommand.getIsPublic()));
+            uploadToStorageCommand != null
+                && Boolean.TRUE.equals(uploadToStorageCommand.getIsPublic()));
 
     String uploadUrl =
         s3Port.getUploadPresignedUrl(

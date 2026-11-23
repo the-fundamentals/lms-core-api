@@ -45,8 +45,8 @@ public class ClassroomInvoice {
   private ClassroomInvoiceType type;
 
   /**
-   * Inclusive start of the GENERATED billing window (same date as the generation job window
-   * start). Null on ADHOC.
+   * Inclusive start of the GENERATED billing window (same date as the generation job window start).
+   * Null on ADHOC.
    */
   private LocalDate billingStart;
 
@@ -65,9 +65,7 @@ public class ClassroomInvoice {
   private String paymentReference;
   private String paymentNote;
 
-  /**
-   * ADHOC only — FK to {@code account_profile.id}. Null on GENERATED (job has no actor).
-   */
+  /** ADHOC only — FK to {@code account_profile.id}. Null on GENERATED (job has no actor). */
   private UUID createdBy;
 
   /** ADHOC only — denormalized creator snapshot at create time. Null on GENERATED. */

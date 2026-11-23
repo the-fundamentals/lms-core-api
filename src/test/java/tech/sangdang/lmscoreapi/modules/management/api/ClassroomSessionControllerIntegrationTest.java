@@ -83,8 +83,8 @@ import tech.sangdang.lmscoreapi.modules.management.app.useCase.SessionGeneration
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomMemberStatus;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSession;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionAttendance;
-import tech.sangdang.lmscoreapi.modules.management.dom.CreatorDetails;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionType;
+import tech.sangdang.lmscoreapi.modules.management.dom.CreatorDetails;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomMemberRepository;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomRepository;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.ClassroomSessionAttendanceRepository;
@@ -184,8 +184,7 @@ class ClassroomSessionControllerIntegrationTest {
         .isEqualTo(tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionType.ADHOC);
     assertThat(captor.getValue().getCreatedBy()).isEqualTo(PROFILE_ID);
     assertThat(captor.getValue().getCreatedByDetails())
-        .isEqualTo(
-            new CreatorDetails(FIRST_NAME + " " + LAST_NAME, EMAIL, AVATAR_KEY));
+        .isEqualTo(new CreatorDetails(FIRST_NAME + " " + LAST_NAME, EMAIL, AVATAR_KEY));
   }
 
   @Test
