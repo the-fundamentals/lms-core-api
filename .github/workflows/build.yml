@@ -5,6 +5,13 @@ on:
   push:
     branches:
       - '**'
+  workflow_dispatch:
+    inputs:
+      auto-deploy:
+        type: boolean
+        description: Automatically deploy to dev server
+        required: false
+        default: false
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -22,11 +29,10 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Install Java
-        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 #v5.6.0
+      - name: Setup mise
+        uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 #v5.3.0
         with:
-          distribution: 'temurin'
-          java-version: 25
+          cache: true
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 #v6.2.0
@@ -34,7 +40,34 @@ jobs:
       - name: Validate wrapper
         uses: gradle/actions/wrapper-validation@3f131e8634966bd73d06cc69884922b02e6faf92 #v6.2.0
 
-      - name: Build
+      - name: Run tests
         run: |
           chmod a+x ./gradlew
-          ./gradlew build
+          ./gradlew check
+
+      - name: Build & Publish Image
+        run: |
+          chmod a+x ./gradlew
+          ./gradlew bootBuildImage --publishImage -Pversion=${{ steps.meta.outputs.version }}
+
+  deploy:
+    name: 🚀 Deploy
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.auto-deploy }}
+    needs: build
+    runs-on: ubuntu-latest
+    environment: dev
+    permissions:
+      id-token: write
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+    steps:
+      - name: Setup AWS
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.2.0
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: ${{ env.AWS_ROLE_TO_ASSUME }}

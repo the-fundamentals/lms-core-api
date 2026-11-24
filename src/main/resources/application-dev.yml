@@ -7,7 +7,7 @@ app:
     storage:
       landing-zone-bucket-name: lms-dev-fundamentals000-landing-zone
       public-store-bucket-name: lms-dev-fundamentals000-public
-      region: us-east-1
+      region: ${AWS_REGION:us-east-1}
       use-dummy-credentials: true
       cloud-mode: AWS
   config:
@@ -20,9 +20,9 @@ spring:
   application:
     name: lms-core-api
   datasource:
-    url: jdbc:postgresql://localhost:5432/postgres
-    username: postgres
-    password: ${DB_PASSWORD}          # betterleaks:allow
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/postgres}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
   sql:
     init:
@@ -35,6 +35,9 @@ spring:
           jwk-set-uri: ${COGNITO_JWT_DOMAIN}/${COGNITO_USER_POOL_ID}/.well-known/jwks.json
   config:
     import: optional:classpath:.env.dev[.properties] # This is for the infrastructure env
+
+server:
+  port: ${SERVER_PORT:8080}
 
 springdoc:
   api-docs:
