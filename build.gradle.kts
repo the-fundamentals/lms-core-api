@@ -134,8 +134,8 @@ tasks.named("openApiGenerate") {
 
 // Setup for gradle bootBuildImage command
 tasks.named<org.springframework.boot.gradle.tasks.bundling.BootBuildImage>("bootBuildImage") {
-    imageName.set("ghcr.io/the-fundamentals/lms-core-api:${project.version}") // TODO Set version to sth else
-    imagePlatform.set("linux/arm64")
+    imageName.set("ghcr.io/the-fundamentals/lms-core-api:${project.version}-arm64") // TODO Set version to sth else
+    imagePlatform.set("linux/arm64") // IMPORTANT: This workflow builds images to arm64 only
 
     environment.set(
         mapOf(
