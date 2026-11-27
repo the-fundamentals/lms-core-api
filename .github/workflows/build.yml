@@ -23,6 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      packages: write
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 #v7
@@ -45,29 +46,42 @@ jobs:
           chmod a+x ./gradlew
           ./gradlew check
 
+      # Short SHA tag; imagePlatform is linux/arm64 so QEMU needed on amd64 runners
+      - name: Set image version
+        id: meta
+        run: echo "version=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 #v3.7.0
+        with:
+          platforms: arm64
+
       - name: Build & Publish Image
+        env:
+          GH_REGISTRY_USER: ${{ github.actor }}
+          GH_REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
         run: |
           chmod a+x ./gradlew
           ./gradlew bootBuildImage --publishImage -Pversion=${{ steps.meta.outputs.version }}
 
-  deploy:
-    name: 🚀 Deploy
-    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.auto-deploy }}
-    needs: build
-    runs-on: ubuntu-latest
-    environment: dev
-    permissions:
-      id-token: write
-    env:
-      AWS_REGION: ${{ vars.AWS_REGION }}
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-    steps:
-      - name: Setup AWS
-        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.2.0
-        with:
-          aws-region: ${{ env.AWS_REGION }}
-          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
-          role-to-assume: ${{ env.AWS_ROLE_TO_ASSUME }}
+#  deploy:
+#    name: 🚀 Deploy
+#    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.auto-deploy }}
+#    needs: build
+#    runs-on: ubuntu-latest
+#    environment: dev
+#    permissions:
+#      id-token: write
+#    env:
+#      AWS_REGION: ${{ vars.AWS_REGION }}
+#      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+#      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#      AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+#    steps:
+#      - name: Setup AWS
+#        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.2.0
+#        with:
+#          aws-region: ${{ env.AWS_REGION }}
+#          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+#          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+#          role-to-assume: ${{ env.AWS_ROLE_TO_ASSUME }}
