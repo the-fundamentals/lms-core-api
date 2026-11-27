@@ -63,11 +63,11 @@ repositories {
     mavenCentral()
 }
 
-val mapstructVersion: String by project
-val springdocVersion: String by project
-val openapiJacksonNullableVersion: String by project
-val awsSdkVersion: String by project
-val iCal4jVersion: String by project
+val mapstructVersion = project.property("mapstructVersion") as String
+val springdocVersion = project.property("springdocVersion") as String
+val openapiJacksonNullableVersion = project.property("openapiJacksonNullableVersion") as String
+val awsSdkVersion = project.property("awsSdkVersion") as String
+val iCal4jVersion = project.property("iCal4jVersion") as String
 
 dependencies {
     // Spring Boot starters
