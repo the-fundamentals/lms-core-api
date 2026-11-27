@@ -1,0 +1,5 @@
+# Shadows src/main/resources/application.yml on the test classpath so tests never
+# resolve prod placeholders (COGNITO_*, DB_PASSWORD) or import .env.local.
+spring:
+  profiles:
+    active: test

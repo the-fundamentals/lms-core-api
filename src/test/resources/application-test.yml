@@ -1,0 +1,51 @@
+# Fully self-contained test profile — no env vars, no .env files.
+logging:
+  level:
+    org:
+      springframework:
+        jdbc:
+          core:
+            JdbcTemplate: DEBUG
+            StatementCreatorUtils: TRACE
+
+spring:
+  application:
+    name: lms-core-api
+  datasource:
+    url: jdbc:postgresql://localhost:5432/postgres
+    username: postgres
+    password: postgres # betterleaks:allow
+    driver-class-name: org.postgresql.Driver
+  sql:
+    init:
+      schema-locations: classpath:schema.sql
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://localhost.localstack.cloud:4566/ap-southeast-1_test-pool/.well-known/jwks.json
+
+app:
+  cognito:
+    user-pool-id: ap-southeast-1_test-pool
+    app-client-id: test-app-client-id
+    base-domain: http://localhost.localstack.cloud:4566
+    client-full-domain: http://localhost.localstack.cloud:4566/_aws/cognito-idp
+  utility:
+    storage:
+      landing-zone-bucket-name: lms-local-landing-zone
+      public-store-bucket-name: lms-local-public
+      region: ap-southeast-1
+      use-dummy-credentials: true
+      cloud-mode: localstack
+  config:
+    load-dummy-accounts-into-database: false
+  modules:
+    management:
+      session-generation-cron: "-"
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false

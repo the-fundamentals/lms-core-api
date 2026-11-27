@@ -1,18 +1,17 @@
+# Core config shared by all profiles. Profile files only override deltas.
 app:
   cognito:
     user-pool-id: ${COGNITO_USER_POOL_ID}
     app-client-id: ${COGNITO_APP_CLIENT_ID}
     base-domain: ${COGNITO_BASE_DOMAIN}
-    client-full-domain: ${COGNITO_BASE_DOMAIN}/_aws/cognito-idp
+    client-full-domain: ${COGNITO_CLIENT_FULL_DOMAIN:${COGNITO_BASE_DOMAIN}}
   utility:
     storage:
-      landing-zone-bucket-name: lms-local-landing-zone
-      public-store-bucket-name: lms-local-public
-      region: ap-southeast-1
-      use-dummy-credentials: true
-      cloud-mode: localstack
+      region: ${AWS_REGION:ap-southeast-1}
+      use-dummy-credentials: false
+      cloud-mode: AWS
   config:
-    load-dummy-accounts-into-database: true
+    load-dummy-accounts-into-database: false
   modules:
     management:
       session-generation-cron: "-"
@@ -21,8 +20,8 @@ spring:
   application:
     name: lms-core-api
   datasource:
-    url: jdbc:postgresql://localhost:5432/postgres
-    username: postgres
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/postgres}
+    username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
   sql:
@@ -34,8 +33,9 @@ spring:
       resourceserver:
         jwt:
           jwk-set-uri: ${COGNITO_JWT_DOMAIN}/${COGNITO_USER_POOL_ID}/.well-known/jwks.json
-  config:
-    import: optional:classpath:.env.local[.properties] # This is for the infrastructure env
+
+server:
+  port: ${SERVER_PORT:8080}
 
 springdoc:
   api-docs:

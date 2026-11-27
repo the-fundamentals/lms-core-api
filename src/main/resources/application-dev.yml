@@ -1,57 +1,14 @@
+# Deployed-dev overrides. Activate with --spring.profiles.active=dev
 app:
-  cognito:
-    user-pool-id: ${COGNITO_USER_POOL_ID}
-    app-client-id: ${COGNITO_APP_CLIENT_ID}
-    client-full-domain: ${COGNITO_BASE_DOMAIN}
   utility:
     storage:
       landing-zone-bucket-name: lms-dev-fundamentals000-landing-zone
       public-store-bucket-name: lms-dev-fundamentals000-public
       region: ${AWS_REGION:us-east-1}
       use-dummy-credentials: true
-      cloud-mode: AWS
   config:
     load-dummy-accounts-into-database: true
-  modules:
-    management:
-      session-generation-cron: "-"
 
 spring:
-  application:
-    name: lms-core-api
-  datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/postgres}
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:postgres}
-    driver-class-name: org.postgresql.Driver
-  sql:
-    init:
-      schema-locations: classpath:schema.sql
-      mode: always
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          jwk-set-uri: ${COGNITO_JWT_DOMAIN}/${COGNITO_USER_POOL_ID}/.well-known/jwks.json
   config:
-    import: optional:classpath:.env.dev[.properties] # This is for the infrastructure env
-
-server:
-  port: ${SERVER_PORT:8080}
-
-springdoc:
-  api-docs:
-    enabled: true
-  swagger-ui:
-    url: /openapi.yml
-    disable-swagger-default-url: true
-    try-it-out-enabled: true
-    operations-sorter: method
-    tags-sorter: alpha
-    persist-authorization: true
-    oauth:
-      client-id: ${app.cognito.app-client-id}
-      scopes: openid,email,profile
-      use-pkce-with-authorization-code-grant: true
-      # Swagger redirect (must be allow-listed in Cognito callback URLs):
-      #   {api-origin}/swagger-ui/oauth2-redirect.html
+    import: optional:classpath:.env.dev[.properties]
