@@ -1,29 +1,41 @@
+# Core config shared by all profiles. Profile files only override deltas.
+app:
+  cognito:
+    user-pool-id: ${COGNITO_USER_POOL_ID}
+    app-client-id: ${COGNITO_APP_CLIENT_ID}
+    base-domain: ${COGNITO_BASE_DOMAIN}
+    client-full-domain: ${COGNITO_CLIENT_FULL_DOMAIN:${COGNITO_BASE_DOMAIN}}
+  utility:
+    storage:
+      region: ${AWS_REGION:ap-southeast-1}
+      use-dummy-credentials: false
+      cloud-mode: AWS
+  config:
+    load-dummy-accounts-into-database: false
+  modules:
+    management:
+      session-generation-cron: "-"
+
 spring:
   application:
     name: lms-core-api
   datasource:
-    url: jdbc:postgresql://localhost:5432/postgres
-    username: postgres
-    password: postgres
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/postgres}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
   sql:
     init:
       schema-locations: classpath:schema.sql
+      mode: always
   security:
     oauth2:
       resourceserver:
         jwt:
-          jwk-set-uri: ${app.cognito.base-domain}/${app.cognito.user-pool-id}/.well-known/jwks.json
+          jwk-set-uri: ${COGNITO_JWT_DOMAIN}/${COGNITO_USER_POOL_ID}/.well-known/jwks.json
 
-app:
-  cognito:
-    user-pool-id: ${COGNITO_USER_POOL_ID:ap-southeast-1_3df5bc2f5dfa4269a26a5150e92f7763}
-    app-client-id: ${COGNITO_APP_CLIENT_ID:6g6fmxhyvx097ih07p6p5w6y3l}
-    base-domain: ${COGNITO_BASE_DOMAIN:http://localhost.localstack.cloud:4566}
-    client-full-domain: ${COGNITO_CLIENT_FULL_DOMAIN:${app.cognito.base-domain}/_aws/cognito-idp}
-  modules:
-    management:
-      session-generation-cron: "0 0 0 7 * *"
+server:
+  port: ${SERVER_PORT:8080}
 
 springdoc:
   api-docs:

@@ -20,13 +20,17 @@ import tech.sangdang.lmscoreapi.common.exception.ObjectNotFoundException;
 import tech.sangdang.lmscoreapi.common.querying.BaseQuery;
 import tech.sangdang.lmscoreapi.common.querying.Operators;
 import tech.sangdang.lmscoreapi.common.querying.QueryFilterConditions;
+import tech.sangdang.lmscoreapi.common.security.CurrentUser;
 import tech.sangdang.lmscoreapi.generated.model.*;
-import tech.sangdang.lmscoreapi.modules.management.app.ClassroomSessionGenerationService;
+import tech.sangdang.lmscoreapi.modules.account.dom.AccountProfile;
+import tech.sangdang.lmscoreapi.modules.account.dom.repository.AccountProfileRepository;
 import tech.sangdang.lmscoreapi.modules.management.app.ClassroomSessionService;
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomSessionAttendanceMapper;
 import tech.sangdang.lmscoreapi.modules.management.app.mappers.ClassroomSessionMapper;
+import tech.sangdang.lmscoreapi.modules.management.app.useCase.SessionGeneration.ClassroomSessionGenerationService;
 import tech.sangdang.lmscoreapi.modules.management.dom.*;
 import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionAttendanceStatus;
+import tech.sangdang.lmscoreapi.modules.management.dom.ClassroomSessionCancelCause;
 import tech.sangdang.lmscoreapi.modules.management.dom.repository.*;
 
 @Service
@@ -37,6 +41,7 @@ public class ClassroomSessionServiceImpl implements ClassroomSessionService {
   private final ClassroomSessionRepository classroomSessionRepository;
   private final ClassroomMemberRepository classroomMemberRepository;
   private final ClassroomSessionAttendanceRepository classroomSessionAttendanceRepository;
+  private final AccountProfileRepository accountProfileRepository;
   private final ClassroomSessionMapper classroomSessionMapper;
   private final ClassroomSessionAttendanceMapper classroomSessionAttendanceMapper;
   private final ClassroomSessionGenerationService classroomSessionGenerationService;
@@ -50,6 +55,13 @@ public class ClassroomSessionServiceImpl implements ClassroomSessionService {
         .findById(classroomId)
         .orElseThrow(() -> ObjectNotFoundException.of(Classroom.class, classroomId));
 
+    // Cross-aggregate denorm: snapshot creator from account profile (not @CreatedBy — ADHOC only).
+    String cognitoSub = CurrentUser.requireCognitoSub();
+    AccountProfile creator =
+        accountProfileRepository
+            .findByCognitoSub(cognitoSub)
+            .orElseThrow(() -> ObjectNotFoundException.of(AccountProfile.class, cognitoSub));
+
     ClassroomSession session =
         ClassroomSession.fromAdhoc(
             command.getSessionDate(),
@@ -57,7 +69,10 @@ public class ClassroomSessionServiceImpl implements ClassroomSessionService {
             command.getEndTime(),
             classroomId,
             command.getName(),
-            command.getDescription());
+            command.getDescription(),
+            creator.getId(),
+            // FQCN: generated.model also has CreatorDetails
+            tech.sangdang.lmscoreapi.modules.management.dom.CreatorDetails.from(creator));
     return classroomSessionMapper.toResponse(classroomSessionRepository.insert(session));
   }
 
@@ -72,7 +87,12 @@ public class ClassroomSessionServiceImpl implements ClassroomSessionService {
   public ClassroomSessionResponse updateClassroomSession(
       UUID classroomId, UUID sessionId, UpdateClassroomSessionCommand command) {
     ClassroomSession session = requireSessionInClassroom(classroomId, sessionId);
-    session.updateDetails(command.getName(), command.getDescription());
+    session.updateDetails(
+        command.getName(),
+        command.getDescription(),
+        command.getSessionDate(),
+        command.getStartTime(),
+        command.getEndTime());
     return classroomSessionMapper.toResponse(classroomSessionRepository.update(session));
   }
 
@@ -86,9 +106,10 @@ public class ClassroomSessionServiceImpl implements ClassroomSessionService {
 
   @Override
   @Transactional
-  public ClassroomSessionResponse cancelClassroomSession(UUID classroomId, UUID sessionId) {
+  public ClassroomSessionResponse manuallyCancelClassroomSession(UUID classroomId, UUID sessionId) {
     ClassroomSession session = requireSessionInClassroom(classroomId, sessionId);
-    session.cancel();
+    // Domain enum — generated.model.* also has ClassroomSessionCancelCause
+    session.cancel(ClassroomSessionCancelCause.MANUAL);
     return classroomSessionMapper.toResponse(classroomSessionRepository.update(session));
   }
 
@@ -110,7 +131,9 @@ public class ClassroomSessionServiceImpl implements ClassroomSessionService {
     maybeGenerateSessionsForDateWindow(classroomId, filter);
 
     // scope query to this classroom
-    filters.add(QueryFilterConditions.of("classroomId", "eq", classroomId.toString()));
+    filters.add(
+        QueryFilterConditions.of(
+            ClassroomSession.Fields.classroomId, Operators.EQUAL, classroomId.toString()));
     query.setFilters(filters);
 
     return classroomSessionRepository.query(query).map(classroomSessionMapper::toResponse).toList();
@@ -132,7 +155,11 @@ public class ClassroomSessionServiceImpl implements ClassroomSessionService {
         query.getFilters() == null ? new ArrayList<>() : new ArrayList<>(query.getFilters());
 
     // scope query to this member
-    filters.add(QueryFilterConditions.of("classroomMemberId", "eq", memberId.toString()));
+    filters.add(
+        QueryFilterConditions.of(
+            ClassroomSessionAttendance.Fields.classroomMemberId,
+            Operators.EQUAL,
+            memberId.toString()));
     query.setFilters(filters);
 
     return classroomSessionAttendanceRepository

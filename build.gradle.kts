@@ -63,11 +63,11 @@ repositories {
     mavenCentral()
 }
 
-val mapstructVersion: String by project
-val springdocVersion: String by project
-val openapiJacksonNullableVersion: String by project
-val awsSdkVersion: String by project
-val iCal4jVersion: String by project
+val mapstructVersion = project.property("mapstructVersion") as String
+val springdocVersion = project.property("springdocVersion") as String
+val openapiJacksonNullableVersion = project.property("openapiJacksonNullableVersion") as String
+val awsSdkVersion = project.property("awsSdkVersion") as String
+val iCal4jVersion = project.property("iCal4jVersion") as String
 
 dependencies {
     // Spring Boot starters
@@ -77,14 +77,16 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
 
-	// API docs / OpenAPI
+    // API docs / OpenAPI
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:$springdocVersion")
     implementation("org.openapitools:jackson-databind-nullable:$openapiJacksonNullableVersion")
 
-	// AWS
-    implementation("software.amazon.awssdk:s3:$awsSdkVersion")
+    // AWS
+    implementation(platform("software.amazon.awssdk:bom:$awsSdkVersion"))
+    implementation("software.amazon.awssdk:s3")
+    implementation("software.amazon.awssdk:signin")
 
-	// Misc libs
+    // Misc libs
     implementation("org.mnode.ical4j:ical4j:$iCal4jVersion")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
 
@@ -95,13 +97,13 @@ dependencies {
     annotationProcessor("org.projectlombok:lombok-mapstruct-binding:0.2.0")
     annotationProcessor("org.mapstruct:mapstruct-processor:$mapstructVersion")
 
-	// Dev tools
-    developmentOnly("org.springframework.boot:spring-boot-devtools")
+    // Dev tools
+    //    developmentOnly("org.springframework.boot:spring-boot-devtools")
 
-	// Database (runtime)
-    runtimeOnly("org.postgresql:postgresql")
+    // Database
+    implementation("org.postgresql:postgresql")
 
-	// Test
+    // Test
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
     testImplementation("org.springframework.security:spring-security-test")
     testCompileOnly("org.projectlombok:lombok")
@@ -128,4 +130,23 @@ tasks.compileJava {
 
 tasks.named("openApiGenerate") {
     dependsOn(tasks.named("spotlessJava"))
+}
+
+// Setup for gradle bootBuildImage command
+tasks.named<org.springframework.boot.gradle.tasks.bundling.BootBuildImage>("bootBuildImage") {
+    imagePlatform.set("linux/arm64") // IMPORTANT: This workflow builds images to arm64 only
+
+    environment.set(
+        mapOf(
+            "BP_JVM_VERSION" to "25"
+        )
+    )
+
+    publish.set(true)
+    docker {
+        publishRegistry {
+            username.set(System.getenv("GH_REGISTRY_USER"))
+            password.set(System.getenv("GH_REGISTRY_PASSWORD"))
+        }
+    }
 }

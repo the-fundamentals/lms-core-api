@@ -1,0 +1,14 @@
+# Deployed-dev overrides. Activate with --spring.profiles.active=dev
+app:
+  utility:
+    storage:
+      landing-zone-bucket-name: lms-dev-fundamentals000-landing-zone
+      public-store-bucket-name: lms-dev-fundamentals000-public
+      region: ${AWS_REGION:us-east-1}
+      use-dummy-credentials: true
+  config:
+    load-dummy-accounts-into-database: true
+
+spring:
+  config:
+    import: optional:classpath:.env.dev[.properties]

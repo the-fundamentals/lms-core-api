@@ -1,0 +1,11 @@
+pre-commit:
+  parallel: false
+  commands:
+    spotless:
+      priority: 1
+      glob: "*.java"
+      run: ./gradlew spotlessApply -q --console=plain
+      stage_fixed: true
+    betterleaks:
+      priority: 2
+      run: betterleaks git --pre-commit --staged --redact -v

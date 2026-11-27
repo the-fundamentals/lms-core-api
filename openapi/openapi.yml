@@ -17,14 +17,19 @@ tags:
     description: Admin-only classroom member management (`/admin/classrooms/.../members`)
   - name: ClassroomMemberPaymentPlans
     description: Admin-only classroom member payment plans (`/admin/classrooms/.../payment-plans`)
+  - name: ClassroomInvoices
+    description: Admin-only classroom invoices (`/admin/classrooms/.../invoices`)
   - name: ClassroomScheduleRecurrence
     description: Admin-only classroom schedule recurrence management (`/admin/classrooms/.../schedule`)
   - name: ClassroomSessions
     description: Admin-only classroom session and attendance management (`/admin/classrooms/.../sessions` and member attendance history)
-  - name: ClassroomFinances
-    description: Admin-only classroom financial management (`/admin/classrooms/.../revenue` and related finance routes)
   - name: Storage
-    description: Private endpoints to upload files to the system
+    description: >
+      Authenticated file upload (`POST /private/storage`). Files always go to a temporary
+      **landing zone** first. For public files (`isPublic: true`), the returned `objectKey`
+      (`public/{uuid}`) stays in the landing zone until a domain write submits it
+      (profile `avatarKey`, classroom `bannerKey`). That write copies the object to the
+      permanent public store and best-effort deletes it from the landing zone.
   - name: _Test
     description: >
       Test endpoints
@@ -94,7 +99,15 @@ paths:
       operationId: updateMyAccountProfile
       summary: Update the current user's account profile
       description: >
-        Upserts the account profile for the authenticated user (JWT `sub`). Request body updates `firstName` and `lastName` only. Email is taken from the Cognito ID token supplied in `X-ID-Token` (must be `token_use=id` and the same `sub` as the access token). Creates the profile when none exists yet (onboarding).
+        Upserts the account profile for the authenticated user (JWT `sub`). Request body
+        updates `firstName`, `lastName`, and `avatarKey`. Email is taken from the Cognito
+        ID token supplied in `X-ID-Token` (must be `token_use=id` and the same `sub` as the
+        access token). Creates the profile when none exists yet (onboarding).
+
+        `avatarKey` must be a public landing-zone key from `POST /private/storage` with
+        `isPublic: true`. On success the server confirms the upload: copies the object from
+        the landing zone to the permanent public store (idempotent if already there), then
+        best-effort deletes the landing-zone copy.
 
       parameters:
         - $ref: "#/components/parameters/IdToken"
@@ -125,7 +138,15 @@ paths:
         - Classroom
       operationId: createClassroom
       summary: Create a classroom
-      description: Creates a new classroom and returns it.
+      description: >
+        Creates a new classroom and returns it. Base payment plan defaults to PER_SESSION,
+        amount 0 (free) when omitted.
+
+        When `bannerKey` is present it must be a public landing-zone key from
+        `POST /private/storage` with `isPublic: true`. Create confirms that upload: copies
+        the object from the landing zone to the permanent public store (idempotent if already
+        there), then best-effort deletes the landing-zone copy. Omitting `bannerKey` skips
+        storage confirmation.
       requestBody:
         required: true
         content:
@@ -192,7 +213,14 @@ paths:
         - Classroom
       operationId: updateClassroom
       summary: Update a classroom
-      description: Updates an existing classroom and returns the updated resource.
+      description: >
+        Updates an existing classroom and returns the updated resource.
+
+        When `bannerKey` is present it must be a public landing-zone key from
+        `POST /private/storage` with `isPublic: true`. Update confirms that upload: copies
+        the object from the landing zone to the permanent public store (idempotent if already
+        there), then best-effort deletes the landing-zone copy. Omitting `bannerKey` leaves
+        the existing banner and skips storage confirmation.
       parameters:
         - $ref: "#/components/parameters/ClassroomId"
       requestBody:
@@ -214,6 +242,40 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Classroom not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /admin/classrooms/{classroomId}/base-payment-plan:
+    put:
+      tags:
+        - Classroom
+      operationId: setClassroomBasePaymentPlan
+      summary: Set the classroom base payment plan
+      description: >
+        Sets the classroom base payment plan. Omitted type defaults to PER_SESSION. When type or
+        amount changes, each ACTIVE STUDENT whose
+        current plan was copied from the classroom base is closed and replaced with the new base.
+        REMOVED members, teachers, individual plans, and students with no current plan are left
+        unchanged. An unchanged base does not rewrite member plans.
+
+      parameters:
+        - $ref: "#/components/parameters/ClassroomIdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetClassroomBasePaymentPlanCommand"
+      responses:
+        "200":
+          description: Classroom base payment plan updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassroomResponse"
         "404":
           description: Classroom not found
           content:
@@ -286,7 +348,7 @@ paths:
       operationId: getAllClassroomPaymentPlans
       summary: Get current payment plans for a classroom
       description: >
-        Returns each member's current (active) payment plan for the classroom, not paginated. Replaced plans are omitted. Members with no current plan are omitted. Newest created date first.
+        Returns each member's current payment plan (`effectiveTo` null) for the classroom, not paginated. Replaced plans are omitted. Members with no current plan are omitted. Newest `effectiveFrom` first.
 
       parameters:
         - $ref: "#/components/parameters/ClassroomIdPath"
@@ -297,42 +359,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/GetAllClassroomMemberPaymentPlansResponse"
-        "404":
-          description: Classroom not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-  /admin/classrooms/{classroomId}/revenue/query:
-    post:
-      tags:
-        - ClassroomFinances
-      operationId: getClassroomRevenue
-      summary: Get classroom revenue for a time range
-      description: >
-        Returns one revenue total for the classroom. Sums each ATTENDED student's current payment-plan amount for sessions whose sessionDate is in `[from, to)` (`from` inclusive, `to` exclusive). Teachers, ABSENT, UNSET, and members without a current plan contribute nothing. Uses the member's current plan only — not the plan that was current at session time. Currency is always VND.
-
-      parameters:
-        - $ref: "#/components/parameters/ClassroomIdPath"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/GetClassroomRevenueQuery"
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ClassroomRevenueResponse"
-        "400":
-          description: Invalid range (`from` is not before `to`)
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
         "404":
           description: Classroom not found
           content:
@@ -365,7 +391,7 @@ paths:
       operationId: getClassroomMemberPaymentPlans
       summary: Get payment plans for a classroom member
       description: >
-        Returns every payment plan for the member, not paginated. The current plan (if any) is first, then remaining plans by created date descending. An empty list means the member has no paid plan.
+        Returns every payment plan for the member, not paginated. The current plan (`effectiveTo` null, if any) is first, then remaining plans by `effectiveFrom` descending. An empty list means the member has no paid plan.
 
       parameters:
         - $ref: "#/components/parameters/ClassroomIdPath"
@@ -389,7 +415,7 @@ paths:
       operationId: createClassroomMemberPaymentPlan
       summary: Create a payment plan for a classroom member
       description: >
-        Inserts a new current payment plan. Any existing current plan for the member is marked not current in the same transaction. Plans are immutable after create.
+        Inserts a new current payment plan effective immediately. Any existing current plan for the member is closed (`effectiveTo` set) in the same transaction. Does not support future-dated plans. Plans are immutable after create; updates are not allowed.
 
       parameters:
         - $ref: "#/components/parameters/ClassroomIdPath"
@@ -420,29 +446,254 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
   /admin/classrooms/{classroomId}/members/{memberId}/payment-plans/{paymentPlanId}:
-    delete:
+    get:
       tags:
         - ClassroomMemberPaymentPlans
-      operationId: deleteClassroomMemberPaymentPlan
-      summary: Delete a classroom member payment plan
-      description: >
-        Hard-deletes a payment plan only if it was created within the last five minutes. Does not restore a previous plan as current.
+      operationId: getClassroomMemberPaymentPlanById
+      summary: Get a classroom member payment plan by id
+      description: Returns a single payment plan for the member by its identifier.
 
       parameters:
         - $ref: "#/components/parameters/ClassroomIdPath"
         - $ref: "#/components/parameters/MemberId"
         - $ref: "#/components/parameters/PaymentPlanId"
       responses:
-        "204":
-          description: Payment plan deleted
+        "200":
+          description: Payment plan found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassroomMemberPaymentPlanResponse"
         "404":
           description: Payment plan not found
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-        "409":
-          description: Payment plan is outside the deletion window
+  /admin/classrooms/{classroomId}/invoices:
+    post:
+      tags:
+        - ClassroomInvoices
+      operationId: createClassroomInvoiceAdhoc
+      summary: Create an adhoc classroom invoice
+      description: >
+        Creates a DRAFT invoice of type ADHOC for a member of the classroom.
+        Period is left unset. Line totals and the invoice total are computed by the server
+        (`finalAmount = unitPrice * quantity`). At least one line is required.
+        The member must belong to the path classroom.
+
+      parameters:
+        - $ref: "#/components/parameters/ClassroomIdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateClassroomInvoiceAdhocCommand"
+      responses:
+        "201":
+          description: Adhoc classroom invoice created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassroomInvoiceResponse"
+        "404":
+          description: Classroom member not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /admin/classrooms/{classroomId}/invoices/query:
+    post:
+      tags:
+        - ClassroomInvoices
+      operationId: queryClassroomInvoices
+      summary: Query invoices for a classroom
+      description: >
+        Query invoices belonging to a classroom. Always scoped to the path `classroomId` in
+        addition to the filter. Use `memberId` in filters to narrow to one member.
+        Pagination and sorting follow the same pattern as other query endpoints.
+
+      parameters:
+        - $ref: "#/components/parameters/ClassroomIdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClassroomInvoiceFilter"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetAllClassroomInvoicesResponse"
+        "404":
+          description: Classroom not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /admin/classrooms/{classroomId}/invoices/{invoiceId}:
+    get:
+      tags:
+        - ClassroomInvoices
+      operationId: getClassroomInvoiceById
+      summary: Get a classroom invoice by id
+      description: Returns a single invoice for the classroom by its identifier.
+      parameters:
+        - $ref: "#/components/parameters/ClassroomIdPath"
+        - $ref: "#/components/parameters/InvoiceId"
+      responses:
+        "200":
+          description: Classroom invoice found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassroomInvoiceResponse"
+        "404":
+          description: Classroom invoice not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      tags:
+        - ClassroomInvoices
+      operationId: updateClassroomInvoice
+      summary: Update a draft classroom invoice
+      description: >
+        Replaces all lines on a DRAFT invoice and recomputes line and invoice totals on the server.
+        Optional note: omitted leaves the existing note unchanged. Member, type, period, payment
+        fields, and status are unchanged. APPROVED, COMPLETED, and CANCELLED invoices are rejected.
+        Applies to both ADHOC and GENERATED drafts. Line ids are not accepted; lines are replaced.
+
+      parameters:
+        - $ref: "#/components/parameters/ClassroomIdPath"
+        - $ref: "#/components/parameters/InvoiceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateClassroomInvoiceCommand"
+      responses:
+        "200":
+          description: Classroom invoice updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassroomInvoiceResponse"
+        "400":
+          description: Invoice is not DRAFT
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Classroom invoice not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /admin/classrooms/{classroomId}/invoices/{invoiceId}/approve:
+    post:
+      tags:
+        - ClassroomInvoices
+      operationId: approveClassroomInvoice
+      summary: Approve a classroom invoice
+      description: >
+        Moves the invoice status from DRAFT to APPROVED. Non-DRAFT invoices are rejected.
+
+      parameters:
+        - $ref: "#/components/parameters/ClassroomIdPath"
+        - $ref: "#/components/parameters/InvoiceId"
+      responses:
+        "200":
+          description: Classroom invoice approved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassroomInvoiceResponse"
+        "400":
+          description: Invoice is not DRAFT
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Classroom invoice not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /admin/classrooms/{classroomId}/invoices/{invoiceId}/complete:
+    post:
+      tags:
+        - ClassroomInvoices
+      operationId: completeClassroomInvoice
+      summary: Complete a classroom invoice
+      description: >
+        Moves the invoice status from APPROVED to COMPLETED and records payment.
+        Sets paidAt on the server. Non-APPROVED invoices are rejected.
+
+      parameters:
+        - $ref: "#/components/parameters/ClassroomIdPath"
+        - $ref: "#/components/parameters/InvoiceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompleteClassroomInvoiceCommand"
+      responses:
+        "200":
+          description: Classroom invoice completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassroomInvoiceResponse"
+        "400":
+          description: Invoice is not APPROVED
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Classroom invoice not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /admin/classrooms/{classroomId}/invoices/{invoiceId}/cancel:
+    post:
+      tags:
+        - ClassroomInvoices
+      operationId: cancelClassroomInvoice
+      summary: Cancel a classroom invoice
+      description: >
+        Moves the invoice status from DRAFT or APPROVED to CANCELLED.
+        COMPLETED and CANCELLED invoices are rejected.
+
+      parameters:
+        - $ref: "#/components/parameters/ClassroomIdPath"
+        - $ref: "#/components/parameters/InvoiceId"
+      responses:
+        "200":
+          description: Classroom invoice cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassroomInvoiceResponse"
+        "400":
+          description: Invoice is not DRAFT or APPROVED
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Classroom invoice not found
           content:
             application/json:
               schema:
@@ -571,7 +822,11 @@ paths:
       operationId: updateClassroomSession
       summary: Update a classroom session
       description: >
-        Updates the display name and description of an OPEN classroom session. Date, times, status, and type are unchanged. COMPLETED and CANCELLED sessions are rejected. Omitted name or description clears that field.
+        Updates the display name and description of an OPEN classroom session.
+        For ADHOC sessions, sessionDate, startTime, and endTime may also be changed.
+        SCHEDULE sessions reject date/time changes (change the recurrence instead).
+        COMPLETED and CANCELLED sessions are rejected. Omitted name or description
+        clears that field. Omitted date/time fields leave the current values.
 
       parameters:
         - $ref: "#/components/parameters/ClassroomIdPath"
@@ -590,7 +845,9 @@ paths:
               schema:
                 $ref: "#/components/schemas/ClassroomSessionResponse"
         "400":
-          description: Invalid update command, or session is not OPEN
+          description: >
+            Invalid update command, session is not OPEN, or date/time change on a
+            SCHEDULE session
           content:
             application/json:
               schema:
@@ -798,8 +1055,24 @@ paths:
       tags:
         - Storage
       operationId: uploadToStorage
-      summary: Upload a file to the landing zone storage bucket
-      description: Get a presigned URL to upload a file to the landing zone bucket. Form must be submitted to be moved to public (permanent) bucket
+      summary: Get presigned URLs for landing-zone upload
+      description: >
+        Issues presigned URLs that target the temporary **landing zone** bucket. Nothing is
+        written to the permanent public store by this call.
+
+        **Public file client flow**
+        1. Call with `isPublic: true`. Response `objectKey` is `public/{uuid}`.
+        2. HTTP PUT the file bytes to `uploadUrl` (landing zone; expires in 5 minutes).
+        3. Optionally GET `downloadUrl` to preview from the landing zone (expires in 15 minutes).
+        4. Submit that `objectKey` on a domain write (`avatarKey` on profile update,
+           `bannerKey` on classroom create/update). The server then confirms: copy landing
+           zone → permanent public store (same key), then best-effort delete from the landing
+           zone. Confirm is idempotent when the object is already in the public store; missing
+           landing-zone object yields not found.
+
+        Private uploads (`isPublic: false` or omitted body) return `private/{uuid}` keys still
+        aimed at the landing zone; permanent private transfer is not exposed on production
+        domain writes yet.
       requestBody:
         required: false
         content:
@@ -808,7 +1081,9 @@ paths:
               $ref: "#/components/schemas/UploadToStorageCommand"
       responses:
         "200":
-          description: URL Created. Use the URL to upload file
+          description: >
+            Presigned landing-zone URLs and the assigned `objectKey`. PUT to `uploadUrl`, then
+            submit the key on a domain write to move public objects into the permanent store.
           content:
             application/json:
               schema:
@@ -820,7 +1095,12 @@ paths:
       operationId: confirmPublicFileUpload
       summary: Confirm a public file upload (local only)
       description: >
-        Moves an object from the landing zone to the public store after upload. Local profile only — this endpoint is registered only when the Spring profile `local` is active.
+        Same transfer used by domain writes that accept a public `objectKey` (`avatarKey`,
+        `bannerKey`): validates the key starts with `public/`, copies landing zone → permanent
+        public store (no-op if already in the public store), then best-effort deletes the
+        landing-zone object. Local/test profile only — registered when Spring profile `local`
+        or `test` is active. Production clients should not call this; submit the key via the
+        relevant domain endpoint instead.
 
       security: []
       requestBody:
@@ -957,6 +1237,29 @@ paths:
       responses:
         "204":
           description: Generation ran
+  /dev/classroom-invoices/generate:
+    post:
+      tags:
+        - _Dev
+      operationId: generateClassroomInvoices
+      summary: Generate classroom invoices for a date-time window
+      description: >
+        Triggers the same work as the monthly invoice job for an explicit attendance window.
+        Creates GENERATED draft invoices for active STUDENT members (including zero attendances).
+        Unit price comes from the member's current payment plan (`effectiveTo` null); 0 if none.
+        Does not use the plan that was effective on each attendance date (deferred).
+        Existing GENERATED invoices for the same member/period are skipped. Local and test profiles only.
+
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateClassroomInvoicesCommand"
+      responses:
+        "204":
+          description: Generation ran
   /admin/classrooms/{classroomId}/schedule:
     get:
       tags:
@@ -1041,14 +1344,32 @@ paths:
       tags:
         - ClassroomScheduleRecurrence
       operationId: deleteClassroomScheduleRecurrence
-      summary: Delete a classroom schedule recurrence
-      description: Soft-deletes a classroom schedule recurrence by setting its deleted date for audit purposes.
+      summary: Truncate a classroom schedule recurrence
+      description: >
+        Truncates the recurrence from `cutoffDate` onward by setting `recurUntil` to the day
+        before `cutoffDate`. When `recurUntil` is already set, `cutoffDate` must shorten it
+        (`cutoffDate` on or before the current `recurUntil`); otherwise 400. Cancels OPEN
+        sessions generated by this recurrence with `sessionDate >= cutoffDate`
+        (`cancelCause` = REMOVED_FROM_SERIES). COMPLETED, already CANCELLED, and OPEN sessions
+        before the cutoff are unchanged. Does not soft-delete the recurrence row.
       parameters:
         - $ref: "#/components/parameters/ClassroomIdPath"
         - $ref: "#/components/parameters/ScheduleId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeleteClassroomScheduleRecurrenceCommand"
       responses:
         "204":
-          description: Classroom schedule deleted
+          description: Classroom schedule truncated
+        "400":
+          description: Invalid delete command
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "404":
           description: Classroom schedule not found
           content:
@@ -1129,6 +1450,16 @@ components:
         format: uuid
         description: Classroom member payment plan UUID
         example: 550e8400-e29b-41d4-a716-446655440000
+    InvoiceId:
+      name: invoiceId
+      in: path
+      required: true
+      description: Classroom invoice identifier
+      schema:
+        type: string
+        format: uuid
+        description: Classroom invoice UUID
+        example: 6ba7b810-9dad-11d1-80b4-00c04fd430c8
     AttendanceId:
       name: attendanceId
       in: path
@@ -1159,15 +1490,27 @@ components:
         description: ID Token JWT
   schemas:
     UploadToStorageCommand:
-      description: A command to generate presigned URLs to upload an item to storage
+      type: object
+      description: >
+        Requests presigned URLs for uploading into the landing zone. Public vs private only
+        chooses the `objectKey` prefix; both still target the landing zone until a later
+        confirm/transfer.
+      additionalProperties: false
       properties:
         isPublic:
           type: boolean
           default: false
-          description: Set to true if this is a public resource to be stored in the public bucket
-          example: false
+          description: >
+            When true, assigns a `public/{uuid}` key intended for the permanent public store
+            after a domain write submits that key. When false or omitted, assigns
+            `private/{uuid}`. Does not upload to the permanent public store by itself.
+          example: true
     UploadToStorageResponse:
-      description: Response containing the presigned URL for uploading files
+      type: object
+      description: >
+        Presigned landing-zone URLs and the assigned object key. The file is not in the
+        permanent public store until a domain write confirms a public key.
+      additionalProperties: false
       required:
         - uploadUrl
         - objectKey
@@ -1175,15 +1518,22 @@ components:
         uploadUrl:
           type: string
           example: http://localhost:8080/upload
-          description: Presigned URL to upload the file
+          description: >
+            Presigned PUT URL for the landing zone (expires in 5 minutes). Upload file bytes
+            here before submitting the `objectKey` on a domain write.
         downloadUrl:
           type: string
           example: http://localhost:8080/download
-          description: Presigned URL to download the file
+          description: >
+            Presigned GET URL for the same landing-zone object (expires in 15 minutes). Useful
+            for preview before confirm/transfer.
         objectKey:
           type: string
-          example: 540ba3e4-8026-45e9-9834-54aa0eb1a17a
-          description: The key of the object saved in S3
+          example: public/540ba3e4-8026-45e9-9834-54aa0eb1a17a
+          description: >
+            Assigned storage key (`public/{uuid}` or `private/{uuid}`). For public files, pass
+            this value as `avatarKey` / `bannerKey` (etc.) on the domain write that should
+            move the object from the landing zone into the permanent public store.
     ClassroomFilter:
       type: object
       description: Student filter
@@ -1230,6 +1580,8 @@ components:
         - status
         - createdDate
         - lastModifiedDate
+        - basePaymentPlanType
+        - basePaymentPlanAmount
       properties:
         id:
           type: string
@@ -1244,7 +1596,9 @@ components:
           example: Algebra I
         bannerKey:
           type: string
-          description: Key to the stored classroom banner image in the Public S3 Bucket
+          description: >
+            Classroom banner object key in the permanent public store (`public/{uuid}`), after
+            create/update confirmed the landing-zone upload.
           minLength: 1
           maxLength: 64
           example: public/3e4ef8d1-9581-402f-9e27-fec209aeb2d8
@@ -1266,6 +1620,14 @@ components:
           format: date-time
           description: When the classroom was last modified
           example: 2026-07-14T00:00:00
+        basePaymentPlanType:
+          $ref: "#/components/schemas/PaymentPlanType"
+        basePaymentPlanAmount:
+          type: integer
+          format: int64
+          description: Classroom base amount in the smallest currency unit. 0 means the class is free.
+          minimum: 0
+          example: 0
     GetAllClassroomsResponse:
       type: array
       description: Collection of classrooms
@@ -1283,6 +1645,43 @@ components:
       description: Collection of classroom members
       items:
         $ref: "#/components/schemas/ClassroomMemberResponse"
+    ClassroomBasePaymentPlanInput:
+      type: object
+      description: >
+        Optional base payment plan on classroom create. Omitted amount is 0 (free). Omitted type is
+        PER_SESSION.
+      additionalProperties: false
+      properties:
+        type:
+          allOf:
+            - $ref: "#/components/schemas/PaymentPlanType"
+          default: PER_SESSION
+          description: How the classroom is billed. Defaults to PER_SESSION when omitted.
+        amount:
+          type: integer
+          format: int64
+          description: Amount in the smallest currency unit. Omitted means 0.
+          minimum: 0
+          example: 150000
+    SetClassroomBasePaymentPlanCommand:
+      type: object
+      description: >
+        Command to set the classroom base payment plan. Omitted type defaults to PER_SESSION.
+      additionalProperties: false
+      required:
+        - amount
+      properties:
+        type:
+          allOf:
+            - $ref: "#/components/schemas/PaymentPlanType"
+          default: PER_SESSION
+          description: How the classroom is billed. Defaults to PER_SESSION when omitted.
+        amount:
+          type: integer
+          format: int64
+          description: Amount in the smallest currency unit. 0 means the class is free.
+          minimum: 0
+          example: 150000
     PaymentPlanType:
       type: string
       description: How the member is billed
@@ -1291,7 +1690,9 @@ components:
       example: PER_SESSION
     CreateClassroomMemberPaymentPlanCommand:
       type: object
-      description: Command to create a current payment plan for a classroom member
+      description: >
+        Command to create a current payment plan for a classroom member. Takes effect immediately;
+        effective dates are set by the server (no future scheduling).
       additionalProperties: false
       required:
         - type
@@ -1305,13 +1706,6 @@ components:
           description: Amount in the smallest currency unit
           minimum: 0
           example: 150000
-        currency:
-          type: string
-          description: ISO-style currency code. Defaults to VND when omitted.
-          minLength: 1
-          maxLength: 32
-          default: VND
-          example: VND
     ClassroomMemberPaymentPlanResponse:
       type: object
       description: Classroom member payment plan returned by the API
@@ -1321,8 +1715,8 @@ components:
         - classroomMemberId
         - type
         - amount
-        - currency
-        - isCurrent
+        - effectiveFrom
+        - fromClassroomBase
         - createdDate
         - lastModifiedDate
       properties:
@@ -1343,21 +1737,22 @@ components:
           format: int64
           description: Amount in the smallest currency unit
           example: 150000
-        currency:
+        effectiveFrom:
           type: string
-          description: Currency code
-          minLength: 1
-          maxLength: 32
-          example: VND
-        isCurrent:
-          type: boolean
-          description: Whether this is the member's current plan
-          example: true
-        replacedAt:
+          format: date-time
+          description: When this plan became current
+          example: 2026-07-14T00:00:00Z
+        effectiveTo:
           type: string
           format: date-time
           description: When this plan stopped being current. Null while current.
           example: 2026-07-14T00:05:00Z
+        fromClassroomBase:
+          type: boolean
+          description: >
+            True when this plan was copied from the classroom base and should follow later
+            base changes.
+          example: true
         createdDate:
           type: string
           format: date-time
@@ -1373,48 +1768,6 @@ components:
       description: Collection of classroom member payment plans
       items:
         $ref: "#/components/schemas/ClassroomMemberPaymentPlanResponse"
-    GetClassroomRevenueQuery:
-      type: object
-      description: >
-        Time range for classroom revenue. Filtered on sessionDate; `from` is inclusive and `to` is exclusive.
-
-      additionalProperties: false
-      required:
-        - from
-        - to
-      properties:
-        from:
-          type: string
-          format: date-time
-          description: Start of the range (inclusive) on sessionDate
-          example: 2026-08-01T00:00:00Z
-        to:
-          type: string
-          format: date-time
-          description: End of the range (exclusive) on sessionDate
-          example: 2026-09-01T00:00:00Z
-    ClassroomRevenueResponse:
-      type: object
-      description: Classroom revenue total for a time range
-      additionalProperties: false
-      required:
-        - revenue
-        - currency
-      properties:
-        revenue:
-          type: integer
-          format: int64
-          description: >
-            Sum of current student payment-plan amounts for ATTENDED sessions in the range, in the smallest currency unit. Zero when nothing matches.
-
-          minimum: 0
-          example: 1000000
-        currency:
-          type: string
-          description: Currency code. Always VND for this endpoint.
-          minLength: 1
-          maxLength: 32
-          example: VND
     GetAllClassroomsQuery:
       type: object
       description: Query to retrieve all classrooms
@@ -1447,11 +1800,16 @@ components:
           example: Algebra I
         bannerKey:
           type: string
-          description: Key to the stored classroom banner image in the Public S3 Bucket
+          description: >
+            Optional public landing-zone key from `POST /private/storage` with `isPublic: true`
+            (`public/{uuid}`). When present, create confirms the upload (landing zone →
+            permanent public store). Omit to create without a banner.
           minLength: 1
           maxLength: 64
           example: public/3e4ef8d1-9581-402f-9e27-fec209aeb2d8
           pattern: ^public\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$
+        basePaymentPlan:
+          $ref: "#/components/schemas/ClassroomBasePaymentPlanInput"
     UpdateClassroomCommand:
       type: object
       description: Command to update a classroom
@@ -1467,7 +1825,10 @@ components:
           example: Algebra II
         bannerKey:
           type: string
-          description: Key to the stored classroom banner image in the Public S3 Bucket
+          description: >
+            Optional public landing-zone key from `POST /private/storage` with `isPublic: true`
+            (`public/{uuid}`). When present, update confirms the upload (landing zone →
+            permanent public store). Omit to leave the existing banner unchanged.
           minLength: 1
           maxLength: 64
           example: public/3e4ef8d1-9581-402f-9e27-fec209aeb2d8
@@ -1569,6 +1930,11 @@ components:
 
           maxLength: 255
           example: public/3e4ef8d1-9581-402f-9e27-fec209aeb2d8
+        removedDate:
+          type: string
+          format: date-time
+          description: When the member was removed; null while ACTIVE
+          example: 2026-07-20T00:00:00Z
         createdDate:
           type: string
           format: date-time
@@ -1581,12 +1947,13 @@ components:
           example: 2026-07-14T00:00:00
     ClassroomSessionAttendanceStatus:
       type: string
-      description: Attendance status for a classroom session
+      description: >
+        Attendance status for a classroom session. Unmarked members have no attendance row
+        (do not use a placeholder status).
       enum:
         - ATTENDED
         - ABSENT
-        - UNSET
-      example: UNSET
+      example: ATTENDED
     ClassroomSessionStatus:
       type: string
       description: Lifecycle status of a classroom session
@@ -1595,6 +1962,15 @@ components:
         - COMPLETED
         - CANCELLED
       example: OPEN
+    ClassroomSessionCancelCause:
+      type: string
+      description: >
+        Why a classroom session was cancelled. Present when status is CANCELLED; omitted
+        otherwise.
+      enum:
+        - MANUAL
+        - REMOVED_FROM_SERIES
+      example: MANUAL
     ClassroomSessionType:
       type: string
       description: How the classroom session was created
@@ -1643,10 +2019,27 @@ components:
     UpdateClassroomSessionCommand:
       type: object
       description: >
-        Command to update a classroom session's display name and description. Date, times, status, and type cannot be changed here.
+        Command to update a classroom session. Name and description apply to any OPEN
+        session. sessionDate, startTime, and endTime apply only to OPEN ADHOC sessions;
+        SCHEDULE sessions reject those fields. Status and type cannot be changed here.
 
       additionalProperties: false
       properties:
+        sessionDate:
+          type: string
+          format: date
+          description: Updated calendar date (ADHOC only); omit to leave unchanged
+          example: "2026-07-20"
+        startTime:
+          type: string
+          format: time-local
+          description: Updated session start (ADHOC only); omit to leave unchanged
+          example: "10:00:00"
+        endTime:
+          type: string
+          format: time-local
+          description: Updated session end (ADHOC only); omit to leave unchanged
+          example: "11:30:00"
         name:
           type: string
           description: Updated display name; omit or null to clear
@@ -1673,6 +2066,27 @@ components:
           format: date
           description: Date this ran; sessions are created for the following calendar month
           example: "2026-10-07"
+    GenerateClassroomInvoicesCommand:
+      type: object
+      description: >
+        Command to generate classroom invoices for an inclusive attendance window
+        (job uses previous-month start through first day of the current month).
+
+      additionalProperties: false
+      required:
+        - startDateTime
+        - endDateTime
+      properties:
+        startDateTime:
+          type: string
+          format: date-time
+          description: Inclusive attendance window start
+          example: "2026-09-01T00:00:00"
+        endDateTime:
+          type: string
+          format: date-time
+          description: Inclusive attendance window end
+          example: "2026-10-01T00:00:00"
     ClassroomSessionFilter:
       type: object
       description: Filter for querying classroom sessions
@@ -1764,6 +2178,17 @@ components:
           $ref: "#/components/schemas/ClassroomSessionStatus"
         type:
           $ref: "#/components/schemas/ClassroomSessionType"
+        cancelCause:
+          $ref: "#/components/schemas/ClassroomSessionCancelCause"
+        createdBy:
+          type: string
+          format: uuid
+          description: >
+            Account profile id of the user who created this session. Set on ADHOC create;
+            omitted on SCHEDULE (generated) sessions.
+          example: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+        createdByDetails:
+          $ref: "#/components/schemas/CreatorDetails"
         createdDate:
           type: string
           format: date-time
@@ -1774,6 +2199,29 @@ components:
           format: date-time
           description: When the session was last modified
           example: 2026-07-14T00:00:00Z
+    CreatorDetails:
+      type: object
+      description: >
+        Denormalized creator snapshot stored on ADHOC resources at create time (accounts are a
+        separate aggregate). Not kept in sync if the profile later changes.
+      additionalProperties: false
+      required:
+        - name
+        - email
+      properties:
+        name:
+          type: string
+          description: Display name at create time
+          example: Jane Doe
+        email:
+          type: string
+          format: email
+          description: Email at create time
+          example: jane.doe@example.com
+        avatar:
+          type: string
+          description: Avatar object key at create time; omitted when the profile had none
+          example: public/3e4ef8d1-9581-402f-9e27-fec209aeb2d8
     GetAllClassroomSessionsResponse:
       type: array
       description: Collection of classroom sessions
@@ -2021,6 +2469,23 @@ components:
         - SATURDAY
         - SUNDAY
       example: MONDAY
+    DeleteClassroomScheduleRecurrenceCommand:
+      type: object
+      description: >
+        Command to truncate a classroom schedule recurrence from cutoffDate onward and cancel
+        OPEN generated sessions on or after that date.
+      additionalProperties: false
+      required:
+        - cutoffDate
+      properties:
+        cutoffDate:
+          type: string
+          format: date
+          description: >
+            Inclusive first date to remove from the series. RecurUntil becomes the day before;
+            OPEN sessions generated by this recurrence with sessionDate on or after this date
+            are cancelled with cancelCause REMOVED_FROM_SERIES.
+          example: "2026-08-01"
     ClassroomScheduleRecurrenceResponse:
       type: object
       description: Classroom schedule recurrence resource returned by the API
@@ -2148,7 +2613,9 @@ components:
           example: Doe
         avatarKey:
           type: string
-          description: Key to the stored avatar image in the Public S3 Bucket
+          description: >
+            Avatar object key in the permanent public store (`public/{uuid}`), after profile
+            update confirmed the landing-zone upload.
           minLength: 1
           maxLength: 64
           example: public/3e4ef8d1-9581-402f-9e27-fec209aeb2d8
@@ -2166,7 +2633,9 @@ components:
     UpdateAccountProfileCommand:
       type: object
       description: >
-        Command to update the authenticated user's account profile. Only first and last name are accepted here; email is taken from `X-ID-Token`.
+        Command to upsert the authenticated user's account profile. Updates `firstName`,
+        `lastName`, and `avatarKey`. Email is taken from `X-ID-Token`. Submitting `avatarKey`
+        confirms the public landing-zone upload into the permanent public store.
 
       additionalProperties: false
       required:
@@ -2188,11 +2657,365 @@ components:
           example: Doe
         avatarKey:
           type: string
-          description: Key to the stored avatar image in the Public S3 Bucket
+          description: >
+            Public landing-zone key from `POST /private/storage` with `isPublic: true`
+            (`public/{uuid}`). Profile update confirms the upload (landing zone → permanent
+            public store; idempotent if already confirmed). Re-submit the current key when the
+            avatar is unchanged.
           minLength: 1
           maxLength: 64
           example: public/3e4ef8d1-9581-402f-9e27-fec209aeb2d8
           pattern: ^public\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$
+    ClassroomInvoiceStatus:
+      type: string
+      description: Lifecycle status of a classroom invoice
+      enum:
+        - DRAFT
+        - APPROVED
+        - COMPLETED
+        - CANCELLED
+      example: DRAFT
+    ClassroomInvoiceType:
+      type: string
+      description: How the classroom invoice was created
+      enum:
+        - GENERATED
+        - ADHOC
+      example: GENERATED
+    ClassroomInvoicePaymentMethod:
+      type: string
+      description: How the invoice was paid
+      enum:
+        - BANK
+        - CASH
+        - OTHER
+      example: BANK
+    ClassroomInvoiceLineKind:
+      type: string
+      description: Kind of invoice line
+      enum:
+        - LESSON
+        - OTHER
+      example: LESSON
+    CreateClassroomInvoiceAdhocCommand:
+      type: object
+      description: >
+        Command to create an adhoc classroom invoice. Status is always DRAFT and type is always ADHOC.
+        Period is not set. Totals are computed by the server.
+
+      additionalProperties: false
+      required:
+        - memberId
+        - lines
+      properties:
+        memberId:
+          type: string
+          format: uuid
+          description: Classroom member this invoice belongs to
+          example: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+        note:
+          type: string
+          description: Optional invoice note
+          minLength: 1
+          maxLength: 2000
+          example: Makeup fee for missed materials
+        lines:
+          type: array
+          description: Invoice lines. At least one.
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/CreateClassroomInvoiceAdhocLineCommand"
+    CreateClassroomInvoiceAdhocLineCommand:
+      type: object
+      description: >
+        One line on an adhoc classroom invoice. finalAmount is not accepted; the server sets it to unitPrice * quantity.
+
+      additionalProperties: false
+      required:
+        - kind
+        - description
+        - unitPrice
+        - quantity
+      properties:
+        kind:
+          $ref: "#/components/schemas/ClassroomInvoiceLineKind"
+        description:
+          type: string
+          description: Line description
+          minLength: 1
+          maxLength: 2000
+          example: Replacement workbook
+        unitPrice:
+          type: integer
+          format: int64
+          description: Unit price in the smallest currency unit
+          minimum: 0
+          example: 50000
+        quantity:
+          type: integer
+          format: int32
+          description: Quantity
+          minimum: 0
+          example: 1
+    UpdateClassroomInvoiceCommand:
+      type: object
+      description: >
+        Command to replace lines on a DRAFT classroom invoice. Totals are computed by the server.
+        Member, type, period, payment fields, and status cannot be changed. Omitted note leaves
+        the existing note unchanged.
+
+      additionalProperties: false
+      required:
+        - lines
+      properties:
+        note:
+          type: string
+          description: Optional invoice note; omit to keep the current note
+          minLength: 1
+          maxLength: 2000
+          example: Adjusted lesson count for October
+        lines:
+          type: array
+          description: Replacement invoice lines. At least one. Line ids are not accepted.
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/CreateClassroomInvoiceAdhocLineCommand"
+    CompleteClassroomInvoiceCommand:
+      type: object
+      description: >
+        Command to mark an APPROVED classroom invoice COMPLETED and record payment.
+        paidAt is set by the server. paidAmount is not required to equal totalAmount
+        (partial payment is allowed); use paymentNote to explain shortfalls or other
+        payment details.
+      additionalProperties: false
+      required:
+        - paidAmount
+        - paymentMethod
+      properties:
+        paidAmount:
+          type: integer
+          format: int64
+          description: >
+            Amount paid in the smallest currency unit. May be less than (or differ from)
+            the invoice totalAmount; the server does not enforce equality.
+          minimum: 0
+          example: 1200000
+        paymentMethod:
+          $ref: "#/components/schemas/ClassroomInvoicePaymentMethod"
+        paymentReference:
+          type: string
+          description: External payment reference
+          minLength: 1
+          maxLength: 255
+          example: TXN-12345
+        paymentNote:
+          type: string
+          description: >
+            Optional payment note — e.g. why paidAmount is less than totalAmount
+          minLength: 1
+          maxLength: 2000
+          example: Parent paid half now; remainder next week
+    ClassroomInvoiceFilter:
+      type: object
+      description: Filter for querying classroom invoices
+      additionalProperties: false
+      properties:
+        page:
+          type: integer
+          default: 0
+          minimum: 0
+        size:
+          type: integer
+          default: 10
+          minimum: 1
+          maximum: 50
+        sortBy:
+          type: string
+          pattern: '^(createdDate|billingStart|billingEnd|totalAmount|status|type|memberId)$'
+        sortDirection:
+          type: string
+          enum: [ASC, DESC]
+          default: DESC
+        filters:
+          type: array
+          items:
+            type: object
+            required: [field, operator, value]
+            properties:
+              field:
+                type: string
+                pattern: '^(memberId|status|type|billingStart|billingEnd|createdDate|totalAmount)$'
+              operator:
+                type: string
+                pattern: '^(eq|like|gt|lt|gte|lte)$'
+              value:
+                type: string
+    ClassroomInvoiceLineResponse:
+      type: object
+      description: Line item on a classroom invoice
+      additionalProperties: false
+      required:
+        - id
+        - kind
+        - description
+        - unitPrice
+        - quantity
+        - finalAmount
+        - createdDate
+        - lastModifiedDate
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique invoice line identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        kind:
+          $ref: "#/components/schemas/ClassroomInvoiceLineKind"
+        description:
+          type: string
+          description: Line description
+          example: 8 lessons in October
+        unitPrice:
+          type: integer
+          format: int64
+          description: Unit price in the smallest currency unit
+          minimum: 0
+          example: 150000
+        quantity:
+          type: integer
+          format: int32
+          description: Quantity
+          minimum: 0
+          example: 8
+        finalAmount:
+          type: integer
+          format: int64
+          description: Line total (unitPrice * quantity)
+          example: 1200000
+        createdDate:
+          type: string
+          format: date-time
+          description: When the line was created
+          example: 2026-07-14T00:00:00Z
+        lastModifiedDate:
+          type: string
+          format: date-time
+          description: When the line was last modified
+          example: 2026-07-14T00:00:00Z
+    ClassroomInvoiceResponse:
+      type: object
+      description: Classroom invoice resource returned by the API
+      additionalProperties: false
+      required:
+        - id
+        - classroomId
+        - memberId
+        - status
+        - type
+        - totalAmount
+        - lines
+        - createdDate
+        - lastModifiedDate
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique classroom invoice identifier
+          example: 6ba7b810-9dad-11d1-80b4-00c04fd430c8
+        classroomId:
+          type: string
+          format: uuid
+          description: Classroom this invoice belongs to
+          example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+        memberId:
+          type: string
+          format: uuid
+          description: Classroom member this invoice belongs to
+          example: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+        status:
+          $ref: "#/components/schemas/ClassroomInvoiceStatus"
+        type:
+          $ref: "#/components/schemas/ClassroomInvoiceType"
+        billingStart:
+          type: string
+          format: date
+          description: >
+            Inclusive start of the GENERATED billing window (same date as the generation job
+            window start). Omitted on ADHOC invoices.
+          example: "2026-10-01"
+        billingEnd:
+          type: string
+          format: date
+          description: >
+            End of the GENERATED billing window (same date as the generation job window end —
+            for the monthly job, the first day of the following month). Omitted on ADHOC
+            invoices. Together with billingStart this is the GENERATED uniqueness / idempotency
+            key per member.
+          example: "2026-11-01"
+        createdBy:
+          type: string
+          format: uuid
+          description: >
+            Account profile id of the user who created this invoice. Set on ADHOC create;
+            omitted on GENERATED invoices.
+          example: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+        createdByDetails:
+          $ref: "#/components/schemas/CreatorDetails"
+        totalAmount:
+          type: integer
+          format: int64
+          description: Invoice total in the smallest currency unit
+          minimum: 0
+          example: 1200000
+        note:
+          type: string
+          description: Optional invoice note
+          example: October tuition
+        approvedAt:
+          type: string
+          format: date-time
+          description: When the invoice was approved
+          example: 2026-10-05T00:00:00Z
+        paidAt:
+          type: string
+          format: date-time
+          description: When the invoice was marked paid
+          example: 2026-10-10T00:00:00Z
+        paidAmount:
+          type: integer
+          format: int64
+          description: Amount paid in the smallest currency unit
+          example: 1200000
+        paymentMethod:
+          $ref: "#/components/schemas/ClassroomInvoicePaymentMethod"
+        paymentReference:
+          type: string
+          description: External payment reference
+          example: TXN-12345
+        paymentNote:
+          type: string
+          description: Optional payment note
+          example: Paid via bank transfer
+        lines:
+          type: array
+          description: Invoice line items
+          items:
+            $ref: "#/components/schemas/ClassroomInvoiceLineResponse"
+        createdDate:
+          type: string
+          format: date-time
+          description: When the invoice was created
+          example: 2026-07-14T00:00:00Z
+        lastModifiedDate:
+          type: string
+          format: date-time
+          description: When the invoice was last modified
+          example: 2026-07-14T00:00:00Z
+    GetAllClassroomInvoicesResponse:
+      type: array
+      description: Collection of classroom invoices
+      items:
+        $ref: "#/components/schemas/ClassroomInvoiceResponse"
     ErrorResponse:
       type: object
       description: Standard API error payload

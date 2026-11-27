@@ -1,8 +1,7 @@
+# LocalStack / docker-compose overrides. Activate with --spring.profiles.active=local
 app:
   cognito:
-    user-pool-id: ${COGNITO_USER_POOL_ID}
-    app-client-id: ${COGNITO_APP_CLIENT_ID}
-    base-domain: ${COGNITO_BASE_DOMAIN}
+    # LocalStack Cognito IdP path (differs from real Cognito Hosted UI domain).
     client-full-domain: ${COGNITO_BASE_DOMAIN}/_aws/cognito-idp
   utility:
     storage:
@@ -13,43 +12,7 @@ app:
       cloud-mode: localstack
   config:
     load-dummy-accounts-into-database: true
-  modules:
-    management:
-      session-generation-cron: "-"
 
 spring:
-  application:
-    name: lms-core-api
-  datasource:
-    url: jdbc:postgresql://localhost:5432/postgres
-    username: postgres
-    password: postgres
-    driver-class-name: org.postgresql.Driver
-  sql:
-    init:
-      schema-locations: classpath:schema.sql
-      mode: always
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          jwk-set-uri: ${COGNITO_BASE_DOMAIN}/${COGNITO_USER_POOL_ID}/.well-known/jwks.json
   config:
-    import: optional:classpath:.env.local[.properties] # This is for the infrastructure env
-
-springdoc:
-  api-docs:
-    enabled: true
-  swagger-ui:
-    url: /openapi.yml
-    disable-swagger-default-url: true
-    try-it-out-enabled: true
-    operations-sorter: method
-    tags-sorter: alpha
-    persist-authorization: true
-    oauth:
-      client-id: ${app.cognito.app-client-id}
-      scopes: openid,email,profile
-      use-pkce-with-authorization-code-grant: true
-      # Swagger redirect (must be allow-listed in Cognito callback URLs):
-      #   {api-origin}/swagger-ui/oauth2-redirect.html
+    import: optional:classpath:.env.local[.properties]

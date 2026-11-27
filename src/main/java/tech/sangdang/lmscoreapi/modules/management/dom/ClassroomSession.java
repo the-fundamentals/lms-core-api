@@ -9,17 +9,20 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+import lombok.experimental.FieldNameConstants;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.relational.core.mapping.Table;
 import tech.sangdang.lmscoreapi.modules.management.dom.exception.ClassroomSessionCannotBeUpdatedException;
+import tech.sangdang.lmscoreapi.modules.management.dom.exception.ClassroomSessionTimeCannotBeUpdatedException;
 
 @Getter
 @Setter
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
+@FieldNameConstants
 @Table(ClassroomSession.TABLE_NAME)
 public class ClassroomSession {
   public static final String TABLE_NAME = "classroom_session";
@@ -37,6 +40,15 @@ public class ClassroomSession {
   private ClassroomSessionType type;
   private UUID generatedBy;
 
+  /** Set when status is CANCELLED; null otherwise. */
+  private ClassroomSessionCancelCause cancelCause;
+
+  /** ADHOC only — FK to {@code account_profile.id}. Null on SCHEDULE (job has no actor). */
+  private UUID createdBy;
+
+  /** ADHOC only — denormalized creator snapshot at create time. Null on SCHEDULE. */
+  private CreatorDetails createdByDetails;
+
   /**
    * Builds an adhoc session: status OPEN, type ADHOC.
    *
@@ -46,6 +58,8 @@ public class ClassroomSession {
    * @param classroomId classroom the session belongs to
    * @param name optional display name
    * @param description optional description
+   * @param createdBy account profile id of the authenticated creator
+   * @param createdByDetails denormalized creator name/email/avatar at create time
    */
   public static ClassroomSession fromAdhoc(
       LocalDate sessionDate,
@@ -53,7 +67,9 @@ public class ClassroomSession {
       LocalTime endTime,
       UUID classroomId,
       String name,
-      String description) {
+      String description,
+      UUID createdBy,
+      CreatorDetails createdByDetails) {
     return new ClassroomSession()
         .setSessionDate(sessionDate)
         .setStartTime(startTime)
@@ -62,7 +78,9 @@ public class ClassroomSession {
         .setName(name)
         .setDescription(description)
         .setStatus(ClassroomSessionStatus.OPEN)
-        .setType(ClassroomSessionType.ADHOC);
+        .setType(ClassroomSessionType.ADHOC)
+        .setCreatedBy(createdBy)
+        .setCreatedByDetails(createdByDetails);
   }
 
   /**
@@ -119,20 +137,47 @@ public class ClassroomSession {
   }
 
   /**
-   * Replaces display name and description.
+   * Replaces display name and description; optionally reschedules ADHOC date/times.
    *
    * <ul>
-   *   <li>Only when OPEN; null clears the field.
+   *   <li>Only when OPEN; null name/description clears that field.
+   *   <li>Non-null sessionDate/startTime/endTime apply only for ADHOC; null leaves the field.
+   *   <li>SCHEDULE (and any non-ADHOC) rejects date/time changes — recurrence owns the slot.
    * </ul>
    *
    * @param name new display name, or null to clear
    * @param description new description, or null to clear
+   * @param sessionDate new date, or null to leave unchanged
+   * @param startTime new start, or null to leave unchanged
+   * @param endTime new end, or null to leave unchanged
    * @throws ClassroomSessionCannotBeUpdatedException when status is not OPEN
+   * @throws ClassroomSessionTimeCannotBeUpdatedException when date/time set on non-ADHOC
    */
-  public void updateDetails(String name, String description) {
+  public void updateDetails(
+      String name,
+      String description,
+      LocalDate sessionDate,
+      LocalTime startTime,
+      LocalTime endTime) {
     requireCanBeUpdated();
     this.name = name;
     this.description = description;
+    boolean reschedule = sessionDate != null || startTime != null || endTime != null;
+    if (!reschedule) {
+      return;
+    }
+    if (type != ClassroomSessionType.ADHOC) {
+      throw ClassroomSessionTimeCannotBeUpdatedException.of();
+    }
+    if (sessionDate != null) {
+      this.sessionDate = sessionDate;
+    }
+    if (startTime != null) {
+      this.startTime = startTime;
+    }
+    if (endTime != null) {
+      this.endTime = endTime;
+    }
   }
 
   /**
@@ -150,16 +195,18 @@ public class ClassroomSession {
   }
 
   /**
-   * Sets status to CANCELLED.
+   * Sets status to CANCELLED with the given cause.
    *
    * <ul>
    *   <li>Only from OPEN.
    * </ul>
    *
+   * @param cause why this session was cancelled
    * @throws ClassroomSessionCannotBeUpdatedException when status is not OPEN
    */
-  public void cancel() {
+  public void cancel(ClassroomSessionCancelCause cause) {
     requireCanBeUpdated();
     this.status = ClassroomSessionStatus.CANCELLED;
+    this.cancelCause = cause;
   }
 }
